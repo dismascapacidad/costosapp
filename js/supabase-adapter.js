@@ -158,6 +158,17 @@ function _convertirInsumoDesdeDB(row) {
  * Convierte un producto de Supabase al formato que espera la app.
  */
 function _convertirProductoDesdeDB(row) {
+  // Parsear componentes si viene como string JSON
+  var componentes = row.componentes || [];
+  if (typeof componentes === 'string') {
+    try {
+      componentes = JSON.parse(componentes);
+    } catch (e) {
+      console.warn('[adapter] Error parseando componentes:', e);
+      componentes = [];
+    }
+  }
+  
   return {
     id:                  row.legacy_id || row.id,
     _supabaseId:         row.id,
@@ -165,7 +176,7 @@ function _convertirProductoDesdeDB(row) {
     nombre:              row.nombre,
     categoria:           row.categoria || '',
     // 'componentes' en Supabase = 'insumos' en la app
-    insumos:             row.componentes || [],
+    insumos:             componentes,
     horasTrabajo:        Number(row.horas_trabajo) || 0,
     costoHora:           Number(row.costo_hora) || 0,
     modoConsumidor:      row.modo_consumidor || 'margen',
@@ -183,6 +194,17 @@ function _convertirProductoDesdeDB(row) {
 }
 
 function _convertirPresupuestoDesdeDB(row) {
+  // Parsear lineas si viene como string JSON
+  var lineas = row.lineas || [];
+  if (typeof lineas === 'string') {
+    try {
+      lineas = JSON.parse(lineas);
+    } catch (e) {
+      console.warn('[adapter] Error parseando lineas presupuesto:', e);
+      lineas = [];
+    }
+  }
+  
   return {
     id:               row.legacy_id || row.id,
     _supabaseId:      row.id,
@@ -192,7 +214,7 @@ function _convertirPresupuestoDesdeDB(row) {
     tipoCliente:      row.tipo_cliente || 'consumidor',
     descuento:        Number(row.descuento) || 0,
     costoEnvio:       Number(row.costo_envio) || 0,
-    lineas:           row.lineas || [],
+    lineas:           lineas,
     subtotalLineas:   Number(row.subtotal_lineas) || 0,
     montoDescuento:   Number(row.monto_descuento) || 0,
     totalSinEnvio:    Number(row.total_sin_envio) || 0,
@@ -203,6 +225,17 @@ function _convertirPresupuestoDesdeDB(row) {
 }
 
 function _convertirOrdenDesdeDB(row) {
+  // Parsear lineas si viene como string JSON
+  var lineas = row.lineas || [];
+  if (typeof lineas === 'string') {
+    try {
+      lineas = JSON.parse(lineas);
+    } catch (e) {
+      console.warn('[adapter] Error parseando lineas orden:', e);
+      lineas = [];
+    }
+  }
+  
   return {
     id:              row.legacy_id || row.id,
     _supabaseId:     row.id,
@@ -214,7 +247,7 @@ function _convertirOrdenDesdeDB(row) {
     metodoPago:      row.metodo_pago || '',
     notas:           row.notas || '',
     espontanea:      row.espontanea || false,
-    lineas:          row.lineas || [],
+    lineas:          lineas,
     fechaCreacion:   row.fecha_creacion,
     fechaFinalizada: row.fecha_finalizada
   };
@@ -235,6 +268,26 @@ function _convertirMovimientoDesdeDB(row) {
 }
 
 function _convertirClienteDesdeDB(row) {
+  // Parsear tags si viene como string JSON
+  var tags = row.tags || [];
+  if (typeof tags === 'string') {
+    try {
+      tags = JSON.parse(tags);
+    } catch (e) {
+      tags = [];
+    }
+  }
+  
+  // Parsear tiendanubeData si viene como string JSON
+  var tiendanubeData = row.tiendanube_data || null;
+  if (typeof tiendanubeData === 'string') {
+    try {
+      tiendanubeData = JSON.parse(tiendanubeData);
+    } catch (e) {
+      tiendanubeData = null;
+    }
+  }
+  
   return {
     id:             row.legacy_id || row.id,
     _supabaseId:    row.id,
@@ -247,8 +300,8 @@ function _convertirClienteDesdeDB(row) {
     codigoPostal:   row.codigo_postal || '',
     tipo:           row.tipo || 'consumidor',
     notas:          row.notas || '',
-    tags:           row.tags || [],
-    tiendanubeData: row.tiendanube_data || null,
+    tags:           tags,
+    tiendanubeData: tiendanubeData,
     fechaAlta:      row.fecha_alta || row.created_at
   };
 }
