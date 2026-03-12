@@ -122,24 +122,41 @@ async function cargarDatosDesdeSupabase() {
 
 // ── Conversores DB → JS (snake_case → camelCase + tipos) ─────────────────────
 
+/**
+ * Convierte un insumo de Supabase al formato que espera la app.
+ * 
+ * IMPORTANTE: La app usa 'precioUnitario' como campo principal para el costo.
+ * En Supabase guardamos tanto 'precio_compra' como 'costo_unitario'.
+ * El 'precioUnitario' de la app equivale a 'costo_unitario' de Supabase.
+ */
 function _convertirInsumoDesdeDB(row) {
+  // costo_unitario es el precio por unidad que usa la app para calcular costos
+  var costoUnit = Number(row.costo_unitario) || 0;
+  
   return {
     id:                 row.legacy_id || row.id,
     _supabaseId:        row.id,
     nombre:             row.nombre,
     categoria:          row.categoria || '',
     unidad:             row.unidad || 'u.',
-    precioCompra:       Number(row.precio_compra) || 0,
+    // CAMPO CRÍTICO: precioUnitario es lo que usa la app para calcular costos de productos
+    precioUnitario:     costoUnit,
+    // También mantener precioCompra y cantidadCompra para el cálculo interno
+    precioCompra:       Number(row.precio_compra) || costoUnit,
     cantidadCompra:     Number(row.cantidad_compra) || 1,
+    // costoUnitario es redundante con precioUnitario, pero lo mantenemos por compatibilidad
+    costoUnitario:      costoUnit,
     moneda:             row.moneda || 'ARS',
     proveedor:          row.proveedor || '',
-    costoUnitario:      Number(row.costo_unitario) || 0,
     stockActual:        Number(row.stock_actual) || 0,
     stockMinimo:        Number(row.stock_minimo) || 0,
     fechaActualizacion: row.fecha_actualizacion || row.created_at
   };
 }
 
+/**
+ * Convierte un producto de Supabase al formato que espera la app.
+ */
 function _convertirProductoDesdeDB(row) {
   return {
     id:                  row.legacy_id || row.id,
@@ -147,6 +164,7 @@ function _convertirProductoDesdeDB(row) {
     sku:                 row.sku || '',
     nombre:              row.nombre,
     categoria:           row.categoria || '',
+    // 'componentes' en Supabase = 'insumos' en la app
     insumos:             row.componentes || [],
     horasTrabajo:        Number(row.horas_trabajo) || 0,
     costoHora:           Number(row.costo_hora) || 0,
@@ -283,17 +301,19 @@ async function guardarDatosEnSupabase(data) {
     await sb.from('insumos').delete().eq('user_id', userId);
     if (data.insumos && data.insumos.length > 0) {
       var insumosRows = data.insumos.map(function(i) {
+        // La app usa precioUnitario, lo guardamos en costo_unitario
+        var costoUnit = i.precioUnitario || i.costoUnitario || 0;
         return {
           user_id:              userId,
           legacy_id:            i.id,
           nombre:               i.nombre,
           categoria:            i.categoria || '',
           unidad:               i.unidad || 'u.',
-          precio_compra:        i.precioCompra || 0,
+          precio_compra:        i.precioCompra || costoUnit,
           cantidad_compra:      i.cantidadCompra || 1,
           moneda:               i.moneda || 'ARS',
           proveedor:            i.proveedor || '',
-          costo_unitario:       i.costoUnitario || 0,
+          costo_unitario:       costoUnit,
           stock_actual:         i.stockActual || 0,
           stock_minimo:         i.stockMinimo || 0,
           fecha_actualizacion:  i.fechaActualizacion || new Date().toISOString()
