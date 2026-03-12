@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migrar datos – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/login.css" />
+</head>
+<body>
+
+<div class="login-container">
+  <div class="login-card" style="max-width: 520px;">
+    <div class="login-logo">
+      <h1>CostosApp</h1>
+      <span>migración a Supabase</span>
+    </div>
+
+    <!-- Estado inicial -->
+    <div id="paso-inicio">
+      <div id="resumen-local" class="migrar-resumen">
+        <p>Cargando datos locales...</p>
+      </div>
+
+      <div class="migrar-info">
+        <p>Este proceso va a subir todos tus datos de localStorage a Supabase. Antes de migrar, se descargará un backup JSON automáticamente.</p>
+      </div>
+
+      <button class="btn btn-primary login-btn" id="btn-migrar" onclick="iniciarMigracion()" disabled>
+        Migrar datos a Supabase
+      </button>
+    </div>
+
+    <!-- Progreso -->
+    <div id="paso-progreso" class="oculto">
+      <div class="migrar-progreso">
+        <div class="migrar-paso" id="prog-backup">Descargando backup...</div>
+        <div class="migrar-paso" id="prog-subiendo">Subiendo datos a Supabase...</div>
+        <div class="migrar-paso" id="prog-verificando">Verificando...</div>
+      </div>
+    </div>
+
+    <!-- Resultado -->
+    <div id="paso-resultado" class="oculto">
+      <div id="resultado-contenido"></div>
+      <a href="index.html" class="btn btn-primary login-btn" style="display:inline-block; text-align:center; text-decoration:none; margin-top:1rem;">
+        Ir a CostosApp
+      </a>
+    </div>
+
+    <!-- Mensajes de error -->
+    <div id="migrar-mensaje" class="login-mensaje oculto"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/supabase-adapter.js"></script>
+
+<script>
+var _datosLocales = null;
+
+// ── Inicialización ───────────────────────────────────────────────────────────
+
+(async function() {
+  // Verificar sesión
+  var user = await getCurrentUser();
+  if (!user) {
+    mostrarError('Necesitás iniciar sesión antes de migrar. <a href="login.html">Ir al login</a>.');
+    return;
+  }
+
+  // Leer datos locales
+  try {
+    var raw = localStorage.getItem('costosApp_v1');
+    if (!raw) {
+      mostrarError('No hay datos en localStorage para migrar. ¿Ya migraste antes?');
+      return;
+    }
+
+    _datosLocales = JSON.parse(raw);
+
+    // Mostrar resumen
+    var el = document.getElementById('resumen-local');
+    el.innerHTML =
+      '<h3 style="margin-bottom:0.75rem; color:var(--accent-text);">Datos encontrados en localStorage:</h3>' +
+      '<div class="migrar-items">' +
+        _lineaResumen('Insumos', (_datosLocales.insumos || []).length) +
+        _lineaResumen('Productos', (_datosLocales.productos || []).length) +
+        _lineaResumen('Presupuestos', (_datosLocales.presupuestos || []).length) +
+        _lineaResumen('Órdenes de producción', (_datosLocales.ordenesProduccion || []).length) +
+        _lineaResumen('Movimientos de stock', (_datosLocales.movimientosStock || []).length) +
+        _lineaResumen('Clientes', (_datosLocales.clientes || []).length) +
+        _lineaResumen('Ventas', (_datosLocales.ventas || []).length) +
+      '</div>';
+
+    document.getElementById('btn-migrar').disabled = false;
+
+  } catch (err) {
+    mostrarError('Error leyendo localStorage: ' + err.message);
+  }
+})();
+
+function _lineaResumen(nombre, cantidad) {
+  return '<div class="migrar-item">' +
+    '<span>' + nombre + '</span>' +
+    '<span class="migrar-cant">' + cantidad + '</span>' +
+  '</div>';
+}
+
+// ── Migración ────────────────────────────────────────────────────────────────
+
+async function iniciarMigracion() {
+  if (!_datosLocales) return;
+
+  document.getElementById('paso-inicio').classList.add('oculto');
+  document.getElementById('paso-progreso').classList.remove('oculto');
+
+  try {
+    // 1. Backup automático
+    marcarPaso('prog-backup', 'activo');
+    _descargarBackup(_datosLocales);
+    await _esperar(500);
+    marcarPaso('prog-backup', 'ok');
+
+    // 2. Subir a Supabase
+    marcarPaso('prog-subiendo', 'activo');
+    var resultado = await subirMigracion(_datosLocales);
+    if (!resultado.ok) throw new Error(resultado.error);
+    marcarPaso('prog-subiendo', 'ok');
+
+    // 3. Verificar
+    marcarPaso('prog-verificando', 'activo');
+    var datosNube = await cargarDatosDesdeSupabase();
+    marcarPaso('prog-verificando', 'ok');
+
+    await _esperar(300);
+
+    // Mostrar resultado
+    document.getElementById('paso-progreso').classList.add('oculto');
+    document.getElementById('paso-resultado').classList.remove('oculto');
+
+    var r = resultado.resumen;
+    document.getElementById('resultado-contenido').innerHTML =
+      '<h3 style="color:var(--success); margin-bottom:0.75rem;">Migración completada</h3>' +
+      '<div class="migrar-items">' +
+        _lineaResumen('Insumos', r.insumos) +
+        _lineaResumen('Productos', r.productos) +
+        _lineaResumen('Presupuestos', r.presupuestos) +
+        _lineaResumen('Órdenes', r.ordenes) +
+        _lineaResumen('Movimientos', r.movimientos) +
+        _lineaResumen('Clientes', r.clientes) +
+        _lineaResumen('Ventas', r.ventas) +
+        _lineaResumen('Mapeos', r.mapeos) +
+      '</div>';
+
+  } catch (err) {
+    mostrarError('Error en la migración: ' + err.message);
+    document.getElementById('paso-progreso').classList.add('oculto');
+    document.getElementById('paso-inicio').classList.remove('oculto');
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function _descargarBackup(data) {
+  var fecha  = new Date().toISOString().slice(0, 10);
+  var nombre = 'backup_pre_migracion_' + fecha + '.json';
+  var json   = JSON.stringify(data, null, 2);
+  var blob   = new Blob([json], { type: 'application/json' });
+  var url    = URL.createObjectURL(blob);
+  var a      = document.createElement('a');
+  a.href     = url;
+  a.download = nombre;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function marcarPaso(id, estado) {
+  var el = document.getElementById(id);
+  el.className = 'migrar-paso ' + estado;
+  if (estado === 'ok') {
+    el.innerHTML = '✓ ' + el.textContent;
+  } else if (estado === 'activo') {
+    el.innerHTML = '⟳ ' + el.textContent;
+  }
+}
+
+function mostrarError(html) {
+  var el = document.getElementById('migrar-mensaje');
+  el.innerHTML = html;
+  el.className = 'login-mensaje error';
+  el.classList.remove('oculto');
+}
+
+function _esperar(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+</script>
+
+<style>
+.migrar-resumen {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.migrar-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.migrar-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
+.migrar-item span:first-child {
+  color: var(--text-2);
+}
+
+.migrar-cant {
+  font-family: var(--font-mono);
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.migrar-info {
+  margin-bottom: 1rem;
+}
+
+.migrar-info p {
+  font-size: 0.82rem;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+.migrar-progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.migrar-paso {
+  font-size: 0.9rem;
+  color: var(--text-3);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.migrar-paso.activo {
+  color: var(--accent-text);
+  background: var(--accent-glow);
+}
+
+.migrar-paso.ok {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.08);
+}
+</style>
+
+</body>
+</html>

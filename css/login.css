@@ -1,0 +1,150 @@
+/*
+ * login.css — Estilos de la página de login / registro
+ * Usa las variables de styles.css (tema dark)
+ */
+
+/* ── Ocultar ────────────────────────────────────────────────────────────── */
+.oculto { display: none !important; }
+
+/* ── Container ──────────────────────────────────────────────────────────── */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 1rem;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ── Logo ───────────────────────────────────────────────────────────────── */
+.login-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo h1 {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--accent-text);
+  letter-spacing: 0.02em;
+}
+
+.login-logo span {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.login-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.login-tab {
+  flex: 1;
+  padding: 0.7rem;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.login-tab:hover {
+  color: var(--text-2);
+}
+
+.login-tab.activo {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Form groups ────────────────────────────────────────────────────────── */
+.login-card .form-group {
+  margin-bottom: 1rem;
+}
+
+.login-card label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-2);
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+}
+
+.login-card input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.login-card input::placeholder {
+  color: var(--text-3);
+}
+
+/* ── Botón login ────────────────────────────────────────────────────────── */
+.login-btn {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  font-size: 0.95rem;
+}
+
+/* ── Mensajes ───────────────────────────────────────────────────────────── */
+.login-mensaje {
+  margin-top: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.login-mensaje.error {
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  color: var(--error);
+}
+
+.login-mensaje.exito {
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  color: var(--success);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 2rem 1.25rem;
+  }
+}

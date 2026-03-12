@@ -2,21 +2,23 @@
  * storage.js
  * Única responsabilidad: persistencia de datos.
  *
- * FUNCIONES PÚBLICAS:
- *   loadData()            → lee AppData desde localStorage
- *   saveData(data)        → escribe AppData en localStorage
+ * FUNCIONES PÚBLICAS (mismas firmas que antes):
+ *   loadData()            → lee AppData (desde Supabase o localStorage)
+ *   saveData(data)        → escribe AppData (en Supabase y localStorage)
  *   exportData()          → descarga backup_costos_YYYY-MM-DD.json
  *   importData(file)      → lee un .json, valida estructura, reemplaza AppData
- *   validarEstructura(obj)→ valida shape del JSON (también usable desde tests)
+ *   validarEstructura(obj)→ valida shape del JSON
  *
- * PREPARADO PARA BACKEND:
- *   Cada función tiene un comentario indicando su equivalente REST futuro.
- *   La firma de cada función no cambiará; solo cambia la implementación interna.
+ * ESTRATEGIA:
+ *   - Si hay sesión de Supabase → leer/escribir en la nube
+ *   - Siempre mantener localStorage como caché local (para velocidad)
+ *   - El primer loadData() carga desde localStorage (instantáneo),
+ *     y luego cargarDesdeSupabaseAsync() actualiza en segundo plano.
  */
 
-const STORAGE_KEY = 'costosApp_v1';
+var STORAGE_KEY = 'costosApp_v1';
 
-const DEFAULT_DATA = {
+var DEFAULT_DATA = {
   version: 1,
   monedaBase: 'ARS',
   tipoCambioManual: 1000,
@@ -25,19 +27,19 @@ const DEFAULT_DATA = {
   presupuestos: [],
   movimientosStock: [],
   ordenesProduccion: [],
+  clientes: [],
+  ventas: [],
   config: { margenGlobalConsumidor: 45, margenGlobalDistribuidor: 20 }
 };
 
+// Flag para saber si ya se hizo la carga inicial desde Supabase
+var _cargaSupabaseCompleta = false;
+
+// Flag para evitar guardados concurrentes
+var _guardandoEnSupabase = false;
+
 // ── Validación de estructura ──────────────────────────────────────────────────
 
-/**
- * Valida que un objeto tenga la estructura mínima esperada de AppData.
- * Separada de importData() para poder reutilizarse en tests o en un futuro
- * endpoint de validación server-side.
- *
- * @param  {*} obj - objeto a validar (cualquier tipo)
- * @returns {{ ok: boolean, error: string|null }}
- */
 function validarEstructura(obj) {
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
     return { ok: false, error: 'El archivo no contiene un objeto JSON válido.' };
@@ -57,44 +59,135 @@ function validarEstructura(obj) {
 // ── loadData ──────────────────────────────────────────────────────────────────
 
 /**
- * Lee AppData desde localStorage.
- * Hace merge defensivo con DEFAULT_DATA para tolerar versiones viejas
- * que no tengan todos los campos.
- *
- * Futura migración → GET /api/data
+ * Lee AppData. Carga instantáneamente desde localStorage,
+ * y en segundo plano sincroniza con Supabase.
  *
  * @returns {Object} AppData
  */
 function loadData() {
+  // Carga instantánea desde localStorage (para no bloquear la UI)
+  var data;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(DEFAULT_DATA);
-    const parsed = JSON.parse(raw);
-    return Object.assign(structuredClone(DEFAULT_DATA), parsed);
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      data = structuredClone(DEFAULT_DATA);
+    } else {
+      var parsed = JSON.parse(raw);
+      data = Object.assign(structuredClone(DEFAULT_DATA), parsed);
+    }
   } catch (e) {
     console.error('[storage] loadData falló, usando defaults:', e);
-    return structuredClone(DEFAULT_DATA);
+    data = structuredClone(DEFAULT_DATA);
   }
+
+  // Disparar carga desde Supabase en segundo plano (solo la primera vez)
+  if (!_cargaSupabaseCompleta) {
+    _cargarDesdeSupabaseAsync();
+  }
+
+  return data;
+}
+
+/**
+ * Carga datos desde Supabase y actualiza AppData + localStorage.
+ * Se ejecuta una sola vez, en segundo plano, sin bloquear la UI.
+ */
+async function _cargarDesdeSupabaseAsync() {
+  // Solo intentar si Supabase está disponible y hay sesión
+  if (typeof cargarDatosDesdeSupabase !== 'function') return;
+  if (typeof getCurrentUser !== 'function') return;
+
+  try {
+    var user = await getCurrentUser();
+    if (!user) return; // Sin sesión, usar solo localStorage
+
+    var datosNube = await cargarDatosDesdeSupabase();
+
+    // Si Supabase tiene datos, actualizar AppData y localStorage
+    if (datosNube && datosNube.insumos) {
+      window.AppData = Object.assign(structuredClone(DEFAULT_DATA), datosNube);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(window.AppData));
+      _cargaSupabaseCompleta = true;
+
+      console.log('[storage] Datos sincronizados desde Supabase.');
+
+      // Re-renderizar la página actual si hay función init disponible
+      _reRenderizarPaginaActual();
+    }
+  } catch (err) {
+    console.warn('[storage] No se pudo cargar desde Supabase, usando localStorage:', err.message);
+  }
+}
+
+/**
+ * Re-renderiza el contenido de la página actual después de sincronizar.
+ */
+function _reRenderizarPaginaActual() {
+  var page = typeof getCurrentPage === 'function' ? getCurrentPage() : '';
+  if (page === 'insumos'         && typeof initInsumos         === 'function') initInsumos();
+  if (page === 'productos'       && typeof initProductos       === 'function') initProductos();
+  if (page === 'presupuestos'    && typeof initPresupuestos    === 'function') initPresupuestos();
+  if (page === 'clientes'        && typeof initClientes        === 'function') initClientes();
+  if (page === 'stock'           && typeof initStock           === 'function') initStock();
+  if (page === 'produccion'      && typeof initProduccion      === 'function') initProduccion();
+  if (page === 'estadisticas'    && typeof initEstadisticas    === 'function') initEstadisticas();
+  if (page === 'importar-ventas' && typeof initImportarVentas  === 'function') initImportarVentas();
+  if (page === 'simulador'       && typeof initSimulador       === 'function') initSimulador();
 }
 
 // ── saveData ──────────────────────────────────────────────────────────────────
 
 /**
- * Persiste AppData en localStorage.
- *
- * Futura migración → PUT /api/data  (body: JSON.stringify(data))
+ * Persiste AppData. Guarda en localStorage (instantáneo)
+ * y en Supabase (async, sin bloquear).
  *
  * @param  {Object}  data - objeto AppData completo
- * @returns {boolean} true si guardó sin errores
+ * @returns {boolean} true si guardó en localStorage sin errores
  */
 function saveData(data) {
+  // 1. Guardar en localStorage (instantáneo, como antes)
+  var ok = true;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return true;
   } catch (e) {
-    console.error('[storage] saveData falló:', e);
-    return false;
+    console.error('[storage] saveData localStorage falló:', e);
+    ok = false;
   }
+
+  // 2. Guardar en Supabase (async, no bloquea)
+  _guardarEnSupabaseAsync(data);
+
+  return ok;
+}
+
+/**
+ * Guarda datos en Supabase en segundo plano.
+ * Usa un debounce simple para no hacer demasiadas escrituras.
+ */
+var _saveTimeout = null;
+
+function _guardarEnSupabaseAsync(data) {
+  if (typeof guardarDatosEnSupabase !== 'function') return;
+  if (_guardandoEnSupabase) return;
+
+  // Debounce: esperar 2 segundos después del último cambio
+  if (_saveTimeout) clearTimeout(_saveTimeout);
+
+  _saveTimeout = setTimeout(function() {
+    _guardandoEnSupabase = true;
+    guardarDatosEnSupabase(data)
+      .then(function(ok) {
+        if (ok) {
+          console.log('[storage] Datos sincronizados a Supabase.');
+        }
+      })
+      .catch(function(err) {
+        console.warn('[storage] Error sincronizando a Supabase:', err.message);
+      })
+      .finally(function() {
+        _guardandoEnSupabase = false;
+      });
+  }, 2000);
 }
 
 // ── exportData ────────────────────────────────────────────────────────────────
@@ -102,21 +195,18 @@ function saveData(data) {
 /**
  * Descarga AppData como archivo JSON.
  * Nombre de archivo: backup_costos_YYYY-MM-DD.json
- *
- * Futura migración → GET /api/data/export  (response: blob descargable)
  */
 function exportData() {
-  const data     = loadData();
-  const fecha    = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
-  const nombre   = `backup_costos_${fecha}.json`;
-  const json     = JSON.stringify(data, null, 2);
-  const blob     = new Blob([json], { type: 'application/json' });
-  const url      = URL.createObjectURL(blob);
+  var data     = loadData();
+  var fecha    = new Date().toISOString().slice(0, 10);
+  var nombre   = 'backup_costos_' + fecha + '.json';
+  var json     = JSON.stringify(data, null, 2);
+  var blob     = new Blob([json], { type: 'application/json' });
+  var url      = URL.createObjectURL(blob);
 
-  const a     = document.createElement('a');
+  var a     = document.createElement('a');
   a.href      = url;
   a.download  = nombre;
-  // Necesita estar en el DOM en Firefox para disparar el click
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
@@ -127,45 +217,40 @@ function exportData() {
 // ── importData ────────────────────────────────────────────────────────────────
 
 /**
- * Lee un archivo JSON, valida su estructura y reemplaza AppData en localStorage.
- *
- * Futura migración → POST /api/data/import  (body: FormData con el archivo)
+ * Lee un archivo JSON, valida su estructura y reemplaza AppData.
+ * Guarda tanto en localStorage como en Supabase.
  *
  * @param  {File} file - objeto File del input[type="file"]
- * @returns {Promise<{ data: Object }>} resuelve con los datos importados
- * @throws  {Error} si el JSON es inválido o la estructura no cumple el esquema
+ * @returns {Promise<{ data: Object }>}
  */
 function importData(file) {
-  return new Promise((resolve, reject) => {
-    // Verificar que sea un archivo antes de leer
+  return new Promise(function(resolve, reject) {
     if (!file || !(file instanceof File)) {
       return reject(new Error('No se recibió un archivo válido.'));
     }
 
-    const reader = new FileReader();
+    var reader = new FileReader();
 
-    reader.onload = (e) => {
-      // 1. Parsear JSON
-      let parsed;
+    reader.onload = function(e) {
+      var parsed;
       try {
         parsed = JSON.parse(e.target.result);
       } catch (_) {
         return reject(new Error('El archivo no es un JSON válido.'));
       }
 
-      // 2. Validar estructura
-      const { ok, error } = validarEstructura(parsed);
-      if (!ok) return reject(new Error(error));
+      var resultado = validarEstructura(parsed);
+      if (!resultado.ok) return reject(new Error(resultado.error));
 
-      // 3. Persistir y actualizar AppData en memoria
-      const guardado = saveData(parsed);
+      // Guardar en localStorage
+      var guardado = saveData(parsed);
       if (!guardado) return reject(new Error('No se pudo guardar en localStorage.'));
 
-      window.AppData = loadData();   // refrescar estado global
+      window.AppData = loadData();
       resolve({ data: window.AppData });
     };
 
-    reader.onerror = () => reject(new Error('Error al leer el archivo.'));
+    reader.onerror = function() { reject(new Error('Error al leer el archivo.')); };
     reader.readAsText(file);
   });
 }

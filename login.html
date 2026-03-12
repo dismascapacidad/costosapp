@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciar sesión – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/login.css" />
+</head>
+<body>
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+
+    <!-- Tabs login / registro -->
+    <div class="login-tabs">
+      <button class="login-tab activo" id="tab-login" onclick="mostrarTab('login')">Iniciar sesión</button>
+      <button class="login-tab" id="tab-registro" onclick="mostrarTab('registro')">Crear cuenta</button>
+    </div>
+
+    <!-- Formulario de login -->
+    <div id="form-login">
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password" />
+      </div>
+      <button class="btn btn-primary login-btn" id="btn-login" onclick="hacerLogin()">Iniciar sesión</button>
+    </div>
+
+    <!-- Formulario de registro -->
+    <div id="form-registro" class="oculto">
+      <div class="form-group">
+        <label for="reg-email">Email</label>
+        <input type="email" id="reg-email" placeholder="tu@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="reg-password">Contraseña</label>
+        <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label for="reg-password2">Repetir contraseña</label>
+        <input type="password" id="reg-password2" placeholder="Repetí la contraseña" autocomplete="new-password" />
+      </div>
+      <button class="btn btn-primary login-btn" id="btn-registro" onclick="hacerRegistro()">Crear cuenta</button>
+    </div>
+
+    <!-- Mensajes de error / éxito -->
+    <div id="login-mensaje" class="login-mensaje oculto"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+
+<script>
+// ── Verificar si ya hay sesión activa ────────────────────────────────────────
+
+(async function() {
+  var user = await getCurrentUser();
+  if (user) {
+    // Ya logueado, ir directo a la app
+    window.location.href = 'index.html';
+  }
+})();
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+
+function mostrarTab(tab) {
+  var formLogin    = document.getElementById('form-login');
+  var formRegistro = document.getElementById('form-registro');
+  var tabLogin     = document.getElementById('tab-login');
+  var tabRegistro  = document.getElementById('tab-registro');
+  var mensaje      = document.getElementById('login-mensaje');
+
+  mensaje.classList.add('oculto');
+
+  if (tab === 'login') {
+    formLogin.classList.remove('oculto');
+    formRegistro.classList.add('oculto');
+    tabLogin.classList.add('activo');
+    tabRegistro.classList.remove('activo');
+  } else {
+    formLogin.classList.add('oculto');
+    formRegistro.classList.remove('oculto');
+    tabLogin.classList.remove('activo');
+    tabRegistro.classList.add('activo');
+  }
+}
+
+// ── Login ────────────────────────────────────────────────────────────────────
+
+async function hacerLogin() {
+  var email    = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  var btn      = document.getElementById('btn-login');
+
+  if (!email || !password) {
+    mostrarMensaje('Completá email y contraseña.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Ingresando...';
+
+  var result = await loginConEmail(email, password);
+
+  if (result.ok) {
+    window.location.href = 'index.html';
+  } else {
+    mostrarMensaje(result.error, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Iniciar sesión';
+  }
+}
+
+// ── Registro ─────────────────────────────────────────────────────────────────
+
+async function hacerRegistro() {
+  var email     = document.getElementById('reg-email').value.trim();
+  var password  = document.getElementById('reg-password').value;
+  var password2 = document.getElementById('reg-password2').value;
+  var btn       = document.getElementById('btn-registro');
+
+  if (!email || !password) {
+    mostrarMensaje('Completá email y contraseña.', 'error');
+    return;
+  }
+  if (password !== password2) {
+    mostrarMensaje('Las contraseñas no coinciden.', 'error');
+    return;
+  }
+  if (password.length < 6) {
+    mostrarMensaje('La contraseña debe tener al menos 6 caracteres.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creando cuenta...';
+
+  var result = await registrarConEmail(email, password);
+
+  if (result.ok) {
+    if (result.confirmacion) {
+      mostrarMensaje('Cuenta creada. Revisá tu email para confirmar antes de iniciar sesión.', 'exito');
+    } else {
+      // Login automático si no requiere confirmación
+      window.location.href = 'index.html';
+    }
+  } else {
+    mostrarMensaje(result.error, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Crear cuenta';
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+
+function mostrarMensaje(texto, tipo) {
+  var el = document.getElementById('login-mensaje');
+  el.textContent = texto;
+  el.className = 'login-mensaje ' + tipo;
+  el.classList.remove('oculto');
+}
+
+// Enter para enviar formularios
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  var formLogin = document.getElementById('form-login');
+  var formRegistro = document.getElementById('form-registro');
+
+  if (!formLogin.classList.contains('oculto')) {
+    hacerLogin();
+  } else if (!formRegistro.classList.contains('oculto')) {
+    hacerRegistro();
+  }
+});
+</script>
+
+</body>
+</html>
