@@ -32,6 +32,7 @@ async function initApp() {
   // 5. Inicializar módulos específicos de la página actual
   var page = getCurrentPage();
 
+  if (page === 'index'           && typeof initIndex           === 'function') initIndex();
   if (page === 'insumos'         && typeof initInsumos         === 'function') initInsumos();
   if (page === 'productos'       && typeof initProductos       === 'function') initProductos();
   if (page === 'presupuestos'    && typeof initPresupuestos    === 'function') initPresupuestos();

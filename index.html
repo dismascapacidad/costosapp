@@ -219,8 +219,9 @@ function handleImport(event) {
     .catch(function(err) { alert('Error: ' + err.message); });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+function initIndex() {
   var d  = window.AppData;
+  if (!d) return;
   var el = document.getElementById('resumen-estado');
   el.innerHTML = 
     '<p><strong>Moneda base</strong>' + d.monedaBase + '</p>' +
@@ -232,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var cache = getCacheDolar();
   renderDolarWidget(cache);
   fetchDolarBlue().then(renderDolarWidget);
-});
+}
 </script>
 
 <style>
