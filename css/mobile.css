@@ -233,6 +233,88 @@
     display: none;
   }
 
+  /* ════════════════════════════════════════════════════════════════════════
+     TABLAS ESPECÍFICAS EN MOBILE
+     En mobile mostramos solo las columnas esenciales.
+     Las columnas se cuentan por su posición en el <tr>:
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* ── PRODUCTOS: 9 columnas ──────────────────────────────────────────── */
+  /* SKU(1) Nombre(2) Categoría(3) Costo(4) Margen(5) Markup(6) P.Cons(7) P.Distrib(8) Acciones(9) */
+  /* Mobile: mostrar SKU, Nombre, P.Consumidor, Acciones */
+
+  .tabla-productos th:nth-child(3),
+  .tabla-productos td:nth-child(3),
+  .tabla-productos th:nth-child(4),
+  .tabla-productos td:nth-child(4),
+  .tabla-productos th:nth-child(5),
+  .tabla-productos td:nth-child(5),
+  .tabla-productos th:nth-child(6),
+  .tabla-productos td:nth-child(6),
+  .tabla-productos th:nth-child(8),
+  .tabla-productos td:nth-child(8) {
+    display: none !important;
+  }
+
+  /* Nombre: permitir wrap y ocupar espacio */
+  .tabla-productos td:nth-child(2) {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 180px;
+  }
+
+  /* Precio consumidor: compacto */
+  .tabla-productos td:nth-child(7) {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* Fila de categoría: colspan se adapta automáticamente */
+
+  /* ── INSUMOS: ocultar columnas extra ────────────────────────────────── */
+  /* En mobile: mostrar solo Nombre, Costo unitario y Acciones */
+  .tabla-insumos th:nth-child(2),
+  .tabla-insumos td:nth-child(2),
+  .tabla-insumos th:nth-child(4),
+  .tabla-insumos td:nth-child(4),
+  .tabla-insumos th:nth-child(5),
+  .tabla-insumos td:nth-child(5),
+  .tabla-insumos th:nth-child(7),
+  .tabla-insumos td:nth-child(7) {
+    display: none !important;
+  }
+
+  .tabla-insumos td:nth-child(1) {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* ── CLIENTES: solo nombre, tipo, acciones ──────────────────────────── */
+  .tabla-clientes th:nth-child(2),
+  .tabla-clientes td:nth-child(2),
+  .tabla-clientes th:nth-child(3),
+  .tabla-clientes td:nth-child(3),
+  .tabla-clientes th:nth-child(5),
+  .tabla-clientes td:nth-child(5) {
+    display: none !important;
+  }
+
+  .tabla-clientes td:nth-child(1) {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* ── Todas las tablas: nombre legible ────────────────────────────────── */
+  .tabla td {
+    font-size: 0.8rem;
+    padding: 0.45rem 0.4rem;
+  }
+
+  .tabla th {
+    font-size: 0.6rem;
+    padding: 0.35rem 0.4rem;
+  }
+
 }
 
 /* ── Breakpoint intermedio: tablets ──────────────────────────────────────── */
