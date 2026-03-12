@@ -1,0 +1,245 @@
+/*
+ * mobile.css — CostosApp responsive
+ * Breakpoint principal: 768px
+ * Se carga DESPUÉS de styles.css
+ */
+
+/* ── Header mobile (solo visible en móvil) ──────────────────────────────── */
+.mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* ── Header mobile ──────────────────────────────────────────────────── */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1rem;
+    z-index: 150;
+  }
+
+  .mobile-hamburger {
+    background: none;
+    border: none;
+    color: var(--text-2);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .mobile-hamburger:hover,
+  .mobile-hamburger:active {
+    color: var(--accent-text);
+  }
+
+  .mobile-title {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent-text);
+    letter-spacing: 0.03em;
+    flex: 1;
+  }
+
+  .mobile-logout {
+    background: none;
+    border: none;
+    color: var(--text-3);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    font-family: var(--font-sans);
+    transition: color 0.15s;
+  }
+
+  .mobile-logout:hover {
+    color: var(--text-1);
+  }
+
+  /* ── Sidebar como overlay ───────────────────────────────────────────── */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300;
+    width: 280px;
+  }
+
+  .sidebar.abierta {
+    transform: translateX(0);
+  }
+
+  /* Overlay oscuro detrás de la sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 250;
+  }
+
+  .sidebar-overlay.activo {
+    display: block;
+  }
+
+  /* ── Main content ajustado ──────────────────────────────────────────── */
+  .main-content {
+    margin-left: 0;
+    padding: 68px 1rem 2rem; /* 52px header + 16px gap */
+  }
+
+  /* ── Cards más compactas ────────────────────────────────────────────── */
+  .card {
+    padding: 1rem;
+  }
+
+  /* ── Page header compacto ───────────────────────────────────────────── */
+  .page-header {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+  }
+
+  .page-header h2 {
+    font-size: 0.95rem;
+  }
+
+  /* ── Formularios: 1 columna ─────────────────────────────────────────── */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Form actions stack vertical ────────────────────────────────────── */
+  .form-actions {
+    flex-wrap: wrap;
+  }
+
+  .form-actions .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* ── Tablas: scroll horizontal ──────────────────────────────────────── */
+  .tabla-wrapper,
+  .card > table,
+  .card > .tabla {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla {
+    min-width: 600px;
+  }
+
+  /* ── tabla-header: wrap y centrar ────────────────────────────────────── */
+  .tabla-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tabla-header h3 {
+    width: 100%;
+  }
+
+  /* ── Buscador full width ────────────────────────────────────────────── */
+  .buscador-wrapper {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .buscador-input {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* ── Modales: casi fullscreen ───────────────────────────────────────── */
+  .modal-box {
+    max-width: 100%;
+    margin: 0.5rem;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 1.25rem;
+  }
+
+  /* ── Presupuestos: layout 1 columna ─────────────────────────────────── */
+  .presup-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Linea agregar insumos: stack ───────────────────────────────────── */
+  .linea-agregar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .linea-agregar select,
+  .linea-agregar input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* ── Widget dólar: ocultar de sidebar (se muestra en header si queremos) */
+  .dolar-widget {
+    display: none;
+  }
+
+  /* ── Storage toolbar: ocultar de sidebar (hay logout en header) ────── */
+  /* Se mantiene visible porque importar/exportar es útil */
+
+  /* ── Costos grid: más compacto ──────────────────────────────────────── */
+  .costos-grid .costo-fila {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  /* ── Resumen index: 2 columnas en mobile ────────────────────────────── */
+  #resumen-estado {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── SKU tags más compactos ─────────────────────────────────────────── */
+  .sku-tag {
+    font-size: 0.65rem;
+    padding: 0.05rem 0.35rem;
+  }
+
+  /* ── Menú dropdown en tablas ────────────────────────────────────────── */
+  .menu-dropdown {
+    right: 0;
+    left: auto;
+  }
+
+  /* ── Produccion stats grid ──────────────────────────────────────────── */
+  .prod-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Stock grid ─────────────────────────────────────────────────────── */
+  .stock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Ocultar botón logout de sidebar (hay uno en header) ────────────── */
+  #btn-logout {
+    display: none;
+  }
+
+}
+
+/* ── Breakpoint intermedio: tablets ──────────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-content {
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
