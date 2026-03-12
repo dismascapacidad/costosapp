@@ -103,13 +103,17 @@ async function _cargarDesdeSupabaseAsync() {
 
     var datosNube = await cargarDatosDesdeSupabase();
 
-    // Si Supabase tiene datos, actualizar AppData y localStorage
-    if (datosNube && datosNube.insumos) {
+    console.log('[storage] Datos recibidos de Supabase — insumos:', 
+      (datosNube && datosNube.insumos ? datosNube.insumos.length : 'N/A'),
+      'productos:', (datosNube && datosNube.productos ? datosNube.productos.length : 'N/A'));
+
+    // Si Supabase devolvió datos (aunque estén vacíos, reemplazan localStorage)
+    if (datosNube) {
       window.AppData = Object.assign(structuredClone(DEFAULT_DATA), datosNube);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(window.AppData));
       _cargaSupabaseCompleta = true;
 
-      console.log('[storage] Datos sincronizados desde Supabase.');
+      console.log('[storage] Datos sincronizados desde Supabase. Insumos en AppData:', window.AppData.insumos.length);
 
       // Re-renderizar la página actual si hay función init disponible
       _reRenderizarPaginaActual();
@@ -124,6 +128,7 @@ async function _cargarDesdeSupabaseAsync() {
  */
 function _reRenderizarPaginaActual() {
   var page = typeof getCurrentPage === 'function' ? getCurrentPage() : '';
+  if (page === 'index'           && typeof initIndex           === 'function') initIndex();
   if (page === 'insumos'         && typeof initInsumos         === 'function') initInsumos();
   if (page === 'productos'       && typeof initProductos       === 'function') initProductos();
   if (page === 'presupuestos'    && typeof initPresupuestos    === 'function') initPresupuestos();
