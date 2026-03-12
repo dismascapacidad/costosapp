@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insumos – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/insumos.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">DÓLAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">&mdash;</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">&mdash;</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+      <button class="btn btn-sm dolar-refresh" id="btn-dolar-refresh" onclick="actualizarDolar()">↻ Actualizar</button>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>Insumos</h2>
+      <p>Materias primas y componentes con sus costos unitarios.</p>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card" id="card-form">
+      <h3 id="form-titulo">Nuevo insumo</h3>
+      <div id="form-error" class="form-error oculto"></div>
+      <form id="form-insumo" novalidate>
+        <input type="hidden" id="campo-id" />
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="campo-nombre">Nombre *</label>
+            <input type="text" id="campo-nombre" placeholder="Ej: Resina epóxica" />
+          </div>
+          <div class="form-group">
+            <label for="campo-categoria">Categoría</label>
+            <input type="text" id="campo-categoria" placeholder="Ej: Química" />
+          </div>
+          <div class="form-group">
+            <label for="campo-unidad">Unidad *</label>
+            <select id="campo-unidad">
+              <option value="">— seleccionar —</option>
+              <option value="gramos">gramos</option>
+              <option value="kilogramos">kilogramos</option>
+              <option value="mililitros">mililitros</option>
+              <option value="litros">litros</option>
+              <option value="metro">metro</option>
+              <option value="unidad">unidad</option>
+              <option value="hora">hora</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="campo-moneda">Moneda *</label>
+            <select id="campo-moneda">
+              <option value="ARS">ARS</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="campo-precio">Precio de compra *</label>
+            <input type="number" id="campo-precio" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label for="campo-cantidad">Cantidad comprada *</label>
+            <input type="number" id="campo-cantidad" min="0.001" step="any" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label for="campo-proveedor">Proveedor</label>
+            <input type="text" id="campo-proveedor" placeholder="Nombre del proveedor" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar insumo</button>
+          <button type="button" class="btn oculto" id="btn-cancelar" onclick="cancelarEdicion()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card" style="margin-top: 1.25rem;">
+      <div class="tabla-header">
+        <h3>Listado de insumos</h3>
+        <span id="contador-insumos" class="badge"></span>
+        <div class="buscador-wrapper">
+          <input type="text" id="buscador-insumos" class="buscador-input"
+            placeholder="Buscar por nombre o categoría…" oninput="renderInsumosList()" />
+        </div>
+      </div>
+      <div id="tabla-wrapper"></div>
+    </div>
+
+    <!-- Panel edición masiva -->
+    <div class="panel-masivo" id="panel-masivo-insumos" style="margin-top:1.25rem;">
+      <div class="panel-masivo-header" id="toggle-masivo-insumos" onclick="togglePanelMasivo('insumos')">
+        <span class="panel-masivo-titulo">Edición masiva de precios</span>
+        <span class="panel-masivo-chevron">▼</span>
+      </div>
+      <div class="panel-masivo-body" id="body-masivo-insumos">
+        <div class="masivo-controles">
+          <div class="form-group">
+            <label>Modo de ajuste</label>
+            <select id="masivo-insumos-modo">
+              <option value="porcentaje">Porcentaje (%)</option>
+              <option value="suma">Suma fija (ARS)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor (puede ser negativo)</label>
+            <input type="number" id="masivo-insumos-valor" step="any" placeholder="Ej: 10 o -5" />
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:flex-end;">
+            <button class="btn btn-primary" onclick="previsualizarMasivoInsumos()">Previsualizar</button>
+            <button class="btn" onclick="seleccionarTodosInsumos(true)">Sel. todos</button>
+            <button class="btn" onclick="seleccionarTodosInsumos(false)">Desel. todos</button>
+          </div>
+        </div>
+        <div id="masivo-insumos-preview"></div>
+        <div id="masivo-insumos-acciones" class="oculto" style="margin-top:0.75rem;">
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="aplicarMasivoInsumos()">Aplicar a seleccionados</button>
+            <button class="btn" onclick="limpiarMasivoInsumos()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal detalle insumo -->
+<div class="modal-overlay-insumo" id="modal-detalle-insumo" onclick="cerrarModalDetalleOverlay(event)">
+  <div class="modal-insumo-content">
+    <div class="modal-insumo-header">
+      <h3 id="modal-detalle-titulo">Detalle del insumo</h3>
+      <button class="modal-close-btn" onclick="cerrarModalDetalle()">&times;</button>
+    </div>
+    <div class="modal-insumo-body">
+      <div class="detalle-grid">
+        <div class="detalle-fila"><span class="detalle-label">Categoría</span><span class="detalle-valor" id="md-categoria">-</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Unidad</span><span class="detalle-valor" id="md-unidad">-</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Proveedor</span><span class="detalle-valor" id="md-proveedor">-</span></div>
+        <div class="detalle-fila detalle-fila-sep"><span class="detalle-label">Moneda de compra</span><span class="detalle-valor" id="md-moneda">-</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Precio de compra</span><span class="detalle-valor" id="md-precio">-</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Cantidad comprada</span><span class="detalle-valor" id="md-cantidad">-</span></div>
+        <div class="detalle-fila detalle-fila-total"><span class="detalle-label">Costo unitario (ARS)</span><span class="detalle-valor" id="md-costo-unit">-</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Última actualización</span><span class="detalle-valor" id="md-fecha">-</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/app.js"></script>
+<script src="js/insumos-ui.js"></script>
+</body>
+</html>

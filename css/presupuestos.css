@@ -1,0 +1,726 @@
+/*
+ * presupuestos.css — Estilos específicos del módulo de presupuestos
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UTILITARIO — OCULTAR ELEMENTOS (gana a cualquier display del styles.css)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.oculto {
+  display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CAMPO CLIENTE — ANCHO COMPLETO
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.presup-campo-cliente {
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.presup-campo-cliente input[type="text"] {
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CAMPOS GRID (validez, envío, descuento)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.presup-campos-grid {
+  margin-bottom: 0.5rem;
+}
+
+.presup-tipo-grupo {
+  margin-top: 0.5rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   METADATOS TOTALES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.totales-meta {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  margin-bottom: 0.75rem;
+}
+
+.totales-validez {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  margin-top: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INPUT CANTIDAD INLINE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cantidad-inline {
+  background: var(--surface-3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.cantidad-inline:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AUTOCOMPLETADO DE CLIENTES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cliente-search-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.cliente-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: var(--surface-2);
+  border: 1px solid var(--accent-dim);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+
+.cliente-dd-item {
+  padding: 0.65rem 0.875rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--text-1);
+  transition: background .1s;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.cliente-dd-item:last-child {
+  border-bottom: none;
+}
+
+.cliente-dd-item:hover,
+.cliente-dd-activo {
+  background: var(--accent-glow);
+}
+
+.cliente-dd-item strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.cliente-dd-item small {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.cliente-dd-empty {
+  color: var(--text-3);
+  cursor: default;
+  font-style: italic;
+  text-align: center;
+}
+
+.cliente-dd-empty:hover {
+  background: transparent;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TARJETA DE CLIENTE SELECCIONADO
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cliente-info-seleccionado {
+  background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.cliente-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.cliente-info-nombre {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-1);
+}
+
+.btn-link-small {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  transition: all .15s;
+  border-radius: var(--radius-sm);
+}
+
+.btn-link-small:hover {
+  color: var(--accent-text);
+  background: rgba(245,158,11,0.1);
+}
+
+.cliente-info-detalles {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cliente-info-dato {
+  font-size: 0.875rem;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cliente-info-dato::before {
+  content: "•";
+  color: var(--accent-dim);
+  font-weight: bold;
+}
+
+.cliente-info-dato:first-child::before {
+  content: "📧";
+}
+
+.cliente-info-dato:nth-child(2)::before {
+  content: "📱";
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TIPO TAG
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.tipo-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
+.tipo-tag.consumidor {
+  background: rgba(52,211,153,0.12);
+  color: var(--success);
+  border: 1px solid rgba(52,211,153,0.25);
+}
+
+.tipo-tag.distribuidor {
+  background: rgba(59,130,246,0.12);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.25);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BUSCADOR DE PRODUCTOS — DROPDOWN CON OVERFLOW VISIBLE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.producto-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.producto-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  transition: border-color 0.15s;
+}
+
+.producto-search-input:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.producto-search-input::placeholder {
+  color: var(--text-3);
+}
+
+.producto-dropdown-presup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: var(--surface);
+  border: 1px solid var(--accent-dim);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: none;
+}
+
+.producto-dropdown-presup.visible {
+  display: block;
+}
+
+.producto-dd-item {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-1);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.producto-dd-item:last-child {
+  border-bottom: none;
+}
+
+.producto-dd-item:hover,
+.producto-dd-item.activo {
+  background: var(--accent-glow);
+}
+
+.producto-dd-item .sku {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-text);
+  flex-shrink: 0;
+}
+
+.producto-dd-item .producto-dd-nombre {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.producto-dd-item .precio {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-2);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.producto-dd-empty {
+  padding: 0.75rem;
+  color: var(--text-3);
+  font-size: 0.85rem;
+  text-align: center;
+  font-style: italic;
+}
+
+.producto-dd-hint {
+  padding: 0.6rem 0.75rem;
+  color: var(--text-3);
+  font-size: 0.8rem;
+  text-align: center;
+  background: var(--surface-2);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FILA AGREGAR PRODUCTO — ALINEACIÓN VERTICAL CORRECTA
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.linea-agregar-presup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.linea-agregar-presup .campo-cantidad {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.linea-agregar-presup .btn-agregar {
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* Igualar altura con los inputs */
+  padding: 0.5rem 0.75rem;
+  line-height: 1.2;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   OVERFLOW VISIBLE — Garantizar que dropdowns no se corten
+   ══════════════════════════════════════════════════════════════════════════ */
+
+#card-form-presupuesto {
+  overflow: visible;
+  /* La animación de .card en styles.css crea un stacking context por card.
+     Elevamos esta card para que sus dropdowns queden por encima del historial. */
+  position: relative;
+  z-index: 10;
+}
+
+.insumos-seccion {
+  overflow: visible;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HISTORIAL — TABLA RESPONSIVE CON SCROLL HORIZONTAL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.presup-historial-card {
+  margin-top: 1.25rem;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.presup-tabla-responsive {
+  /* Sin overflow-x: auto — la tabla se adapta al ancho disponible.
+     Esto permite que los menús absolute se muestren sin recorte. */
+}
+
+/* Tabla de historial: columnas compactas y alineadas */
+.tabla-presupuestos {
+  overflow: visible;
+}
+
+.tabla-presupuestos th,
+.tabla-presupuestos td {
+  padding: 0.5rem 0.65rem;
+  vertical-align: middle;
+}
+
+.tabla-presupuestos tbody {
+  overflow: visible;
+}
+
+.tabla-presupuestos tbody tr {
+  position: relative;
+}
+
+/* Columna acciones: centrar menú, permitir overflow */
+.tabla-presupuestos .td-acciones-menu {
+  text-align: center;
+  position: relative;
+  white-space: nowrap;
+  width: 60px;
+  overflow: visible;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MENÚ DE ACCIONES (···) EN HISTORIAL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.menu-acciones-presup {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-menu-presup {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+  letter-spacing: 0.15em;
+}
+
+.btn-menu-presup:hover {
+  background: var(--surface-3);
+  color: var(--text-1);
+  border-color: var(--accent-dim);
+}
+
+.menu-dropdown-presup {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--surface-2);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  min-width: 160px;
+  z-index: 99999;
+  display: none;
+}
+
+.menu-dropdown-presup.visible {
+  display: block;
+}
+
+.menu-dropdown-presup button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  background: none;
+  border: none;
+  color: var(--text-1);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.menu-dropdown-presup button:first-child {
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.menu-dropdown-presup button:last-child {
+  border-bottom: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.menu-dropdown-presup button:hover {
+  background: var(--accent-glow);
+}
+
+.menu-dropdown-presup button.menu-item-danger:hover {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODAL DETALLE DE PRESUPUESTO
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Ocultar modal — necesita !important para ganarle al display:flex de .modal-overlay */
+.modal-overlay.modal-oculto {
+  display: none !important;
+}
+
+.modal-presup-detalle {
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-presup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-presup-header h3 {
+  margin: 0;
+  color: var(--accent-text);
+}
+
+.modal-presup-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Ficha de datos dentro del modal */
+.detalle-seccion {
+  margin-bottom: 1.25rem;
+}
+
+.detalle-seccion h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  margin-bottom: 0.5rem;
+}
+
+.detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1.5rem;
+}
+
+.detalle-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.detalle-label {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+}
+
+.detalle-valor {
+  font-size: 0.9rem;
+  color: var(--text-1);
+}
+
+.detalle-valor-mono {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent-text);
+}
+
+/* Tabla de líneas dentro del modal */
+.detalle-tabla-lineas {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+
+.detalle-tabla-lineas th {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.detalle-tabla-lineas td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-1);
+}
+
+.detalle-tabla-lineas .td-num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.detalle-tabla-lineas .td-costo {
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+/* Totales dentro del modal */
+.detalle-totales {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-top: 0.75rem;
+}
+
+.detalle-totales .totales-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.detalle-totales .totales-fila:last-child {
+  border-bottom: none;
+}
+
+.detalle-totales .tl {
+  color: var(--text-2);
+}
+
+.detalle-totales .tv {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-1);
+}
+
+.detalle-totales .total-final {
+  background: var(--accent-glow);
+}
+
+.detalle-totales .total-final .tl {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.detalle-totales .total-final .tv {
+  color: var(--accent-text);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.detalle-totales .descuento-fila .tv {
+  color: var(--error);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SKU TAG
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.sku-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-text);
+  background: rgba(245,158,11,0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .linea-agregar-presup {
+    flex-wrap: wrap;
+  }
+
+  .linea-agregar-presup .producto-search-wrap {
+    width: 100%;
+    flex: unset;
+  }
+
+  .linea-agregar-presup .campo-cantidad {
+    flex: 1;
+  }
+
+  .linea-agregar-presup .btn-agregar {
+    flex: 0 0 auto;
+  }
+
+  .detalle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-presup-detalle {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+}

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importar Ventas – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/importador.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>📊 Importar Ventas</h2>
+      <p>Cargá datos de ventas desde TiendaNube o TiendaNegocio para análisis y estadísticas.</p>
+    </div>
+
+    <!-- Paso 1: Selección de archivo -->
+    <div class="card" id="paso-1-seleccion" style="display:block;">
+      <h3>Paso 1: Seleccionar archivo</h3>
+      
+      <div class="plataforma-selector">
+        <label class="radio-card" id="radio-tiendanube">
+          <input type="radio" name="plataforma" value="tiendanube" checked onchange="seleccionarPlataforma(this.value)">
+          <div class="radio-content">
+            <div class="radio-title">🛒 TiendaNube</div>
+            <div class="radio-desc">Formato: CSV (punto y coma)</div>
+          </div>
+        </label>
+        <label class="radio-card" id="radio-tiendanegocio">
+          <input type="radio" name="plataforma" value="tiendanegocio" onchange="seleccionarPlataforma(this.value)">
+          <div class="radio-content">
+            <div class="radio-title">🏪 TiendaNegocio</div>
+            <div class="radio-desc">Formato: Excel (.xlsx)</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📁</div>
+        <div class="dropzone-text">
+          <strong id="dropzone-titulo">Arrastrá tu archivo CSV aquí</strong>
+          <span>o hacé clic para seleccionar</span>
+        </div>
+        <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+
+      <div class="info-box" id="info-formato">
+        <strong>Formato esperado:</strong> CSV de TiendaNube<br>
+        <small>Exportado desde: Reportes → Ventas → Exportar</small>
+      </div>
+    </div>
+
+    <!-- Paso 2: Análisis del archivo -->
+    <div class="card" id="paso-2-analisis" style="display:none;">
+      <h3>Paso 2: Análisis del archivo</h3>
+      
+      <div class="analisis-resultados" id="analisis-resultados">
+        <!-- Se llena dinámicamente con JS -->
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" onclick="volverPaso1()">← Volver</button>
+        <button class="btn btn-primary" onclick="irAlMapeo()">Continuar al mapeo →</button>
+      </div>
+    </div>
+
+    <!-- Paso 3: Mapeo de productos -->
+    <div class="card" id="paso-3-mapeo" style="display:none;">
+      <h3>Paso 3: Mapear productos</h3>
+      
+      <p style="margin-bottom: 1rem; color: var(--text-2);">
+        Relacioná cada producto de <span id="nombre-plataforma">TiendaNube</span> con uno de CostosApp. 
+        Este mapeo se guardará para futuras importaciones.
+      </p>
+
+      <div class="mapeo-progreso">
+        <div class="progreso-bar">
+          <div class="progreso-fill" id="progreso-fill" style="width: 0%"></div>
+        </div>
+        <div class="progreso-text" id="progreso-text">0 / 0 mapeados</div>
+      </div>
+
+      <div class="mapeo-controles">
+        <input type="text" id="buscar-mapeo" class="buscar-input" 
+          placeholder="🔍 Buscar producto..." oninput="filtrarMapeo(this.value)">
+        <button class="btn btn-sm" onclick="intentarMapeoAutomatico()">🔍 Mapeo automático</button>
+      </div>
+
+      <div class="mapeo-lista" id="mapeo-lista">
+        <!-- Se llena dinámicamente con JS -->
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" onclick="volverPaso2()">← Volver</button>
+        <button class="btn btn-primary" onclick="confirmarMapeo()" id="btn-confirmar-mapeo" disabled>
+          Guardar y continuar →
+        </button>
+      </div>
+    </div>
+
+    <!-- Paso 4: Confirmación -->
+    <div class="card" id="paso-4-confirmacion" style="display:none;">
+      <h3>Paso 4: Confirmar importación</h3>
+      
+      <div class="confirmacion-resumen" id="confirmacion-resumen">
+        <!-- Se llena dinámicamente con JS -->
+      </div>
+
+      <div class="alert alert-warning">
+        <strong>⚠️ Atención:</strong> Esta acción no se puede deshacer. 
+        Las ventas se agregarán permanentemente a tu sistema.
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" onclick="volverPaso3()">← Revisar mapeo</button>
+        <button class="btn btn-primary" onclick="ejecutarImportacion()">✓ Confirmar importación</button>
+      </div>
+    </div>
+
+    <!-- Paso 5: Resultado -->
+    <div class="card" id="paso-5-resultado" style="display:none;">
+      <div class="resultado-exito">
+        <div class="resultado-icono">✅</div>
+        <h3>¡Importación completada!</h3>
+        
+        <div class="resultado-stats" id="resultado-stats">
+          <!-- Se llena dinámicamente con JS -->
+        </div>
+
+        <div class="form-actions">
+          <a href="estadisticas.html" class="btn btn-primary">Ver estadísticas →</a>
+          <button class="btn" onclick="nuevaImportacion()">Importar más datos</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         REGISTRO DE VENTAS CONSOLIDADO
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="tabla-header" style="margin-bottom: 1rem;">
+        <h3>📋 Registro de Ventas</h3>
+        <span id="badge-ventas" class="badge">0 ventas</span>
+      </div>
+      
+      <p style="color: var(--text-2); margin-bottom: 1rem; font-size: 0.9rem;">
+        Consolidado de ventas importadas y órdenes de producción (no espontáneas).
+      </p>
+
+      <!-- Filtros -->
+      <div class="filtros-registro" style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; padding: 1rem; background: var(--surface-2); border-radius: var(--radius);">
+        <div class="filtro-grupo">
+          <label style="font-size: 0.75rem; color: var(--text-2);">Desde</label>
+          <input type="date" id="filtro-venta-desde" onchange="renderRegistroVentas()">
+        </div>
+        <div class="filtro-grupo">
+          <label style="font-size: 0.75rem; color: var(--text-2);">Hasta</label>
+          <input type="date" id="filtro-venta-hasta" onchange="renderRegistroVentas()">
+        </div>
+        <div class="filtro-grupo">
+          <label style="font-size: 0.75rem; color: var(--text-2);">Canal</label>
+          <select id="filtro-venta-canal" onchange="renderRegistroVentas()">
+            <option value="">Todos</option>
+            <option value="tiendanube">TiendaNube</option>
+            <option value="tiendanegocio">TiendaNegocio</option>
+            <option value="mercadolibre">MercadoLibre</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="presencial">Presencial</option>
+            <option value="distribuidor">Distribuidor</option>
+            <option value="produccion">Orden Producción</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="filtro-grupo">
+          <label style="font-size: 0.75rem; color: var(--text-2);">Método pago</label>
+          <select id="filtro-venta-metodo" onchange="renderRegistroVentas()">
+            <option value="">Todos</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="mercadopago">MercadoPago</option>
+            <option value="credito">Crédito</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="otra">Otra</option>
+          </select>
+        </div>
+        <div class="filtro-grupo" style="display: flex; align-items: flex-end;">
+          <button class="btn btn-sm" onclick="limpiarFiltrosVentas()">Limpiar</button>
+        </div>
+      </div>
+
+      <!-- Resumen -->
+      <div id="resumen-ventas" class="resumen-ventas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+        <!-- Se llena dinámicamente -->
+      </div>
+
+      <!-- Tabla -->
+      <div id="tabla-registro-ventas">
+        <p class="tabla-vacia">Cargando registro de ventas...</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/importador-ventas.js"></script>
+<script src="js/registro-ventas.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+function handleImport(event) {
+  const file = event.target.files[0]; if (!file) return;
+  importData(file).then(() => { alert('Importado.'); location.reload(); })
+    .catch(err => alert(err.message));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Productos &ndash; CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/productos.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gesti&oacute;n de producci&oacute;n</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">D&Oacute;LAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">&mdash;</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">&mdash;</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">&darr; Exportar datos</button>
+      <label class="btn">&uarr; Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>Productos</h2>
+      <p>Receta de insumos, costos y precios de venta.</p>
+    </div>
+
+    <!-- Listado -->
+    <div class="card" style="margin-top:1.25rem;">
+      <div class="tabla-header">
+        <h3>Listado de productos</h3>
+        <span id="contador-productos" class="badge"></span>
+        <div class="buscador-wrapper">
+          <input type="text" id="buscador-productos" class="buscador-input"
+            placeholder="Buscar por nombre, categoría o SKU..." oninput="renderProductosList()" />
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalProducto()">+ Nuevo producto</button>
+        <button class="btn btn-sm" onclick="abrirModalExportar()">Exportar precios</button>
+      </div>
+      <div id="tabla-productos-wrapper"></div>
+    </div>
+
+    <!-- Panel edicion masiva -->
+    <div class="panel-masivo" id="panel-masivo-productos" style="margin-top:1.25rem;">
+      <div class="panel-masivo-header" id="toggle-masivo-productos" onclick="togglePanelMasivoP()">
+        <span class="panel-masivo-titulo">Edición masiva de precios</span>
+        <span class="panel-masivo-chevron">v</span>
+      </div>
+      <div class="panel-masivo-body" id="body-masivo-productos">
+        <div class="masivo-controles">
+          <div class="form-group">
+            <label>Campo a ajustar</label>
+            <select id="masivo-prod-campo">
+              <option value="margen">Markup consumidor (%)</option>
+              <option value="distribuidor">Precio distribuidor</option>
+              <option value="ambos">Ambos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Modo de ajuste</label>
+            <select id="masivo-prod-modo">
+              <option value="porcentaje">Porcentaje (%)</option>
+              <option value="suma">Suma fija</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor (puede ser negativo)</label>
+            <input type="number" id="masivo-prod-valor" step="any" placeholder="Ej: 10 o -5" />
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:flex-end;">
+            <button class="btn btn-primary" onclick="previsualizarMasivoProductos()">Previsualizar</button>
+            <button class="btn" onclick="seleccionarTodosProductos(true)">Sel. todos</button>
+            <button class="btn" onclick="seleccionarTodosProductos(false)">Desel. todos</button>
+          </div>
+        </div>
+        <div id="masivo-prod-preview"></div>
+        <div id="masivo-prod-acciones" style="display:none;margin-top:.75rem;">
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="aplicarMasivoProductos()">Aplicar a seleccionados</button>
+            <button class="btn" onclick="limpiarMasivoProductos()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Modal producto (nuevo/editar) ── -->
+<div class="modal-overlay-producto" id="modal-producto" onclick="cerrarModalProductoOverlay(event)">
+  <div class="modal-producto-content">
+    <div class="modal-producto-header">
+      <h3 id="form-producto-titulo">Nuevo producto</h3>
+      <button class="modal-close-btn" onclick="cerrarModalProducto()">&times;</button>
+    </div>
+    
+    <div class="modal-producto-body">
+      <div id="form-producto-error" class="form-error" style="display:none"></div>
+
+      <form id="form-producto" novalidate>
+        <input type="hidden" id="campo-producto-id" />
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="campo-producto-nombre">Nombre *</label>
+            <input type="text" id="campo-producto-nombre"
+              placeholder="Ej: Vela artesanal 200g" oninput="sugerirSKU()" />
+          </div>
+          <div class="form-group">
+            <label for="campo-producto-categoria">Categor&iacute;a</label>
+            <input type="text" id="campo-producto-categoria" placeholder="Ej: Velas" />
+          </div>
+          <div class="form-group">
+            <label for="campo-sku">SKU
+              <button type="button" class="btn-link" onclick="generarYponerSKU()">sugerir</button>
+            </label>
+            <input type="text" id="campo-sku" placeholder="VEL001" maxlength="6"
+              oninput="this.value=this.value.toUpperCase()" />
+          </div>
+          <div class="form-group">
+            <label for="campo-producto-horas">Horas de trabajo</label>
+            <input type="number" id="campo-producto-horas" min="0" step="0.5" value="0"
+              oninput="recalcularDesdeForm()" />
+          </div>
+          <div class="form-group">
+            <label for="campo-producto-costo-hora">Costo/hora (ARS)</label>
+            <input type="number" id="campo-producto-costo-hora" min="0" step="0.01" value="0"
+              oninput="recalcularDesdeForm()" />
+          </div>
+        </div>
+
+        <!-- Precio consumidor final -->
+        <div class="precio-seccion">
+          <div class="precio-seccion-header">
+            <h4>Precio consumidor final</h4>
+            <span id="cfg-margen-consumidor-label" class="precio-cfg-hint"></span>
+          </div>
+          <div class="precio-duo-grid">
+            <div class="form-group precio-campo" id="grupo-margen-consumidor">
+              <label for="campo-margen-consumidor">
+                Margen sobre venta (%)
+                <span class="modo-activo-badge" id="badge-modo-cons-margen" style="display:none">activo</span>
+              </label>
+              <input type="number" id="campo-margen-consumidor" min="0" max="99" step="0.1"
+                placeholder="45" oninput="alCambiarMargenConsumidor()" />
+            </div>
+            <div class="precio-duo-sep">&harr;</div>
+            <div class="form-group precio-campo" id="grupo-precio-final">
+              <label for="campo-precio-final">
+                Precio de venta (ARS)
+                <span class="modo-activo-badge" id="badge-modo-cons-precio" style="display:none">activo</span>
+              </label>
+              <input type="number" id="campo-precio-final" min="0" step="0.01"
+                placeholder="calculado" oninput="alCambiarPrecioFinal()" />
+            </div>
+          </div>
+          <div class="markup-info-display">
+            <span class="markup-info-label">Markup sobre costo:</span>
+            <span class="markup-info-valor" id="markup-info-valor">&mdash;</span>
+          </div>
+          <p class="precio-hint" id="hint-consumidor"></p>
+        </div>
+
+        <!-- Precio distribuidor -->
+        <div class="precio-seccion">
+          <div class="precio-seccion-header">
+            <h4>Precio distribuidor</h4>
+            <span id="cfg-margen-distribuidor-label" class="precio-cfg-hint"></span>
+          </div>
+          <div class="precio-duo-grid">
+            <div class="form-group precio-campo" id="grupo-margen-distribuidor">
+              <label for="campo-margen-distribuidor">
+                Descuento sobre precio final (%)
+                <span class="modo-activo-badge" id="badge-modo-dist-margen" style="display:none">activo</span>
+              </label>
+              <input type="number" id="campo-margen-distribuidor" min="0" max="99" step="0.1"
+                placeholder="20" oninput="alCambiarMargenDistribuidor()" />
+            </div>
+            <div class="precio-duo-sep">&harr;</div>
+            <div class="form-group precio-campo" id="grupo-precio-distribuidor">
+              <label for="campo-precio-distribuidor">
+                Precio distribuidor (ARS)
+                <span class="modo-activo-badge" id="badge-modo-dist-precio" style="display:none">activo</span>
+              </label>
+              <input type="number" id="campo-precio-distribuidor" min="0" step="0.01"
+                placeholder="calculado" oninput="alCambiarPrecioDistribuidor()" />
+            </div>
+          </div>
+          <p class="precio-hint" id="hint-distribuidor"></p>
+        </div>
+
+        <!-- Insumos -->
+        <div class="insumos-seccion">
+          <h4>Insumos del producto</h4>
+          <div id="lineas-insumos-error" class="form-error" style="display:none"></div>
+          <div id="lineas-insumos-wrapper"></div>
+          <div class="linea-agregar">
+            <div class="insumo-search-wrap" id="insumo-search-wrap">
+              <input type="text" id="campo-linea-insumo-texto"
+                placeholder="Buscar insumo..."
+                autocomplete="off"
+                oninput="filtrarDropdownInsumos(this.value)"
+                onfocus="filtrarDropdownInsumos(this.value)"
+                onblur="cerrarDropdownInsumos()"
+                onkeydown="handleInsumoKeydown(event)"
+              />
+              <div id="insumo-dropdown" class="insumo-dropdown" style="display:none"></div>
+              <input type="hidden" id="campo-linea-insumo" />
+            </div>
+            <input type="number" id="campo-linea-cantidad" min="0.001" step="any" placeholder="Cantidad" />
+            <button type="button" class="btn btn-primary btn-sm" onclick="handleAgregarLinea()">+ Agregar</button>
+          </div>
+        </div>
+
+        <div class="form-actions modal-form-actions">
+          <button type="button" class="btn" onclick="cerrarModalProducto()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-guardar-producto">Guardar producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal costos (detalle) ── -->
+<div class="modal-overlay-producto" id="modal-costos" onclick="cerrarModalCostosOverlay(event)">
+  <div class="modal-producto-content" style="max-width:640px;">
+    <div class="modal-producto-header">
+      <h3 id="modal-costos-titulo">Costos del producto</h3>
+      <button class="modal-close-btn" onclick="cerrarModalCostos()">&times;</button>
+    </div>
+    <div class="modal-producto-body">
+      <h4 class="modal-costos-subtitulo">Receta de insumos</h4>
+      <div id="modal-costos-receta"></div>
+
+      <h4 class="modal-costos-subtitulo" style="margin-top:1.25rem;">Desglose de costos</h4>
+      <div class="costos-grid">
+        <div class="costo-fila"><span class="costo-label">Costo materiales</span><span class="costo-valor" id="mc-costo-materiales">-</span></div>
+        <div class="costo-fila"><span class="costo-label">Costo mano de obra</span><span class="costo-valor" id="mc-costo-mano-obra">-</span></div>
+        <div class="costo-fila costo-fila-total"><span class="costo-label">Costo total</span><span class="costo-valor" id="mc-costo-total">-</span></div>
+        <div class="costo-fila"><span class="costo-label">Margen sobre venta</span><span class="costo-valor" id="mc-margen">-</span></div>
+        <div class="costo-fila"><span class="costo-label">Markup sobre costo</span><span class="costo-valor" id="mc-markup">-</span></div>
+        <div class="costo-fila costo-fila-precio"><span class="costo-label">Precio consumidor final</span><span class="costo-valor" id="mc-precio-final">-</span></div>
+        <div class="costo-fila"><span class="costo-label">Ganancia bruta</span><span class="costo-valor" id="mc-ganancia">-</span></div>
+        <div class="costo-fila" style="border-top:1px solid var(--border);margin-top:.25rem;padding-top:.5rem">
+          <span class="costo-label">Descuento distribuidor</span><span class="costo-valor" id="mc-desc-distrib">-</span>
+        </div>
+        <div class="costo-fila costo-fila-precio"><span class="costo-label">Precio distribuidor</span><span class="costo-valor" id="mc-precio-distrib">-</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal exportar lista de precios (rediseñado) ── -->
+<div class="modal-overlay-producto" id="modal-exportar" onclick="cerrarModalExportar(event)">
+  <div class="modal-producto-content" style="max-width:560px;">
+    <div class="modal-producto-header">
+      <h3>Exportar lista de precios</h3>
+      <button class="modal-close-btn" onclick="cerrarModalExportar()">&times;</button>
+    </div>
+    <div class="modal-producto-body">
+      <div class="form-group">
+        <label for="export-cliente">Nombre del cliente</label>
+        <input type="text" id="export-cliente" placeholder="Opcional — aparecerá en el encabezado" />
+      </div>
+
+      <div class="form-grid" style="margin-top:.75rem;">
+        <div class="form-group">
+          <label for="export-alcance">Productos a exportar</label>
+          <select id="export-alcance" onchange="_actualizarExportSeleccion()">
+            <option value="todos">Todos los productos</option>
+            <option value="categorias">Por categoría...</option>
+            <option value="seleccion">Selección manual...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="export-tipo">Tipo de lista</label>
+          <select id="export-tipo">
+            <option value="ambos">Consumidor + Distribuidor</option>
+            <option value="consumidor">Solo consumidor final</option>
+            <option value="distribuidor">Solo distribuidor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="export-moneda">Moneda</label>
+          <select id="export-moneda" onchange="_actualizarExportDolar()">
+            <option value="ARS">Pesos argentinos (ARS)</option>
+            <option value="USD">Dólares (USD)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="export-dolar-info" class="export-dolar-info oculto"></div>
+
+      <div id="export-categorias-wrapper" class="export-seleccion-box oculto">
+        <div id="export-categorias-list" class="export-checkboxes"></div>
+      </div>
+
+      <div id="export-productos-wrapper" class="export-seleccion-box oculto">
+        <div id="export-productos-list" class="export-checkboxes"></div>
+      </div>
+
+      <div class="form-actions modal-form-actions">
+        <button class="btn" onclick="cerrarModalExportar()">Cancelar</button>
+        <button class="btn btn-primary" onclick="ejecutarExportarExcel()">Descargar Excel</button>
+        <button class="btn btn-primary" onclick="ejecutarExportarPDF()">Descargar PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast de copiado -->
+<div id="toast-copiado" class="toast-copiado">SKU copiado al portapapeles</div>
+
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/productos-ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

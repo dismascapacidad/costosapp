@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    /* ── Prevenir scroll horizontal ── */
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+    }
+    
+    .main-content {
+      overflow-x: hidden;
+    }
+    
+    /* ── Estilos específicos de stock ── */
+    .stock-input-actual {
+      width: 70px;
+      padding: 0.3rem 0.4rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      text-align: right;
+      background: var(--surface-2);
+      color: var(--text-1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: var(--font-mono);
+    }
+    .stock-input-actual:focus {
+      outline: none;
+      border-color: var(--accent-dim);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .stock-input-actual.modificado {
+      border-color: var(--success);
+      background: rgba(52, 211, 153, 0.1);
+    }
+    
+    /* ── Tablas de stock responsive ── */
+    .tabla-stock {
+      width: 100%;
+      table-layout: fixed;
+    }
+    
+    .tabla-stock th,
+    .tabla-stock td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0.5rem 0.4rem;
+      font-size: 0.8rem;
+    }
+    
+    /* Columnas de tabla stock */
+    .tabla-stock th:nth-child(1),
+    .tabla-stock td:nth-child(1) { width: 35%; } /* Nombre */
+    
+    .tabla-stock th:nth-child(2),
+    .tabla-stock td:nth-child(2) { width: 15%; } /* Unidad/SKU */
+    
+    .tabla-stock th:nth-child(3),
+    .tabla-stock td:nth-child(3) { width: 25%; } /* Stock actual */
+    
+    .tabla-stock th:nth-child(4),
+    .tabla-stock td:nth-child(4) { width: 15%; } /* Mínimo */
+    
+    .tabla-stock th:nth-child(5),
+    .tabla-stock td:nth-child(5) { width: 10%; text-align: center; } /* Acción */
+    
+    /* Barra de stock compacta */
+    .stock-cell-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+    
+    .stock-bar-mini {
+      flex: 1;
+      height: 4px;
+      background: var(--surface-3);
+      border-radius: 2px;
+      overflow: hidden;
+      min-width: 20px;
+    }
+    
+    .stock-bar-mini .fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    .stock-bar-mini .fill.ok { background: var(--success); }
+    .stock-bar-mini .fill.bajo { background: var(--accent); }
+    .stock-bar-mini .fill.critico { background: var(--error); }
+    
+    /* Input mínimo compacto */
+    .stock-input-minimo {
+      width: 60px;
+      padding: 0.25rem 0.35rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      text-align: right;
+      background: var(--surface-3);
+      color: var(--text-1);
+      font-family: var(--font-mono);
+    }
+    .stock-input-minimo:focus {
+      outline: none;
+      border-color: var(--accent-dim);
+    }
+    
+    /* Botón nota compacto */
+    .btn-nota {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.2rem;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+    }
+    .btn-nota:hover {
+      opacity: 1;
+    }
+    
+    /* ── Tarjetas de resumen de valuación ── */
+    .stock-resumen-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 900px) {
+      .stock-resumen-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .stock-resumen-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+    
+    .stock-resumen-card.insumos {
+      border-left: 3px solid #3b82f6;
+    }
+    
+    .stock-resumen-card.productos {
+      border-left: 3px solid var(--success);
+    }
+    
+    .stock-resumen-card.alertas {
+      border-left: 3px solid var(--error);
+    }
+    
+    .stock-resumen-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    
+    .stock-resumen-valor {
+      font-family: var(--font-mono);
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: var(--text-1);
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .stock-resumen-card.insumos .stock-resumen-valor {
+      color: #60a5fa;
+    }
+    
+    .stock-resumen-card.productos .stock-resumen-valor {
+      color: var(--success);
+    }
+    
+    .stock-resumen-card.alertas .stock-resumen-valor {
+      color: var(--error);
+    }
+    
+    .stock-resumen-card.alertas.sin-alertas .stock-resumen-valor {
+      color: var(--success);
+    }
+    
+    .stock-resumen-detalle {
+      font-size: 0.75rem;
+      color: var(--text-2);
+    }
+    
+    /* ── Grid de tablas alineadas ── */
+    .stock-tables-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    
+    @media (max-width: 1200px) {
+      .stock-tables-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .stock-tables-grid > .card {
+      margin-top: 0 !important;
+      overflow: hidden;
+    }
+    
+    /* Wrapper de tabla con scroll interno si es necesario */
+    .tabla-scroll-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Filtros del log */
+    .filtros-log {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding: 0.875rem;
+      background: var(--surface-2);
+      border-radius: 8px;
+    }
+    .filtro-grupo {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      min-width: 0;
+    }
+    .filtro-grupo label {
+      font-size: 0.7rem;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+    .filtro-grupo input,
+    .filtro-grupo select {
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      background: var(--surface-3);
+      color: var(--text-1);
+      min-width: 0;
+    }
+    .filtro-grupo input[type="date"] {
+      width: 130px;
+    }
+    .filtro-grupo select {
+      min-width: 120px;
+      max-width: 150px;
+    }
+    .filtros-acciones {
+      display: flex;
+      align-items: flex-end;
+    }
+    .btn-filtro {
+      padding: 0.35rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--text-2);
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-filtro:hover {
+      background: var(--surface-3);
+      color: var(--text-1);
+    }
+    
+    /* Badge de nota en movimientos */
+    .badge-nota {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.1rem 0.35rem;
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+    
+    /* Modal de nota */
+    .modal-overlay-nota {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay-nota.activo {
+      display: flex;
+    }
+    .modal-content-nota {
+      background: var(--surface);
+      padding: 1.5rem;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+    }
+    .modal-header-nota {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .modal-header-nota h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .modal-close-nota {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-2);
+      line-height: 1;
+    }
+    .modal-close-nota:hover {
+      color: var(--text-1);
+    }
+    .modal-body-nota textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      resize: vertical;
+      background: var(--surface-2);
+      color: var(--text-1);
+    }
+    .modal-footer-nota {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    /* Responsive para pantallas pequeñas */
+    @media (max-width: 700px) {
+      .tabla-stock th:nth-child(2),
+      .tabla-stock td:nth-child(2) { display: none; } /* Ocultar Unidad/SKU */
+      
+      .stock-resumen-valor {
+        font-size: 1.2rem;
+      }
+      
+      .filtros-log {
+        gap: 0.5rem;
+        padding: 0.75rem;
+      }
+      
+      .filtro-grupo input[type="date"] {
+        width: 110px;
+      }
+      
+      .filtro-grupo select {
+        min-width: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>Control de Stock</h2>
+      <p>Stock actual, mínimos y registro de movimientos de insumos y productos terminados.</p>
+    </div>
+
+    <!-- ── Tarjetas de resumen ── -->
+    <div class="stock-resumen-grid">
+      <div class="stock-resumen-card insumos">
+        <span class="stock-resumen-label">Valuación stock insumos</span>
+        <span class="stock-resumen-valor" id="valuacion-insumos">$0,00</span>
+        <span class="stock-resumen-detalle" id="detalle-insumos">0 insumos con stock</span>
+      </div>
+      <div class="stock-resumen-card productos">
+        <span class="stock-resumen-label">Valuación stock productos</span>
+        <span class="stock-resumen-valor" id="valuacion-productos">$0,00</span>
+        <span class="stock-resumen-detalle" id="detalle-productos">0 productos con stock</span>
+      </div>
+      <div class="stock-resumen-card alertas" id="card-inversion-alertas">
+        <span class="stock-resumen-label">Inversión para cancelar alertas</span>
+        <span class="stock-resumen-valor" id="inversion-alertas">$0,00</span>
+        <span class="stock-resumen-detalle" id="detalle-alertas">0 ítems bajo mínimo</span>
+      </div>
+    </div>
+
+    <!-- ── Tablas de stock alineadas ── -->
+    <div class="stock-tables-grid">
+      <!-- Insumos -->
+      <div class="card">
+        <div class="tabla-header">
+          <h3>Insumos</h3>
+          <span id="badge-alertas-insumos" class="badge"></span>
+        </div>
+        <div id="tabla-stock-insumos"></div>
+      </div>
+
+      <!-- Productos terminados -->
+      <div class="card">
+        <div class="tabla-header">
+          <h3>Productos terminados</h3>
+          <span id="badge-alertas-productos" class="badge"></span>
+        </div>
+        <div id="tabla-stock-productos"></div>
+      </div>
+    </div>
+
+    <!-- ── Registrar movimiento ── -->
+    <div class="card" style="margin-top:1.25rem;">
+      <h3>Registrar movimiento</h3>
+      <div id="mov-error" class="form-error" style="display:none"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo de ítem</label>
+          <select id="mov-tipo" onchange="poblarMovItems()">
+            <option value="insumo">Insumo</option>
+            <option value="producto">Producto terminado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ítem</label>
+          <select id="mov-item"></select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de movimiento</label>
+          <select id="mov-direccion">
+            <option value="entrada">+ Entrada (recepción / producción)</option>
+            <option value="salida">− Salida (consumo / venta)</option>
+            <option value="ajuste">⟳ Ajuste (inventario físico)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="mov-cantidad-label">Cantidad</label>
+          <input type="number" id="mov-cantidad" min="0" step="any" placeholder="0" />
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>Motivo / Nota</label>
+          <input type="text" id="mov-motivo" placeholder="Ej: Compra a proveedor, Venta pedido #42…" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="ejecutarMovimiento()">Registrar</button>
+      </div>
+    </div>
+
+    <!-- ── Historial ── -->
+    <div class="card" style="margin-top:1.25rem;">
+      <div class="tabla-header">
+        <h3>Últimos movimientos</h3>
+        <span id="badge-mov" class="badge"></span>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="filtros-log">
+        <div class="filtro-grupo">
+          <label>Desde</label>
+          <input type="date" id="filtro-fecha-desde" onchange="renderMovimientos()" />
+        </div>
+        <div class="filtro-grupo">
+          <label>Hasta</label>
+          <input type="date" id="filtro-fecha-hasta" onchange="renderMovimientos()" />
+        </div>
+        <div class="filtro-grupo">
+          <label>Tipo</label>
+          <select id="filtro-tipo" onchange="actualizarFiltroItems(); renderMovimientos()">
+            <option value="">Todos</option>
+            <option value="insumo">Insumos</option>
+            <option value="producto">Productos</option>
+          </select>
+        </div>
+        <div class="filtro-grupo">
+          <label>Ítem</label>
+          <select id="filtro-item" onchange="renderMovimientos()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filtro-grupo">
+          <label>Solo notas</label>
+          <select id="filtro-solo-notas" onchange="renderMovimientos()">
+            <option value="">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="filtros-acciones">
+          <button class="btn-filtro" onclick="limpiarFiltros()">Limpiar filtros</button>
+        </div>
+      </div>
+      
+      <div id="tabla-movimientos"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal para agregar nota -->
+<div class="modal-overlay-nota" id="modal-nota">
+  <div class="modal-content-nota">
+    <div class="modal-header-nota">
+      <h3>📝 Agregar nota</h3>
+      <button class="modal-close-nota" onclick="cerrarModalNota()">&times;</button>
+    </div>
+    <div class="modal-body-nota">
+      <p id="modal-nota-item" style="margin-bottom: 0.75rem; color: var(--text-2);"></p>
+      <textarea id="modal-nota-texto" placeholder="Escribí una nota sobre este ítem..."></textarea>
+    </div>
+    <div class="modal-footer-nota">
+      <button class="btn" onclick="cerrarModalNota()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarNota()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+// =============================================================================
+// UI de stock
+// =============================================================================
+
+// Variable para el modal de notas
+let notaActual = { tipo: null, itemId: null };
+
+// ── Render tarjetas de resumen ────────────────────────────────────────────────
+function renderResumenValuacion() {
+  // Obtener tipo de cambio
+  const tipoCambio = window.AppData.tipoCambioManual || window.AppData.config?.dolar || 1;
+  
+  // Valuación de insumos
+  let valuacionInsumos = 0;
+  let insumosConStock = 0;
+  
+  window.AppData.insumos.forEach(insumo => {
+    const stockActual = insumo.stockActual || 0;
+    if (stockActual > 0) {
+      insumosConStock++;
+      // Usar costoUnitario si está disponible, sino calcularlo
+      let costoUnitario = insumo.costoUnitario;
+      if (costoUnitario === undefined || isNaN(costoUnitario)) {
+        const precioCompra = insumo.precioCompra || 0;
+        const cantidadCompra = insumo.cantidadCompra || 1;
+        const precioEnARS = insumo.moneda === 'USD' ? precioCompra * tipoCambio : precioCompra;
+        costoUnitario = precioEnARS / cantidadCompra;
+      }
+      valuacionInsumos += costoUnitario * stockActual;
+    }
+  });
+  
+  document.getElementById('valuacion-insumos').textContent = formatMoney(valuacionInsumos);
+  document.getElementById('detalle-insumos').textContent = 
+    `${insumosConStock} insumo${insumosConStock !== 1 ? 's' : ''} con stock`;
+  
+  // Valuación de productos (usando costo de producción)
+  let valuacionProductos = 0;
+  let productosConStock = 0;
+  
+  window.AppData.productos.forEach(producto => {
+    const stockActual = producto.stockActual || 0;
+    if (stockActual > 0) {
+      productosConStock++;
+      // Calcular costo de producción del producto
+      const costoProduccion = calcularCostoProductoStock(producto, tipoCambio);
+      valuacionProductos += costoProduccion * stockActual;
+    }
+  });
+  
+  document.getElementById('valuacion-productos').textContent = formatMoney(valuacionProductos);
+  document.getElementById('detalle-productos').textContent = 
+    `${productosConStock} producto${productosConStock !== 1 ? 's' : ''} con stock`;
+  
+  // Inversión requerida para cancelar alertas
+  let inversionAlertas = 0;
+  let itemsBajoMinimo = 0;
+  
+  // Insumos bajo mínimo
+  window.AppData.insumos.forEach(insumo => {
+    const stockActual = insumo.stockActual || 0;
+    const stockMinimo = insumo.stockMinimo || 0;
+    if (stockMinimo > 0 && stockActual < stockMinimo) {
+      itemsBajoMinimo++;
+      const faltante = stockMinimo - stockActual;
+      // Usar costoUnitario si está disponible
+      let costoUnitario = insumo.costoUnitario;
+      if (costoUnitario === undefined || isNaN(costoUnitario)) {
+        const precioCompra = insumo.precioCompra || 0;
+        const cantidadCompra = insumo.cantidadCompra || 1;
+        const precioEnARS = insumo.moneda === 'USD' ? precioCompra * tipoCambio : precioCompra;
+        costoUnitario = precioEnARS / cantidadCompra;
+      }
+      inversionAlertas += costoUnitario * faltante;
+    }
+  });
+  
+  // Productos bajo mínimo (costo de producción)
+  window.AppData.productos.forEach(producto => {
+    const stockActual = producto.stockActual || 0;
+    const stockMinimo = producto.stockMinimo || 0;
+    if (stockMinimo > 0 && stockActual < stockMinimo) {
+      itemsBajoMinimo++;
+      const faltante = stockMinimo - stockActual;
+      const costoProduccion = calcularCostoProductoStock(producto, tipoCambio);
+      inversionAlertas += costoProduccion * faltante;
+    }
+  });
+  
+  const cardAlertas = document.getElementById('card-inversion-alertas');
+  document.getElementById('inversion-alertas').textContent = formatMoney(inversionAlertas);
+  document.getElementById('detalle-alertas').textContent = 
+    itemsBajoMinimo > 0 
+      ? `${itemsBajoMinimo} ítem${itemsBajoMinimo !== 1 ? 's' : ''} bajo mínimo`
+      : 'Sin alertas activas';
+  
+  // Cambiar estilo si no hay alertas
+  if (itemsBajoMinimo === 0) {
+    cardAlertas.classList.add('sin-alertas');
+  } else {
+    cardAlertas.classList.remove('sin-alertas');
+  }
+}
+
+// Calcular costo de producción de un producto para valuación de stock
+function calcularCostoProductoStock(producto, tipoCambio) {
+  if (!producto.insumos || producto.insumos.length === 0) return 0;
+  
+  let costoTotal = 0;
+  producto.insumos.forEach(pi => {
+    const insumo = window.AppData.insumos.find(i => i.id === pi.insumoId);
+    if (insumo) {
+      // Usar costoUnitario si está disponible
+      let costoUnitario = insumo.costoUnitario;
+      if (costoUnitario === undefined || isNaN(costoUnitario)) {
+        const precioCompra = insumo.precioCompra || 0;
+        const cantidadCompra = insumo.cantidadCompra || 1;
+        const precioEnARS = insumo.moneda === 'USD' ? precioCompra * tipoCambio : precioCompra;
+        costoUnitario = precioEnARS / cantidadCompra;
+      }
+      costoTotal += costoUnitario * (pi.cantidad || 0);
+    }
+  });
+  return costoTotal;
+}
+
+// ── Render tabla de stock ─────────────────────────────────────────────────────
+
+function _nivelStock(actual, minimo) {
+  if (minimo <= 0) return 'ok';
+  if (actual <= 0) return 'critico';
+  if (actual <= minimo) return 'bajo';
+  return 'ok';
+}
+
+function _barWidth(actual, minimo) {
+  if (minimo <= 0) return 100;
+  const pct = minimo > 0 ? Math.min(100, (actual / (minimo * 2)) * 100) : 100;
+  return Math.max(4, pct);
+}
+
+function renderTablaStock(tipo) {
+  const lista   = (tipo === 'insumo' ? window.AppData.insumos : window.AppData.productos)
+    .slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const wrapperId = tipo === 'insumo' ? 'tabla-stock-insumos' : 'tabla-stock-productos';
+  const badgeId   = tipo === 'insumo' ? 'badge-alertas-insumos' : 'badge-alertas-productos';
+  const wrapper   = document.getElementById(wrapperId);
+
+  const alertas = lista.filter(x => x.stockMinimo > 0 && x.stockActual <= x.stockMinimo).length;
+  const badge   = document.getElementById(badgeId);
+  badge.textContent = alertas > 0 ? `${alertas} alerta${alertas > 1 ? 's' : ''}` : 'OK';
+  badge.style.color = alertas > 0 ? 'var(--error)' : 'var(--success)';
+
+  if (lista.length === 0) {
+    wrapper.innerHTML = '<p class="tabla-vacia">Sin registros.</p>';
+    return;
+  }
+
+  const unidadCol = tipo === 'insumo';
+  const filas = lista.map(item => {
+    const nivel    = _nivelStock(item.stockActual, item.stockMinimo);
+    const barWidth = _barWidth(item.stockActual, item.stockMinimo);
+    return `
+      <tr>
+        <td title="${escapar(item.nombre)}">${escapar(item.nombre)}</td>
+        ${unidadCol ? `<td>${escapar(item.unidad)}</td>` : `<td><span class="sku-tag">${escapar(item.sku||'—')}</span></td>`}
+        <td>
+          <div class="stock-cell-wrap">
+            <input type="number" class="stock-input-actual" 
+              value="${item.stockActual}" 
+              min="0" 
+              step="any"
+              data-tipo="${tipo}"
+              data-id="${item.id}"
+              data-original="${item.stockActual}"
+              onchange="ajustarStockInline(this)"
+              onkeydown="handleStockKeydown(event, this)"
+              title="Editar stock actual" />
+            <div class="stock-bar-mini">
+              <div class="fill ${nivel}" style="width:${barWidth}%"></div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <input type="number" class="stock-input-minimo"
+            value="${item.stockMinimo}" min="0" step="any"
+            onchange="guardarMinimo('${tipo}','${item.id}',this.value)"
+            title="Stock mínimo" />
+        </td>
+        <td>
+          <button class="btn-nota" onclick="abrirModalNota('${tipo}','${item.id}','${escapar(item.nombre)}')" title="Agregar nota">📝</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  const col2 = tipo === 'insumo' ? 'Unidad' : 'SKU';
+  wrapper.innerHTML = `
+    <table class="tabla tabla-stock">
+      <thead><tr>
+        <th>Nombre</th><th>${col2}</th>
+        <th>Stock</th><th>Mín.</th><th></th>
+      </tr></thead>
+      <tbody>${filas}</tbody>
+    </table>`;
+}
+
+// ── Ajustar stock inline ─────────────────────────────────────────────────────
+function ajustarStockInline(input) {
+  const tipo = input.dataset.tipo;
+  const itemId = input.dataset.id;
+  const nuevoStock = parseFloat(input.value);
+  const original = parseFloat(input.dataset.original);
+  
+  if (isNaN(nuevoStock) || nuevoStock < 0) {
+    input.value = original;
+    return;
+  }
+  
+  if (nuevoStock === original) return;
+  
+  try {
+    ajustarStock(tipo, itemId, nuevoStock, 'Ajuste directo');
+    input.dataset.original = nuevoStock;
+    input.classList.add('modificado');
+    setTimeout(() => input.classList.remove('modificado'), 1500);
+    renderTablaStock(tipo);
+    renderResumenValuacion();
+    renderMovimientos();
+  } catch (err) {
+    alert(err.message);
+    input.value = original;
+  }
+}
+
+function handleStockKeydown(event, input) {
+  if (event.key === 'Enter') {
+    input.blur();
+  } else if (event.key === 'Escape') {
+    input.value = input.dataset.original;
+    input.blur();
+  }
+}
+
+// ── Guardar mínimo inline ─────────────────────────────────────────────────────
+function guardarMinimo(tipo, id, valor) {
+  try {
+    setStockMinimo(tipo, id, parseFloat(valor) || 0);
+    renderTablaStock(tipo);
+    renderResumenValuacion();
+  } catch (err) { alert(err.message); }
+}
+
+// ── Modal de notas ────────────────────────────────────────────────────────────
+function abrirModalNota(tipo, itemId, nombre) {
+  notaActual = { tipo, itemId };
+  document.getElementById('modal-nota-item').textContent = `Ítem: ${nombre}`;
+  document.getElementById('modal-nota-texto').value = '';
+  document.getElementById('modal-nota').classList.add('activo');
+  document.getElementById('modal-nota-texto').focus();
+}
+
+function cerrarModalNota() {
+  document.getElementById('modal-nota').classList.remove('activo');
+  notaActual = { tipo: null, itemId: null };
+}
+
+function guardarNota() {
+  const texto = document.getElementById('modal-nota-texto').value.trim();
+  if (!texto) {
+    alert('Escribí una nota para guardar.');
+    return;
+  }
+  
+  try {
+    registrarNota(notaActual.tipo, notaActual.itemId, texto);
+    cerrarModalNota();
+    renderMovimientos();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('modal-nota').classList.contains('activo')) {
+    cerrarModalNota();
+  }
+});
+
+// ── Poblar select de ítems según tipo ─────────────────────────────────────────
+function poblarMovItems() {
+  const tipo   = document.getElementById('mov-tipo').value;
+  const lista  = tipo === 'insumo' ? window.AppData.insumos : window.AppData.productos;
+  const sel    = document.getElementById('mov-item');
+  sel.innerHTML = lista.map(x =>
+    `<option value="${x.id}">${escapar(x.nombre)}</option>`
+  ).join('');
+}
+
+// ── Ejecutar movimiento ───────────────────────────────────────────────────────
+function ejecutarMovimiento() {
+  document.getElementById('mov-error').style.display = 'none';
+
+  const tipo      = document.getElementById('mov-tipo').value;
+  const itemId    = document.getElementById('mov-item').value;
+  const direccion = document.getElementById('mov-direccion').value;
+  const cantidad  = parseFloat(document.getElementById('mov-cantidad').value);
+  const motivo    = document.getElementById('mov-motivo').value;
+
+  if (!cantidad || cantidad <= 0) {
+    const e = document.getElementById('mov-error');
+    e.textContent = 'La cantidad debe ser mayor a 0.'; e.style.display = 'flex';
+    return;
+  }
+
+  try {
+    if (direccion === 'ajuste') {
+      ajustarStock(tipo, itemId, cantidad, motivo || 'Ajuste manual');
+    } else {
+      const delta = direccion === 'entrada' ? cantidad : -cantidad;
+      moverStock(tipo, itemId, delta, motivo);
+    }
+    document.getElementById('mov-cantidad').value = '';
+    document.getElementById('mov-motivo').value   = '';
+    renderTablaStock('insumo');
+    renderTablaStock('producto');
+    renderResumenValuacion();
+    renderMovimientos();
+  } catch (err) {
+    const e = document.getElementById('mov-error');
+    e.textContent = err.message; e.style.display = 'flex';
+  }
+}
+
+// ── Filtros del log ───────────────────────────────────────────────────────────
+function actualizarFiltroItems() {
+  const tipoFiltro = document.getElementById('filtro-tipo').value;
+  const selectItem = document.getElementById('filtro-item');
+  
+  let items = [];
+  if (tipoFiltro === '' || tipoFiltro === 'insumo') {
+    items = items.concat(window.AppData.insumos.map(i => ({ id: i.id, nombre: i.nombre, tipo: 'insumo' })));
+  }
+  if (tipoFiltro === '' || tipoFiltro === 'producto') {
+    items = items.concat(window.AppData.productos.map(p => ({ id: p.id, nombre: p.nombre, tipo: 'producto' })));
+  }
+  
+  items.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  
+  selectItem.innerHTML = '<option value="">Todos</option>' + 
+    items.map(i => `<option value="${i.tipo}:${i.id}">${escapar(i.nombre)}</option>`).join('');
+}
+
+function limpiarFiltros() {
+  document.getElementById('filtro-fecha-desde').value = '';
+  document.getElementById('filtro-fecha-hasta').value = '';
+  document.getElementById('filtro-tipo').value = '';
+  document.getElementById('filtro-item').value = '';
+  document.getElementById('filtro-solo-notas').value = '';
+  actualizarFiltroItems();
+  renderMovimientos();
+}
+
+// ── Render historial con filtros ──────────────────────────────────────────────
+function renderMovimientos() {
+  let movs = getMovimientos(200); // Obtener más para filtrar
+  
+  // Aplicar filtros
+  const fechaDesde = document.getElementById('filtro-fecha-desde').value;
+  const fechaHasta = document.getElementById('filtro-fecha-hasta').value;
+  const tipoFiltro = document.getElementById('filtro-tipo').value;
+  const itemFiltro = document.getElementById('filtro-item').value;
+  const soloNotas = document.getElementById('filtro-solo-notas').value;
+  
+  if (fechaDesde) {
+    const desde = new Date(fechaDesde);
+    desde.setHours(0, 0, 0, 0);
+    movs = movs.filter(m => new Date(m.fecha) >= desde);
+  }
+  
+  if (fechaHasta) {
+    const hasta = new Date(fechaHasta);
+    hasta.setHours(23, 59, 59, 999);
+    movs = movs.filter(m => new Date(m.fecha) <= hasta);
+  }
+  
+  if (tipoFiltro) {
+    movs = movs.filter(m => m.tipo === tipoFiltro);
+  }
+  
+  if (itemFiltro) {
+    const [tipo, itemId] = itemFiltro.split(':');
+    movs = movs.filter(m => m.tipo === tipo && m.itemId === itemId);
+  }
+  
+  if (soloNotas === 'si') {
+    movs = movs.filter(m => m.esNota === true);
+  }
+  
+  // Limitar a 60 después de filtrar
+  movs = movs.slice(0, 60);
+  
+  const wrapper = document.getElementById('tabla-movimientos');
+  document.getElementById('badge-mov').textContent =
+    movs.length + (movs.length === 1 ? ' movimiento' : ' movimientos');
+
+  if (movs.length === 0) {
+    wrapper.innerHTML = '<p class="tabla-vacia">Sin movimientos que coincidan con los filtros.</p>';
+    return;
+  }
+
+  const filas = movs.map(m => {
+    const fecha   = new Date(m.fecha).toLocaleString('es-AR', { dateStyle:'short', timeStyle:'short' });
+    
+    if (m.esNota) {
+      return `
+        <tr>
+          <td>${fecha}</td>
+          <td><span class="badge-tipo ${m.tipo}">${m.tipo}</span></td>
+          <td>${escapar(m.nombre)}</td>
+          <td><span class="badge-nota">📝 Nota</span></td>
+          <td>${escapar(m.motivo) || '—'}</td>
+        </tr>`;
+    }
+    
+    const signo   = m.delta >= 0 ? '+' : '';
+    const cls     = m.delta >= 0 ? 'mov-delta-pos' : 'mov-delta-neg';
+    return `
+      <tr>
+        <td>${fecha}</td>
+        <td><span class="badge-tipo ${m.tipo}">${m.tipo}</span></td>
+        <td>${escapar(m.nombre)}</td>
+        <td class="${cls}">${signo}${formatNum(m.delta)}</td>
+        <td>${escapar(m.motivo) || '—'}</td>
+      </tr>`;
+  }).join('');
+
+  wrapper.innerHTML = `
+    <table class="tabla">
+      <thead><tr>
+        <th>Fecha</th><th>Tipo</th><th>Ítem</th>
+        <th>Cantidad</th><th>Motivo / Nota</th>
+      </tr></thead>
+      <tbody>${filas}</tbody>
+    </table>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function formatNum(n) { return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function formatMoney(n) { return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function escapar(str) { return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function handleImport(event) {
+  const file = event.target.files[0]; if (!file) return;
+  importData(file).then(() => { alert('Importado.'); location.reload(); })
+    .catch(err => alert(err.message));
+}
+
+// ── renderStockPage — llamado por initStock() ─────────────────────────────────
+function renderStockPage() {
+  poblarMovItems();
+  actualizarFiltroItems();
+  renderResumenValuacion();
+  renderTablaStock('insumo');
+  renderTablaStock('producto');
+  renderMovimientos();
+}
+</script>
+</body>
+</html>

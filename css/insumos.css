@@ -1,0 +1,166 @@
+/* ── insumos.css ── */
+/* Estilos específicos del módulo de insumos */
+
+.oculto { display: none !important; }
+
+/* ── Tabla de insumos ── */
+.tabla-insumos {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tabla-insumos th,
+.tabla-insumos td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Anchos: Nombre | Cat | Unidad | Precio | Cant | Costo unit | Proveedor | Acc */
+.tabla-insumos th:nth-child(1),
+.tabla-insumos td:nth-child(1) { width: auto; }
+
+.tabla-insumos th:nth-child(2),
+.tabla-insumos td:nth-child(2) { width: 100px; }
+
+.tabla-insumos th:nth-child(3),
+.tabla-insumos td:nth-child(3) { width: 80px; }
+
+.tabla-insumos th:nth-child(4),
+.tabla-insumos td:nth-child(4) { width: 110px; }
+
+.tabla-insumos th:nth-child(5),
+.tabla-insumos td:nth-child(5) { width: 80px; }
+
+.tabla-insumos th:nth-child(6),
+.tabla-insumos td:nth-child(6) { width: 120px; }
+
+.tabla-insumos th:nth-child(7),
+.tabla-insumos td:nth-child(7) { width: 110px; }
+
+.tabla-insumos th:nth-child(8),
+.tabla-insumos td:nth-child(8) { width: 50px; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .tabla-insumos th:nth-child(2),
+  .tabla-insumos td:nth-child(2),
+  .tabla-insumos th:nth-child(7),
+  .tabla-insumos td:nth-child(7) { display: none; }
+}
+
+@media (max-width: 900px) {
+  .tabla-insumos th:nth-child(4),
+  .tabla-insumos td:nth-child(4),
+  .tabla-insumos th:nth-child(5),
+  .tabla-insumos td:nth-child(5) { display: none; }
+}
+
+@media (max-width: 700px) {
+  .tabla-insumos th:nth-child(3),
+  .tabla-insumos td:nth-child(3) { display: none; }
+}
+
+/* ── Modal detalle insumo ── */
+.modal-overlay-insumo {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.modal-overlay-insumo.activo {
+  display: flex;
+}
+.modal-insumo-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+.modal-insumo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 10;
+}
+.modal-insumo-header h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-1);
+}
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  color: var(--text-2);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+  transition: color 0.15s;
+}
+.modal-close-btn:hover { color: var(--text-1); }
+.modal-insumo-body { padding: 1.5rem; }
+
+/* ── Grid de detalle ── */
+.detalle-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.detalle-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.detalle-fila:last-child { border-bottom: none; }
+.detalle-fila-sep {
+  margin-top: .5rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--border);
+}
+.detalle-fila-total {
+  margin-top: .25rem;
+  padding-top: .5rem;
+  border-top: 2px solid var(--border);
+}
+.detalle-fila-total .detalle-valor {
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.detalle-label {
+  font-size: .8rem;
+  color: var(--text-3);
+}
+.detalle-valor {
+  font-size: .85rem;
+  font-family: var(--font-mono);
+  color: var(--text-1);
+}
+
+/* ── Nota de tipo de cambio ── */
+.tabla-nota {
+  font-size: .72rem;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  margin-top: .5rem;
+  padding: 0 .65rem;
+}

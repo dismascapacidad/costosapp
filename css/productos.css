@@ -1,0 +1,455 @@
+/* ── productos.css ── */
+/* Estilos específicos del módulo de productos */
+
+/* ── Utility ── */
+.oculto { display: none !important; }
+
+/* ── Modal de producto (compartido con modal costos y exportar) ── */
+.modal-overlay-producto {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.modal-overlay-producto.activo {
+  display: flex;
+}
+.modal-producto-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+.modal-producto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 10;
+}
+.modal-producto-header h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-1);
+}
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  color: var(--text-2);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+  transition: color 0.15s;
+}
+.modal-close-btn:hover {
+  color: var(--text-1);
+}
+.modal-producto-body {
+  padding: 1.5rem;
+}
+.modal-form-actions {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Secciones de precios ── */
+.precio-seccion {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.precio-seccion-header {
+  display: flex; align-items: center; gap: .75rem; margin-bottom: .875rem;
+}
+.precio-seccion-header h4 {
+  font-size: .8rem; font-family: var(--font-mono); text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-2); margin: 0;
+}
+.precio-cfg-hint {
+  font-size: .72rem; font-family: var(--font-mono); color: var(--accent-text);
+  background: var(--accent-glow); padding: .1rem .4rem; border-radius: 3px;
+  border: 1px solid var(--accent-dim);
+}
+.precio-duo-grid {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: .75rem;
+}
+.precio-duo-sep {
+  font-size: .85rem; color: var(--text-3); padding-bottom: .6rem; text-align: center;
+}
+.precio-campo { transition: opacity .15s; }
+.precio-campo-activo label { color: var(--accent-text); }
+.precio-campo-activo input {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 2px rgba(245,158,11,.12);
+}
+.modo-activo-badge {
+  font-size: .62rem; font-family: var(--font-mono); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--accent-text);
+  background: var(--accent-glow); border: 1px solid var(--accent-dim);
+  padding: .05rem .35rem; border-radius: 3px; vertical-align: middle; margin-left: .3rem;
+}
+.precio-hint {
+  font-size: .75rem; font-family: var(--font-mono); color: var(--text-3);
+  margin-top: .4rem; min-height: 1em;
+}
+
+/* ── Markup informativo (indicador visual) ── */
+.markup-info-display {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .6rem;
+  padding: .5rem .75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.markup-info-label {
+  font-size: .75rem;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.markup-info-valor {
+  font-size: .95rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ── Insumos del producto ── */
+.insumos-seccion {
+  margin-top: 1.25rem;
+}
+.insumos-seccion h4 {
+  font-size: .8rem; font-family: var(--font-mono); text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-2); margin-bottom: .75rem;
+}
+
+/* ── Cantidad editable inline ── */
+.td-cantidad-edit { padding: .2rem .5rem !important; }
+.input-cantidad-linea {
+  width: 80px; padding: .25rem .4rem;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-1);
+  font-family: var(--font-mono); font-size: .85rem; text-align: right;
+}
+.input-cantidad-linea:focus {
+  outline: none; border-color: var(--accent-dim);
+  box-shadow: 0 0 0 2px rgba(245,158,11,.15);
+}
+
+/* ── Input de búsqueda de insumo ── */
+#campo-linea-insumo-texto {
+  flex: 1; min-width: 180px;
+}
+
+/* ── Buscador de insumos con dropdown ── */
+.insumo-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+.insumo-search-wrap input[type="text"] {
+  width: 100%;
+}
+.insumo-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--accent-dim);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+.insumo-dd-item {
+  padding: .45rem .75rem;
+  font-size: .85rem;
+  cursor: pointer;
+  color: var(--text-1);
+  transition: background .1s;
+}
+.insumo-dd-item:hover,
+.insumo-dd-activo {
+  background: var(--accent-glow);
+  color: var(--accent-text);
+}
+.insumo-dd-empty {
+  color: var(--text-3);
+  cursor: default;
+  font-style: italic;
+}
+
+/* ── Input cantidad inline en receta ── */
+.input-cant-inline {
+  width: 80px;
+  padding: .25rem .4rem;
+  font-size: .85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  text-align: right;
+}
+.input-cant-inline:focus {
+  border-color: var(--accent-dim);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245,158,11,.12);
+}
+
+/* ── SKU clickeable ── */
+.sku-tag-clickable {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sku-tag-clickable:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent-dim);
+  transform: scale(1.05);
+}
+.sku-tag-clickable:active {
+  transform: scale(0.98);
+}
+
+/* ── Toast de copiado ── */
+.toast-copiado {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--surface-2);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent-text);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-copiado.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ── Tabla de productos ── */
+.tabla-productos {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tabla-productos th,
+.tabla-productos td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Anchos de columnas: SKU | Nombre | Cat | Costo | Markup | Margen | P.Cons | P.Dist | Acc */
+.tabla-productos th:nth-child(1),
+.tabla-productos td:nth-child(1) { width: 70px; }
+
+.tabla-productos th:nth-child(2),
+.tabla-productos td:nth-child(2) { width: auto; }
+
+.tabla-productos th:nth-child(3),
+.tabla-productos td:nth-child(3) { width: 95px; }
+
+.tabla-productos th:nth-child(4),
+.tabla-productos td:nth-child(4) { width: 95px; }
+
+.tabla-productos th:nth-child(5),
+.tabla-productos td:nth-child(5) { width: 70px; }
+
+.tabla-productos th:nth-child(6),
+.tabla-productos td:nth-child(6) { width: 70px; }
+
+.tabla-productos th:nth-child(7),
+.tabla-productos td:nth-child(7) { width: 110px; }
+
+.tabla-productos th:nth-child(8),
+.tabla-productos td:nth-child(8) { width: 110px; }
+
+.tabla-productos th:nth-child(9),
+.tabla-productos td:nth-child(9) { width: 50px; }
+
+/* Responsive */
+@media (max-width: 1300px) {
+  .tabla-productos th:nth-child(8),
+  .tabla-productos td:nth-child(8) { display: none; }
+}
+@media (max-width: 1100px) {
+  .tabla-productos th:nth-child(3),
+  .tabla-productos td:nth-child(3) { display: none; }
+}
+@media (max-width: 900px) {
+  .tabla-productos th:nth-child(5),
+  .tabla-productos td:nth-child(5) { display: none; }
+}
+@media (max-width: 750px) {
+  .tabla-productos th:nth-child(4),
+  .tabla-productos td:nth-child(4) { display: none; }
+  .tabla-productos th:nth-child(6),
+  .tabla-productos td:nth-child(6) { display: none; }
+}
+
+/* ── Filas de categoría (agrupamiento) ── */
+.fila-categoria {
+  background: var(--surface-2);
+}
+.td-categoria-header {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-2);
+  padding: .6rem .75rem !important;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+.badge-cat-count {
+  font-size: .65rem;
+  font-weight: 400;
+  color: var(--text-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: .05rem .4rem;
+  border-radius: 10px;
+  margin-left: .35rem;
+}
+
+/* ── Colores de margen ── */
+.margen-excelente { color: var(--success); font-weight: 600; }
+.margen-aceptable { color: var(--accent-text); }
+.margen-bajo      { color: var(--error); font-weight: 600; }
+
+/* ── Modal costos: subtitulo ── */
+.modal-costos-subtitulo {
+  font-size: .78rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-2);
+  margin: 0 0 .75rem 0;
+}
+
+.tabla-receta-costos {
+  width: 100%;
+  font-size: .85rem;
+}
+
+/* ── Modal exportar ── */
+.export-seleccion-box {
+  margin-top: .75rem;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: .75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.export-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.export-cb-label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .85rem;
+  padding: .25rem .35rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .1s;
+}
+.export-cb-label:hover {
+  background: var(--accent-glow);
+}
+
+.export-cat-grupo {
+  margin-bottom: .5rem;
+}
+.export-cat-grupo strong {
+  display: block;
+  font-size: .72rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-2);
+  margin-bottom: .25rem;
+  padding: .25rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.export-dolar-info {
+  margin-top: .75rem;
+  padding: .5rem .75rem;
+  font-size: .8rem;
+  font-family: var(--font-mono);
+  color: var(--accent-text);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+}
+
+/* ── Dólar widget doble (compra/venta) ── */
+.dolar-doble {
+  display: flex;
+  gap: .75rem;
+  margin-top: .25rem;
+}
+.dolar-col {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
+.dolar-col-label {
+  font-family: var(--font-mono);
+  font-size: .55rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.dolar-col-valor {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--text-1);
+  font-weight: 400;
+  line-height: 1;
+}

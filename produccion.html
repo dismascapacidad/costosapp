@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Producción – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <link rel="stylesheet" href="css/produccion.css"/>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)"/>
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h2>Órdenes de producción</h2>
+        <p>Planificá la producción. Al finalizar una orden se descuenta el stock automáticamente.</p>
+      </div>
+      <button class="btn btn-primary" onclick="abrirModalNuevaOrden()">+ Nueva orden</button>
+    </div>
+
+    <div class="card">
+      <div class="tabla-header">
+        <h3>Órdenes pendientes</h3>
+        <span id="badge-pendientes" class="badge"></span>
+      </div>
+      <div id="tabla-pendientes"></div>
+    </div>
+
+    <div class="card">
+      <div class="tabla-header">
+        <h3>Historial de órdenes finalizadas</h3>
+        <span id="badge-finalizadas" class="badge"></span>
+      </div>
+      <div id="tabla-finalizadas"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Nueva Orden -->
+<div class="modal-orden-overlay" id="modal-nueva-orden" onclick="if(event.target===this) cerrarModalNuevaOrden()">
+  <div class="modal-orden">
+    <div class="modal-orden-header">
+      <h3>Nueva orden de producción</h3>
+      <button class="modal-orden-close" onclick="cerrarModalNuevaOrden()">&times;</button>
+    </div>
+    <div class="modal-orden-body">
+      <div id="modal-orden-error" class="form-error"></div>
+      
+      <div class="seccion-productos">
+        <h4>📦 Productos</h4>
+        <div class="agregar-producto-row">
+          <div class="producto-search-container">
+            <input type="text" id="campo-producto-buscar" class="producto-search-input" 
+              placeholder="Buscar por nombre o SKU..." autocomplete="off"
+              oninput="buscarProducto(this.value)" onfocus="buscarProducto(this.value)">
+            <div id="producto-dropdown" class="producto-dropdown"></div>
+          </div>
+          <input type="number" id="campo-cantidad-agregar" class="producto-search-input campo-cantidad-agregar" 
+            min="1" step="1" value="1" placeholder="Cant.">
+          <button type="button" class="btn btn-primary btn-agregar" onclick="agregarLineaOrden()">+</button>
+        </div>
+        <div id="lineas-orden-container">
+          <div class="lineas-vacio">No hay productos agregados</div>
+        </div>
+      </div>
+      
+      <div class="modal-form-grid">
+        <div class="form-group">
+          <label>N° orden (externo)</label>
+          <input type="text" id="campo-numero-externo" placeholder="Ej: #1234">
+        </div>
+        <div class="form-group">
+          <label>Cliente</label>
+          <input type="text" id="campo-cliente" placeholder="Nombre del cliente...">
+        </div>
+        <div class="form-group">
+          <label>Canal de venta</label>
+          <select id="campo-canal">
+            <option value="">— seleccionar —</option>
+            <option value="tiendanube">TiendaNube</option>
+            <option value="mercadolibre">MercadoLibre</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="presencial">Presencial</option>
+            <option value="distribuidor">Distribuidor</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Método de pago</label>
+          <select id="campo-metodo-pago">
+            <option value="">— seleccionar —</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="credito">Crédito</option>
+            <option value="mercadopago">MercadoPago</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="otra">Otra</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Comentario</label>
+          <textarea id="campo-comentario" rows="2" placeholder="Notas adicionales..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="checkbox-espontanea">
+            <input type="checkbox" id="campo-espontanea" onchange="toggleEspontaneaModal()">
+            <span>Producción espontánea</span>
+            <span class="checkbox-espontanea-info">Se finaliza automáticamente, no cuenta como venta</span>
+          </label>
+        </div>
+      </div>
+      
+      <div id="viabilidad-modal"></div>
+    </div>
+    <div class="modal-orden-footer">
+      <button class="btn" onclick="cerrarModalNuevaOrden()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-crear-orden" onclick="guardarOrdenModal()">Crear orden</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Finalizar -->
+<div class="modal-overlay" id="modal-finalizar" onclick="if(event.target===this) cerrarModalFinalizar()">
+  <div class="modal-box">
+    <h3 id="modal-finalizar-titulo">Finalizar orden</h3>
+    <div id="modal-finalizar-detalle"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btn-confirmar-finalizar">Confirmar y finalizar</button>
+      <button class="btn" onclick="cerrarModalFinalizar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dropdown global para menú de acciones -->
+<div id="dropdown-global"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/app.js"></script>
+<script src="js/produccion-ui.js"></script>
+</body>
+</html>

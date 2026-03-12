@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inicio – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">DÓLAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">—</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+      <button class="btn btn-sm dolar-refresh" onclick="actualizarDolar()">↻ Actualizar</button>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>Inicio</h2>
+      <p>Sistema de gestión de costos para fabricación.</p>
+    </div>
+
+    <!-- Resumen numérico -->
+    <div id="resumen-estado" class="card">
+      <p>Cargando datos…</p>
+    </div>
+
+    <!-- Órdenes de producción pendientes (ARRIBA de alertas) -->
+    <div id="bloque-ordenes" style="display:none; margin-top:1.25rem;">
+      <div class="card">
+        <div class="tabla-header" style="margin-bottom:0.75rem;">
+          <h3>🏭 Órdenes de producción pendientes</h3>
+          <a href="produccion.html" class="btn btn-sm">Ver todas →</a>
+        </div>
+        <div id="lista-ordenes-inicio"></div>
+      </div>
+    </div>
+
+    <!-- Alertas de stock bajo -->
+    <div id="bloque-alertas" style="display:none; margin-top:1.25rem;">
+      <div class="card">
+        <div class="tabla-header" style="margin-bottom:0.75rem;">
+          <h3>⚠ Alertas de stock</h3>
+          <a href="stock.html" class="btn btn-sm">Ver stock →</a>
+        </div>
+        <div id="lista-alertas" class="alertas-stock"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+function renderDolarWidget(registro) {
+  if (!registro) return;
+  var ventaEl  = document.getElementById('dolar-valor-venta');
+  var compraEl = document.getElementById('dolar-valor-compra');
+  var fechaEl  = document.getElementById('dolar-fecha');
+  var fuenteEl = document.getElementById('dolar-fuente');
+  if (ventaEl)  ventaEl.textContent  = '$ ' + Number(registro.venta || registro.valor || 0).toLocaleString('es-AR');
+  if (compraEl) compraEl.textContent = '$ ' + Number(registro.compra || registro.valor || 0).toLocaleString('es-AR');
+  if (registro.fuente === 'api') {
+    fuenteEl.textContent = '● EN VIVO'; fuenteEl.className = 'dolar-fuente dolar-live';
+    fechaEl.textContent  = '';
+    document.getElementById('dolar-widget').classList.remove('dolar-stale');
+  } else {
+    fuenteEl.textContent = '● CACHÉ'; fuenteEl.className = 'dolar-fuente dolar-cached';
+    fechaEl.textContent  = registro.fecha
+      ? formatearAntiguedad(registro.fecha) + ' — puede estar desactualizado'
+      : 'Sin conexión — usando valor manual';
+    document.getElementById('dolar-widget').classList.add('dolar-stale');
+  }
+}
+
+function actualizarDolar() {
+  var btn = document.querySelector('.dolar-refresh');
+  btn.disabled = true; btn.textContent = '↻ Actualizando…';
+  fetchDolarBlue().then(function(r) { renderDolarWidget(r); })
+    .finally(function() { btn.disabled = false; btn.textContent = '↻ Actualizar'; });
+}
+
+function renderAlertas() {
+  migrarCamposStock();
+  var alertas = getAlertasStock();
+  var bloque  = document.getElementById('bloque-alertas');
+  var lista   = document.getElementById('lista-alertas');
+
+  if (alertas.length === 0) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+
+  lista.innerHTML = alertas.map(function(a) {
+    var esCritico = a.stockActual <= 0;
+    var cls       = esCritico ? 'critico' : 'bajo';
+    var icono     = esCritico ? '🔴' : '🟡';
+    var tipoLabel = a.tipo === 'insumo' ? 'Insumo' : 'Producto';
+    var unidad    = a.unidad || 'u.';
+    return '<div class="alerta-stock-item ' + cls + '">' +
+      '<span class="alerta-icono">' + icono + '</span>' +
+      '<span class="alerta-nombre">' + tipoLabel + ': ' + a.nombre + '</span>' +
+      '<span class="alerta-vals">Stock: ' + Number(a.stockActual).toLocaleString('es-AR') + ' ' + unidad +
+      ' / Mín: ' + Number(a.stockMinimo).toLocaleString('es-AR') + ' ' + unidad + '</span></div>';
+  }).join('');
+}
+
+function renderOrdenesPendientes() {
+  var ordenes = getOrdenesPendientes();
+  var bloque = document.getElementById('bloque-ordenes');
+  var lista = document.getElementById('lista-ordenes-inicio');
+  
+  if (!ordenes || ordenes.length === 0) {
+    bloque.style.display = 'none';
+    return;
+  }
+  
+  bloque.style.display = 'block';
+  
+  var html = '<div class="ordenes-inicio-lista">';
+  ordenes.slice(0, 5).forEach(function(orden) {
+    var lineas = obtenerLineasOrden(orden);
+    var totalProductos = lineas.length;
+    var totalUnidades = lineas.reduce(function(sum, l) { return sum + l.cantidad; }, 0);
+    
+    // Verificar viabilidad
+    var viab = verificarViabilidadOrdenCompleta(orden);
+    var viabClass = viab.ok ? 'viable' : 'no-viable';
+    var viabIcon = viab.ok ? '✔' : '✘';
+    
+    // Nombre para mostrar
+    var nombreMostrar;
+    if (totalProductos === 1) {
+      nombreMostrar = (lineas[0].productoSku ? '<span class="sku-tag">' + esc(lineas[0].productoSku) + '</span> ' : '') + esc(lineas[0].productoNombre);
+    } else {
+      nombreMostrar = totalProductos + ' productos';
+    }
+    
+    var fecha = new Date(orden.fechaCreacion).toLocaleDateString('es-AR');
+    
+    html += '<div class="orden-inicio-item ' + viabClass + '">' +
+      '<div class="orden-inicio-num">N°' + String(orden.numero).padStart(4, '0') + '</div>' +
+      '<div class="orden-inicio-producto">' + nombreMostrar + '</div>' +
+      '<div class="orden-inicio-cantidad">' + fmtNum(totalUnidades) + ' u.</div>' +
+      '<div class="orden-inicio-viab"><span class="viab-icon">' + viabIcon + '</span></div>' +
+    '</div>';
+  });
+  
+  if (ordenes.length > 5) {
+    html += '<div class="ordenes-mas">+ ' + (ordenes.length - 5) + ' órdenes más</div>';
+  }
+  
+  html += '</div>';
+  lista.innerHTML = html;
+}
+
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function fmtNum(n) { 
+  return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
+}
+
+function handleImport(event) {
+  var file = event.target.files[0]; if (!file) return;
+  importData(file).then(function() { alert('Importado correctamente.'); location.reload(); })
+    .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var d  = window.AppData;
+  var el = document.getElementById('resumen-estado');
+  el.innerHTML = 
+    '<p><strong>Moneda base</strong>' + d.monedaBase + '</p>' +
+    '<p><strong>Tipo de cambio</strong>1 USD = ' + Number(d.tipoCambioManual).toLocaleString('es-AR') + ' ARS</p>' +
+    '<p><strong>Insumos</strong>' + d.insumos.length + '</p>' +
+    '<p><strong>Productos</strong>' + d.productos.length + '</p>';
+  renderOrdenesPendientes();
+  renderAlertas();
+  var cache = getCacheDolar();
+  renderDolarWidget(cache);
+  fetchDolarBlue().then(renderDolarWidget);
+});
+</script>
+
+<style>
+/* Estilos para órdenes en inicio */
+.ordenes-inicio-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.orden-inicio-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--border);
+}
+
+.orden-inicio-item.viable {
+  border-left-color: #22c55e;
+}
+
+.orden-inicio-item.no-viable {
+  border-left-color: #ef4444;
+}
+
+.orden-inicio-num {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-2);
+  min-width: 60px;
+}
+
+.orden-inicio-producto {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.orden-inicio-cantidad {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent-text);
+  min-width: 70px;
+  text-align: right;
+}
+
+.orden-inicio-viab {
+  min-width: 30px;
+  text-align: center;
+}
+
+.orden-inicio-viab .viab-icon {
+  font-size: 0.9rem;
+}
+
+.orden-inicio-item.viable .viab-icon {
+  color: #22c55e;
+}
+
+.orden-inicio-item.no-viable .viab-icon {
+  color: #ef4444;
+}
+
+.ordenes-mas {
+  text-align: center;
+  padding: 0.5rem;
+  color: var(--text-3);
+  font-size: 0.8rem;
+}
+</style>
+</body>
+</html>

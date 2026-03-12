@@ -1,0 +1,467 @@
+/*
+ * produccion.css — Estilos específicos del módulo de producción
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODAL DE NUEVA ORDEN
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.modal-orden-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-orden {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.modal-orden-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 10;
+}
+
+.modal-orden-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-orden-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-2);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.modal-orden-close:hover {
+  color: var(--text-1);
+}
+
+.modal-orden-body {
+  padding: 1.25rem;
+}
+
+.modal-orden-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+/* ── Sección de productos ── */
+.seccion-productos {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.seccion-productos h4 {
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-1);
+}
+
+/* ── Fila agregar producto ── */
+.agregar-producto-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.agregar-producto-row .producto-search-container {
+  flex: 1;
+}
+
+.agregar-producto-row .campo-cantidad-agregar {
+  width: 65px;
+}
+
+.agregar-producto-row .btn-agregar {
+  white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+}
+
+/* ── Buscador de productos ── */
+.producto-search-container {
+  position: relative;
+}
+
+.producto-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+}
+
+.producto-search-input:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.producto-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--surface);
+  border: 1px solid var(--accent-dim);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.producto-dropdown-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.producto-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.producto-dropdown-item:hover,
+.producto-dropdown-item.active {
+  background: var(--accent-glow);
+  color: var(--accent-text);
+}
+
+.producto-dropdown-item .sku {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-text);
+  margin-right: 0.5rem;
+}
+
+.producto-dropdown-empty {
+  padding: 0.75rem;
+  color: var(--text-3);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ── Lista de productos agregados ── */
+.lineas-orden {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.linea-orden {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.linea-orden .linea-producto {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.linea-orden .linea-cantidad {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--accent-text);
+  min-width: 55px;
+  text-align: right;
+}
+
+.linea-orden .linea-quitar {
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.linea-orden .linea-quitar:hover {
+  color: var(--error);
+}
+
+.lineas-vacio {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 0.85rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Form grid del modal ── */
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.modal-form-grid .form-group.full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 500px) {
+  .modal-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .agregar-producto-row {
+    flex-wrap: wrap;
+  }
+  
+  .agregar-producto-row .producto-search-container {
+    width: 100%;
+  }
+}
+
+/* ── Checkbox espontánea ── */
+.checkbox-espontanea {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.checkbox-espontanea input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.checkbox-espontanea-info {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  margin-left: auto;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIABILIDAD
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.viabilidad-panel { }
+
+.viabilidad-ok {
+  padding: 0.75rem 1rem;
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.25);
+  border-radius: var(--radius-sm);
+  color: var(--success);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.viabilidad-error {
+  padding: 0.75rem 1rem;
+  background: rgba(248,113,113,0.07);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-top: 1rem;
+}
+
+.viabilidad-nota {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.viabilidad-faltantes {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1rem;
+  list-style: none;
+}
+
+.viabilidad-faltantes li {
+  font-size: 0.82rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(248,113,113,0.12);
+}
+
+.viabilidad-faltantes li:last-child {
+  border-bottom: none;
+}
+
+.viabilidad-faltantes .deficit {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: rgba(248,113,113,0.12);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.25rem;
+}
+
+/* ── Viabilidad mini en tabla ── */
+.viab-faltantes-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.3rem;
+}
+
+.viab-faltantes-mini span {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRODUCTOS EN TABLA
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.productos-lista-mini {
+  font-size: 0.85rem;
+}
+
+.productos-lista-mini .producto-item {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.productos-lista-mini .producto-cantidad {
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  min-width: 50px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MENÚ DROPDOWN GLOBAL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.btn-menu {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.2rem 0.5rem;
+  line-height: 1;
+}
+
+.btn-menu:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+#dropdown-global {
+  display: none;
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 150px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 99999;
+}
+
+#dropdown-global.show {
+  display: block;
+}
+
+#dropdown-global button {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background: none;
+  border: none;
+  color: var(--text-1);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+}
+
+#dropdown-global button:hover {
+  background: var(--surface-2);
+}
+
+#dropdown-global button:first-child {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+#dropdown-global button:last-child {
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+#dropdown-global button.text-danger {
+  color: var(--error);
+}
+
+#dropdown-global button.text-danger:hover {
+  background: var(--error-bg);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TAGS EN TABLA
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.tag-ok {
+  background: rgba(52,211,153,0.12);
+  color: var(--success);
+  border: 1px solid rgba(52,211,153,0.25);
+}
+
+.tag-error {
+  background: rgba(248,113,113,0.10);
+  color: var(--error);
+  border: 1px solid var(--error-border);
+}
+
+.tag-espontanea {
+  background: var(--accent-glow);
+  color: var(--accent-text);
+  font-size: 0.65rem;
+  margin-left: 0.3rem;
+}

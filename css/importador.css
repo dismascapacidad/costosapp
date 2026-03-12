@@ -1,0 +1,551 @@
+/**
+ * importador.css
+ * Estilos para el módulo de importación de ventas
+ */
+
+/* Selector de plataforma */
+.plataforma-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.radio-card {
+  position: relative;
+  cursor: pointer;
+  display: block;
+}
+
+.radio-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.radio-content {
+  padding: 1.25rem;
+  border: 2px solid var(--border, #334155);
+  border-radius: var(--radius, 8px);
+  background: var(--surface-1, #1e293b);
+  transition: all 0.2s;
+}
+
+.radio-card input:checked + .radio-content {
+  border-color: var(--accent-text, #fbbf24);
+  background: var(--accent-glow, rgba(251, 191, 36, 0.1));
+}
+
+.radio-card:hover .radio-content {
+  border-color: var(--accent-dim, #d97706);
+}
+
+.radio-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.radio-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-1, #f1f5f9);
+  margin-bottom: 0.25rem;
+}
+
+.radio-desc {
+  font-size: 0.8rem;
+  color: var(--text-2, #94a3b8);
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed var(--border, #334155);
+  border-radius: var(--radius, 8px);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface-2, #0f172a);
+}
+
+.dropzone:hover {
+  border-color: var(--accent-text, #fbbf24);
+  background: var(--accent-glow, rgba(251, 191, 36, 0.05));
+}
+
+.dropzone.dragover {
+  border-color: var(--accent-text, #fbbf24);
+  background: var(--accent-glow, rgba(251, 191, 36, 0.1));
+}
+
+.dropzone-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.dropzone-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dropzone-text strong {
+  font-size: 1rem;
+  color: var(--text-1, #f1f5f9);
+}
+
+.dropzone-text span {
+  font-size: 0.875rem;
+  color: var(--text-2, #94a3b8);
+}
+
+/* Info box */
+.info-box {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2, #0f172a);
+  border-radius: var(--radius, 6px);
+  font-size: 0.875rem;
+  color: var(--text-2, #94a3b8);
+  border-left: 3px solid var(--accent-text, #fbbf24);
+}
+
+/* Análisis */
+.analisis-exito {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius, 6px);
+  margin-bottom: 1.5rem;
+}
+
+.analisis-icono {
+  font-size: 2rem;
+  color: #22c55e;
+}
+
+.analisis-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-1, #f1f5f9);
+}
+
+.analisis-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  padding: 0.75rem;
+  background: var(--surface-2, #0f172a);
+  border-radius: var(--radius, 6px);
+  border: 1px solid var(--border, #334155);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-2, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-mono, monospace);
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-1, #f1f5f9);
+}
+
+/* Alertas */
+.alert {
+  padding: 1rem;
+  border-radius: var(--radius, 6px);
+  margin-bottom: 1rem;
+  border-left: 4px solid;
+}
+
+.alert-success {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.alert-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Progreso */
+.mapeo-progreso {
+  margin-bottom: 1.5rem;
+}
+
+.progreso-bar {
+  height: 8px;
+  background: var(--surface-2, #0f172a);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progreso-fill {
+  height: 100%;
+  background: var(--accent-text, #fbbf24);
+  transition: width 0.3s;
+}
+
+.progreso-text {
+  font-size: 0.875rem;
+  color: var(--text-2, #94a3b8);
+  font-family: var(--font-mono, monospace);
+  text-align: right;
+}
+
+/* Controles de mapeo */
+.mapeo-controles {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.buscar-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: var(--radius, 6px);
+  color: var(--text-1, #f1f5f9);
+  font-size: 0.875rem;
+}
+
+.buscar-input:focus {
+  outline: none;
+  border-color: var(--accent-dim, #d97706);
+}
+
+/* Lista de mapeo */
+.mapeo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  margin: -0.5rem;
+}
+
+.mapeo-item {
+  padding: 1rem;
+  background: var(--surface-2, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: var(--radius, 6px);
+  transition: all 0.2s;
+}
+
+.mapeo-item.mapeado {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.mapeo-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.mapeo-tn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 250px;
+}
+
+.mapeo-icono {
+  font-size: 1.25rem;
+  color: var(--text-2, #94a3b8);
+  margin-top: 0.1rem;
+}
+
+.mapeo-item.mapeado .mapeo-icono {
+  color: #22c55e;
+}
+
+.mapeo-nombre {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-1, #f1f5f9);
+  margin-bottom: 0.25rem;
+}
+
+.mapeo-stats {
+  font-size: 0.75rem;
+  color: var(--text-2, #94a3b8);
+  font-family: var(--font-mono, monospace);
+}
+
+.mapeo-select {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 250px;
+}
+
+.mapeo-dropdown {
+  flex: 1;
+  padding: 0.5rem;
+  background: var(--surface-1, #1e293b);
+  border: 1px solid var(--border, #334155);
+  border-radius: var(--radius, 6px);
+  color: var(--text-1, #f1f5f9);
+  font-size: 0.875rem;
+}
+
+.mapeo-dropdown:focus {
+  outline: none;
+  border-color: var(--accent-dim, #d97706);
+}
+
+/* Confirmación */
+.confirmacion-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.verificaciones {
+  padding: 1rem;
+  background: var(--surface-2, #0f172a);
+  border-radius: var(--radius, 6px);
+  margin-bottom: 1rem;
+}
+
+.verificacion-item {
+  padding: 0.5rem 0;
+  color: #22c55e;
+  font-size: 0.875rem;
+}
+
+/* Resultado */
+.resultado-exito {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.resultado-icono {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.resultado-exito h3 {
+  margin-bottom: 2rem;
+  color: var(--text-1, #f1f5f9);
+}
+
+.resultado-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mapeo-info {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mapeo-select {
+    min-width: 100%;
+  }
+
+  .mapeo-controles {
+    flex-direction: column;
+  }
+
+  .analisis-stats,
+  .confirmacion-stats,
+  .resultado-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   REGISTRO DE VENTAS CONSOLIDADO
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* KPIs mini del resumen */
+.kpi-mini {
+  background: var(--surface-2, #0f172a);
+  padding: 0.75rem;
+  border-radius: var(--radius, 6px);
+  text-align: center;
+  border: 1px solid var(--border, #334155);
+}
+
+.kpi-mini .kpi-valor {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-1, #f1f5f9);
+}
+
+.kpi-mini .kpi-label {
+  font-size: 0.7rem;
+  color: var(--text-3, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 0.25rem;
+}
+
+/* Filtros del registro */
+.filtros-registro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--surface-2, #0f172a);
+  border-radius: var(--radius, 6px);
+  margin-bottom: 1rem;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filtro-grupo label {
+  font-size: 0.75rem;
+  color: var(--text-2, #94a3b8);
+}
+
+.filtro-grupo input,
+.filtro-grupo select {
+  padding: 0.4rem 0.5rem;
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border, #334155);
+  border-radius: 4px;
+  color: var(--text-1, #f1f5f9);
+  font-size: 0.85rem;
+}
+
+.filtro-grupo input:focus,
+.filtro-grupo select:focus {
+  outline: none;
+  border-color: var(--accent-dim, #d97706);
+}
+
+/* Resumen de ventas */
+.resumen-ventas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Tabla de ventas */
+.tabla-ventas {
+  font-size: 0.85rem;
+}
+
+.tabla-ventas th,
+.tabla-ventas td {
+  padding: 0.5rem 0.4rem;
+  white-space: nowrap;
+}
+
+/* Tags de canal, método y origen */
+.tag-canal,
+.tag-metodo,
+.tag-origen {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.tag-canal {
+  background: var(--surface-3, #334155);
+  color: var(--text-1, #f1f5f9);
+}
+
+/* Colores específicos por canal */
+.tag-tiendanube { background: #e3f2fd; color: #1565c0; }
+.tag-tiendanegocio { background: #fff3e0; color: #e65100; }
+.tag-mercadolibre { background: #fff9c4; color: #f57f17; }
+.tag-whatsapp { background: #e8f5e9; color: #2e7d32; }
+.tag-presencial { background: #f3e5f5; color: #7b1fa2; }
+.tag-distribuidor { background: #e0f2f1; color: #00695c; }
+.tag-produccion { background: var(--accent-glow, rgba(251, 191, 36, 0.15)); color: var(--accent-text, #fbbf24); }
+.tag-importacion { background: #e3f2fd; color: #1565c0; }
+
+.tag-metodo {
+  background: var(--surface-3, #334155);
+  color: var(--text-2, #94a3b8);
+}
+
+.tag-origen {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+}
+
+.tag-origen.tag-produccion {
+  background: var(--accent-glow, rgba(251, 191, 36, 0.15));
+  color: var(--accent-text, #fbbf24);
+}
+
+.tag-origen.tag-importacion {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* Responsive para tabla de ventas */
+@media (max-width: 1100px) {
+  .tabla-ventas th:nth-child(2),
+  .tabla-ventas td:nth-child(2) { display: none; } /* N° Orden */
+}
+
+@media (max-width: 900px) {
+  .tabla-ventas th:nth-child(6),
+  .tabla-ventas td:nth-child(6) { display: none; } /* Cliente */
+}
+
+@media (max-width: 700px) {
+  .tabla-ventas th:nth-child(5),
+  .tabla-ventas td:nth-child(5),
+  .tabla-ventas th:nth-child(8),
+  .tabla-ventas td:nth-child(8) { display: none; } /* Total, Pago */
+  
+  .filtros-registro {
+    flex-direction: column;
+  }
+  
+  .filtro-grupo {
+    width: 100%;
+  }
+  
+  .filtro-grupo input,
+  .filtro-grupo select {
+    width: 100%;
+  }
+}

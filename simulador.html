@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ══════════════════════════════════════════════════════════════════════════
+       SIMULADOR - ESTILOS
+       ══════════════════════════════════════════════════════════════════════════ */
+    
+    /* Resumen superior */
+    .sim-resumen {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .sim-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+    }
+    
+    .sim-kpi-label {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-3);
+      margin-bottom: 0.5rem;
+    }
+    
+    .sim-kpi-valor {
+      font-size: 1.5rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-1);
+    }
+    
+    .sim-kpi-valor.positivo { color: #22c55e; }
+    .sim-kpi-valor.negativo { color: #ef4444; }
+    .sim-kpi-valor.neutro { color: var(--accent-text); }
+    
+    .sim-kpi-detalle {
+      font-size: 0.75rem;
+      color: var(--text-2);
+      margin-top: 0.35rem;
+    }
+
+    /* Secciones con títulos claros */
+    .sim-section {
+      margin-bottom: 2rem;
+    }
+    
+    .sim-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--accent-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* Panel de simulación */
+    .sim-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    
+    .sim-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    
+    .sim-panel-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    /* Controles de simulación */
+    .sim-controles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .sim-control {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    
+    .sim-control-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-1);
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+    
+    .sim-control-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .sim-control-row input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      background: var(--surface-3);
+      border-radius: 3px;
+    }
+    
+    .sim-control-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .sim-control-valor {
+      min-width: 70px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--accent-text);
+    }
+    
+    .sim-control-hint {
+      font-size: 0.75rem;
+      color: var(--text-3);
+      margin-top: 0.5rem;
+    }
+    
+    .sim-control input[type="number"] {
+      width: 100px;
+      padding: 0.5rem;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-1);
+      font-size: 0.9rem;
+      text-align: right;
+    }
+    
+    /* Resultados de simulación */
+    .sim-resultados {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    @media (max-width: 800px) {
+      .sim-resultados {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .sim-resultado-col {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    
+    .sim-resultado-col h4 {
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-2);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .sim-resultado-col.actual {
+      border-left: 3px solid var(--text-3);
+    }
+    
+    .sim-resultado-col.simulado {
+      border-left: 3px solid var(--accent);
+    }
+    
+    .sim-resultado-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+    
+    .sim-resultado-item:not(:last-child) {
+      border-bottom: 1px dashed var(--border);
+    }
+    
+    .sim-resultado-label {
+      color: var(--text-2);
+    }
+    
+    .sim-resultado-valor {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--text-1);
+    }
+    
+    .sim-delta {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+    }
+    
+    .sim-delta.up { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .sim-delta.down { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    
+    /* Acciones */
+    .sim-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    
+    /* Punto de equilibrio */
+    .eq-resultado-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .eq-card {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    .eq-card.destacado {
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-dim);
+    }
+    
+    .eq-valor {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-1);
+    }
+    
+    .eq-card.destacado .eq-valor {
+      color: var(--accent-text);
+    }
+    
+    .eq-label {
+      font-size: 0.75rem;
+      color: var(--text-2);
+      margin-top: 0.25rem;
+    }
+    
+    .eq-chart-container {
+      height: 280px;
+      margin-top: 1.5rem;
+    }
+    
+    /* Consejos */
+    .consejos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    
+    .consejo-card {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 1.25rem;
+      border-left: 3px solid var(--border);
+    }
+    
+    .consejo-card.success { border-left-color: #22c55e; }
+    .consejo-card.warning { border-left-color: #f59e0b; }
+    .consejo-card.info { border-left-color: #3b82f6; }
+    
+    .consejo-card h4 {
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .consejo-card p, .consejo-card li {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+    
+    .consejo-card ul {
+      margin: 0.5rem 0 0 1.25rem;
+      padding: 0;
+    }
+    
+    .consejo-card li {
+      margin-bottom: 0.35rem;
+    }
+    
+    /* Publicidad */
+    .pub-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .pub-form .form-group {
+      margin-bottom: 0;
+    }
+    
+    .pub-resultado {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    
+    .pub-metricas {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .pub-metrica {
+      text-align: center;
+      padding: 0.75rem;
+      background: var(--surface-3);
+      border-radius: 6px;
+    }
+    
+    .pub-metrica-valor {
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .pub-metrica-valor.good { color: #22c55e; }
+    .pub-metrica-valor.bad { color: #ef4444; }
+    
+    .pub-metrica-label {
+      font-size: 0.7rem;
+      color: var(--text-2);
+      margin-top: 0.25rem;
+    }
+    
+    .pub-veredicto {
+      padding: 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    
+    .pub-veredicto.rentable {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+    }
+    
+    .pub-veredicto.riesgoso {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+    </nav>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImportGlobal(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>🔬 Simulador Financiero</h2>
+      <p>Explorá escenarios hipotéticos sin modificar tus datos reales.</p>
+    </div>
+
+    <!-- KPIs actuales -->
+    <div class="sim-resumen" id="sim-resumen">
+      <div class="sim-kpi">
+        <div class="sim-kpi-label">Margen Bruto Promedio</div>
+        <div class="sim-kpi-valor" id="kpi-margen-bruto">--</div>
+      </div>
+      <div class="sim-kpi">
+        <div class="sim-kpi-label">Margen Neto (con 5% comisión)</div>
+        <div class="sim-kpi-valor" id="kpi-margen-neto">--</div>
+      </div>
+      <div class="sim-kpi">
+        <div class="sim-kpi-label">Ganancia Promedio</div>
+        <div class="sim-kpi-valor" id="kpi-ganancia">--</div>
+      </div>
+      <div class="sim-kpi">
+        <div class="sim-kpi-label">Punto de Equilibrio</div>
+        <div class="sim-kpi-valor neutro" id="kpi-equilibrio">--</div>
+        <div class="sim-kpi-detalle">ventas/mes para cubrir gastos</div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1: Simulador de escenarios -->
+    <div class="sim-section">
+      <h3 class="sim-section-title">📊 Simulador de Escenarios</h3>
+      
+      <div class="sim-panel">
+        <div class="sim-panel-header">
+          <span class="sim-panel-title">Ajustá las variables para ver el impacto</span>
+          <button class="btn btn-sm" onclick="resetearSimulacion()">↺ Resetear</button>
+        </div>
+        
+        <div class="sim-controles">
+          <div class="sim-control">
+            <label class="sim-control-label">Variación del Dólar</label>
+            <div class="sim-control-row">
+              <input type="range" id="sim-dolar" min="-20" max="80" value="0" oninput="actualizarSimulacion()">
+              <span class="sim-control-valor" id="val-dolar">0%</span>
+            </div>
+            <div class="sim-control-hint">Afecta insumos importados</div>
+          </div>
+          
+          <div class="sim-control">
+            <label class="sim-control-label">Ajuste de Margen Consumidor</label>
+            <div class="sim-control-row">
+              <input type="range" id="sim-margen" min="-15" max="15" value="0" oninput="actualizarSimulacion()">
+              <span class="sim-control-valor" id="val-margen">0 pp</span>
+            </div>
+            <div class="sim-control-hint">Puntos porcentuales sobre margen actual</div>
+          </div>
+          
+          <div class="sim-control">
+            <label class="sim-control-label">Descuento a Distribuidor</label>
+            <div class="sim-control-row">
+              <input type="range" id="sim-descuento-distrib" min="5" max="40" value="20" step="1" oninput="actualizarSimulacion()">
+              <span class="sim-control-valor" id="val-descuento-distrib">20%</span>
+            </div>
+            <div class="sim-control-hint">% de descuento sobre precio consumidor</div>
+          </div>
+          
+          <div class="sim-control">
+            <label class="sim-control-label">Comisión Medios de Pago</label>
+            <div class="sim-control-row">
+              <input type="number" id="sim-comision" min="0" max="15" value="5" step="0.5" oninput="actualizarSimulacion()">
+              <span style="color:var(--text-2)">%</span>
+            </div>
+            <div class="sim-control-hint">MercadoPago/Ualá: 3-7%</div>
+          </div>
+          
+          <div class="sim-control">
+            <label class="sim-control-label">% Ventas a Distribuidor</label>
+            <div class="sim-control-row">
+              <input type="range" id="sim-mix" min="0" max="100" value="10" step="5" oninput="actualizarSimulacion()">
+              <span class="sim-control-valor" id="val-mix">10%</span>
+            </div>
+            <div class="sim-control-hint">Mayor % = menor contribución promedio</div>
+          </div>
+        </div>
+        
+        <div class="sim-resultados">
+          <div class="sim-resultado-col actual">
+            <h4>Escenario Actual</h4>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Margen bruto</span>
+              <span class="sim-resultado-valor" id="res-actual-margen">--</span>
+            </div>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Margen neto</span>
+              <span class="sim-resultado-valor" id="res-actual-neto">--</span>
+            </div>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Ganancia/unidad</span>
+              <span class="sim-resultado-valor" id="res-actual-ganancia">--</span>
+            </div>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Precio promedio</span>
+              <span class="sim-resultado-valor" id="res-actual-precio">--</span>
+            </div>
+          </div>
+          
+          <div class="sim-resultado-col simulado">
+            <h4>Con los Cambios</h4>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Margen bruto consumidor</span>
+              <span class="sim-resultado-valor" id="res-sim-margen">--</span>
+            </div>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Margen neto ponderado</span>
+              <span class="sim-resultado-valor" id="res-sim-neto">--</span>
+            </div>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Ganancia ponderada/unidad</span>
+              <span class="sim-resultado-valor" id="res-sim-ganancia">--</span>
+            </div>
+            <div class="sim-resultado-item">
+              <span class="sim-resultado-label">Precio ponderado</span>
+              <span class="sim-resultado-valor" id="res-sim-precio">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: Punto de equilibrio -->
+    <div class="sim-section">
+      <h3 class="sim-section-title">⚖️ Punto de Equilibrio</h3>
+      
+      <div class="sim-panel">
+        <p style="color:var(--text-2);margin-bottom:1rem;">¿Cuánto necesitás vender por mes para cubrir tus gastos fijos?</p>
+        
+        <div class="form-group" style="max-width:300px;">
+          <label>Gastos fijos mensuales (ARS)</label>
+          <input type="number" id="eq-gastos" value="1250000" min="0" step="10000" oninput="calcularEquilibrio()">
+          <small>Alquiler, servicios, etc.</small>
+        </div>
+        
+        <div class="eq-resultado-grid" id="eq-resultado">
+          <!-- Se llena con JS -->
+        </div>
+        
+        <div class="eq-chart-container">
+          <canvas id="chart-equilibrio"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: Simulador de publicidad -->
+    <div class="sim-section">
+      <h3 class="sim-section-title">📢 ¿Conviene Invertir en Publicidad?</h3>
+      
+      <div class="sim-panel">
+        <div class="pub-form">
+          <div class="form-group">
+            <label>Presupuesto mensual</label>
+            <input type="number" id="pub-presupuesto" value="30000" min="0" step="5000" oninput="calcularPublicidad()">
+          </div>
+          <div class="form-group">
+            <label>Producto a promocionar</label>
+            <select id="pub-producto" onchange="calcularPublicidad()"></select>
+          </div>
+          <div class="form-group">
+            <label>Costo por clic (CPC)</label>
+            <input type="number" id="pub-cpc" value="120" min="10" step="10" oninput="calcularPublicidad()">
+            <small>Meta Ads AR: $80-200</small>
+          </div>
+          <div class="form-group">
+            <label>Tasa de conversión (%)</label>
+            <input type="number" id="pub-conversion" value="2" min="0.1" max="10" step="0.1" oninput="calcularPublicidad()">
+            <small>E-commerce: 1-3%</small>
+          </div>
+        </div>
+        
+        <div class="pub-resultado" id="pub-resultado">
+          <!-- Se llena con JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 4: Consejos -->
+    <div class="sim-section">
+      <h3 class="sim-section-title">💡 Consejos para tu Negocio</h3>
+      
+      <div class="consejos-grid">
+        <div class="consejo-card success">
+          <h4>✅ Fortalezas</h4>
+          <ul>
+            <li><strong>Capacidad ociosa:</strong> Cada venta adicional es casi pura ganancia</li>
+            <li><strong>Gastos fijos bajos:</strong> Punto de equilibrio alcanzable</li>
+            <li><strong>Nicho especializado:</strong> Poca competencia, alta barrera de entrada</li>
+          </ul>
+        </div>
+        
+        <div class="consejo-card warning">
+          <h4>⚠️ Atención</h4>
+          <ul>
+            <li><strong>Comisión oculta:</strong> El 5% de MercadoPago reduce tu margen real</li>
+            <li><strong>Dependencia del canal:</strong> 90% consumidor final es riesgoso</li>
+            <li><strong>Recomendación:</strong> Subí precios 5% para absorber comisiones</li>
+          </ul>
+        </div>
+        
+        <div class="consejo-card info">
+          <h4>🎯 Próximos pasos</h4>
+          <ul>
+            <li>Testear publicidad con $30k/mes en tu producto estrella</li>
+            <li>Contactar 5 ortopedias/distribuidores por semana</li>
+            <li>Meta: 30% distribuidor en 6 meses</li>
+            <li>Usar transferencia bancaria con distribuidores (0% comisión)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/simulador.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+function handleImportGlobal(event) {
+  const file = event.target.files[0]; if (!file) return;
+  importData(file).then(() => { alert('Importado.'); location.reload(); })
+    .catch(err => alert(err.message));
+}
+</script>
+</body>
+</html>
