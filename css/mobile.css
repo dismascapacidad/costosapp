@@ -1,19 +1,40 @@
 /*
  * mobile.css — CostosApp responsive
  * Breakpoint principal: 768px
- * Se carga DESPUÉS de styles.css
+ * Se carga DESPUÉS de styles.css y de los CSS de cada módulo.
+ *
+ * FIXES IMPLEMENTADOS:
+ *  #1  Modales: fullscreen en mobile
+ *  #3  Overflow-x hidden en body
+ *  #7  Tabla insumos: nombre legible
+ *  #9  Tabla productos: nombre legible
+ *  #11 Precio duo-grid: stack vertical
+ *  #16 Linea agregar presupuesto: stack
+ *  #17 Tabla presupuestos historial: ocultar columnas
+ *  #27 Modal producción: fullscreen + stack
+ *  #36 Simulador: controles 1 columna
  */
 
-/* ── Header mobile (solo visible en móvil) ──────────────────────────────── */
 .mobile-header {
   display: none;
 }
 
 @media (max-width: 768px) {
 
-  /* Restaurar variable que styles.css pone en 0 */
   :root {
     --sidebar-w: 280px;
+  }
+
+  /* #3 — Overflow-x global */
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 68px 0.75rem 2rem;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* ── Header mobile ──────────────────────────────────────────────────── */
@@ -66,24 +87,19 @@
     transition: color 0.15s;
   }
 
-  .mobile-logout:hover {
-    color: var(--text-1);
-  }
+  .mobile-logout:hover { color: var(--text-1); }
 
-  /* ── Sidebar como overlay ───────────────────────────────────────────── */
+  /* ── Sidebar overlay ────────────────────────────────────────────────── */
   .sidebar {
-    display: flex !important;  /* Sobreescribe display:none de styles.css */
+    display: flex !important;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     z-index: 300;
     width: 280px;
   }
 
-  .sidebar.abierta {
-    transform: translateX(0);
-  }
+  .sidebar.abierta { transform: translateX(0); }
 
-  /* Overlay oscuro detrás de la sidebar */
   .sidebar-overlay {
     display: none;
     position: fixed;
@@ -92,157 +108,135 @@
     z-index: 250;
   }
 
-  .sidebar-overlay.activo {
-    display: block;
-  }
+  .sidebar-overlay.activo { display: block; }
 
-  /* ── Main content ajustado ──────────────────────────────────────────── */
-  .main-content {
-    margin-left: 0;
-    padding: 68px 1rem 2rem; /* 52px header + 16px gap */
-  }
+  /* ── Layout general compacto ────────────────────────────────────────── */
+  .card { padding: 0.85rem; }
 
-  /* ── Cards más compactas ────────────────────────────────────────────── */
-  .card {
-    padding: 1rem;
-  }
+  .page-header { margin-bottom: 1rem; padding-bottom: 0.75rem; }
+  .page-header h2 { font-size: 0.95rem; }
+  .page-header p { font-size: 0.8rem; }
 
-  /* ── Page header compacto ───────────────────────────────────────────── */
-  .page-header {
-    margin-bottom: 1.25rem;
-    padding-bottom: 1rem;
-  }
+  .form-grid { grid-template-columns: 1fr; gap: 0.75rem; }
 
-  .page-header h2 {
-    font-size: 0.95rem;
-  }
+  .form-actions { flex-wrap: wrap; }
+  .form-actions .btn { flex: 1; min-width: 100px; }
 
-  /* ── Formularios: 1 columna ─────────────────────────────────────────── */
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+  .buscador-wrapper { max-width: 100%; width: 100%; }
+  .buscador-input { max-width: 100%; width: 100%; }
 
-  /* ── Form actions stack vertical ────────────────────────────────────── */
-  .form-actions {
-    flex-wrap: wrap;
-  }
+  .tabla-header { flex-wrap: wrap; gap: 0.5rem; }
+  .tabla-header h3 { width: 100%; }
 
-  .form-actions .btn {
-    flex: 1;
-    min-width: 120px;
-  }
+  .dolar-widget { display: none; }
+  #btn-logout { display: none; }
 
-  /* ── Tablas: permitir scroll horizontal si es necesario ──────────────── */
-  .tabla-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  #resumen-estado { grid-template-columns: 1fr 1fr; }
 
-  /* No forzar min-width — las reglas de styles.css ya ocultan columnas */
+  .menu-dropdown,
+  .menu-dropdown-presup { right: 0; left: auto; }
 
-  /* ── tabla-header: wrap y centrar ────────────────────────────────────── */
-  .tabla-header {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
+  /* ══════════════════════════════════════════════════════════════════════════
+     #1 + #27 — MODALES FULLSCREEN
+     ══════════════════════════════════════════════════════════════════════════ */
 
-  .tabla-header h3 {
-    width: 100%;
-  }
-
-  /* ── Buscador full width ────────────────────────────────────────────── */
-  .buscador-wrapper {
-    max-width: 100%;
-    width: 100%;
-  }
-
-  .buscador-input {
-    max-width: 100%;
-    width: 100%;
-  }
-
-  /* ── Modales: casi fullscreen ───────────────────────────────────────── */
+  .modal-overlay { padding: 0; }
   .modal-box {
-    max-width: 100%;
-    margin: 0.5rem;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 1.25rem;
+    max-width: 100%; margin: 0; border-radius: 0;
+    max-height: 100vh; min-height: 100vh;
+    overflow-y: auto; padding: 1rem;
   }
 
-  /* ── Presupuestos: layout 1 columna ─────────────────────────────────── */
-  .presup-layout {
-    grid-template-columns: 1fr;
+  /* Modal productos */
+  .modal-overlay-producto { padding: 0 !important; }
+  .modal-producto-content {
+    max-width: 100%; max-height: 100vh; min-height: 100vh;
+    border-radius: 0;
+  }
+  .modal-producto-body { padding: 1rem; }
+  .modal-form-actions { flex-wrap: wrap; }
+  .modal-form-actions .btn { flex: 1; min-width: 100px; }
+
+  /* Modal insumos */
+  .modal-overlay-insumo { padding: 0 !important; }
+  .modal-insumo-content {
+    max-width: 100%; max-height: 100vh; border-radius: 0;
+  }
+  .modal-insumo-body { padding: 1rem; }
+
+  /* Modal producción */
+  .modal-orden-overlay { padding: 0 !important; }
+  .modal-orden {
+    max-width: 100%; max-height: 100vh; min-height: 100vh;
+    border-radius: 0;
+  }
+  .modal-orden-body { padding: 1rem; }
+  .modal-form-grid { grid-template-columns: 1fr !important; }
+
+  .agregar-producto-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .agregar-producto-row .producto-search-container,
+  .agregar-producto-row .campo-cantidad-agregar {
+    width: 100% !important; min-width: 0 !important;
   }
 
-  /* ── Linea agregar insumos: stack ───────────────────────────────────── */
-  .linea-agregar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  /* ══════════════════════════════════════════════════════════════════════════
+     #11 — PRECIO DUO-GRID STACK
+     ══════════════════════════════════════════════════════════════════════════ */
 
+  .precio-duo-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+  .precio-duo-sep { display: none; }
+  .precio-seccion { padding: 0.75rem !important; }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     #16 — LINEA AGREGAR PRESUPUESTO STACK
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  .linea-agregar-presup {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .linea-agregar-presup .producto-search-wrap { min-width: 0; width: 100%; }
+  .linea-agregar-presup .campo-cantidad { width: 100% !important; }
+  .linea-agregar-presup .btn-agregar { width: 100%; }
+
+  /* Linea agregar insumos (en modal producto) */
+  .linea-agregar { flex-direction: column; align-items: stretch; }
   .linea-agregar select,
-  .linea-agregar input {
-    min-width: 0;
-    width: 100%;
+  .linea-agregar input { min-width: 0; width: 100%; }
+  .insumo-search-wrap { min-width: 0 !important; width: 100%; }
+
+  .presup-layout { grid-template-columns: 1fr; }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     TABLAS — COLUMNAS VISIBLES EN MOBILE
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Reset: quitar table-layout fixed */
+  .tabla-insumos,
+  .tabla-productos,
+  .tabla-presupuestos,
+  .tabla-clientes {
+    table-layout: auto !important;
   }
 
-  /* ── Widget dólar: ocultar de sidebar (se muestra en header si queremos) */
-  .dolar-widget {
-    display: none;
-  }
+  /* Compactar todas las tablas */
+  .tabla td { font-size: 0.8rem; padding: 0.45rem 0.35rem; white-space: normal; word-break: break-word; }
+  .tabla th { font-size: 0.6rem; padding: 0.35rem 0.35rem; }
 
-  /* ── Storage toolbar: ocultar de sidebar (hay logout en header) ────── */
-  /* Se mantiene visible porque importar/exportar es útil */
+  /* Mantener nowrap en numéricas y acciones */
+  .tabla .td-num,
+  .tabla .td-acciones,
+  .tabla .td-acciones-menu,
+  .tabla .presup-num { white-space: nowrap; }
 
-  /* ── Costos grid: más compacto ──────────────────────────────────────── */
-  .costos-grid .costo-fila {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-  }
-
-  /* ── Resumen index: 2 columnas en mobile ────────────────────────────── */
-  #resumen-estado {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* ── SKU tags más compactos ─────────────────────────────────────────── */
-  .sku-tag {
-    font-size: 0.65rem;
-    padding: 0.05rem 0.35rem;
-  }
-
-  /* ── Menú dropdown en tablas ────────────────────────────────────────── */
-  .menu-dropdown {
-    right: 0;
-    left: auto;
-  }
-
-  /* ── Produccion stats grid ──────────────────────────────────────────── */
-  .prod-stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* ── Stock grid ─────────────────────────────────────────────────────── */
-  .stock-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* ── Ocultar botón logout de sidebar (hay uno en header) ────────────── */
-  #btn-logout {
-    display: none;
-  }
-
-  /* ════════════════════════════════════════════════════════════════════════
-     TABLAS ESPECÍFICAS EN MOBILE
-     En mobile mostramos solo las columnas esenciales.
-     Las columnas se cuentan por su posición en el <tr>:
-     ════════════════════════════════════════════════════════════════════════ */
-
-  /* ── PRODUCTOS: 9 columnas ──────────────────────────────────────────── */
-  /* SKU(1) Nombre(2) Categoría(3) Costo(4) Margen(5) Markup(6) P.Cons(7) P.Distrib(8) Acciones(9) */
-  /* Mobile: mostrar SKU, Nombre, P.Consumidor, Acciones */
-
+  /* ── #9 — PRODUCTOS ─────────────────────────────────────────────────── */
+  /* Ocultar: Cat(3), Costo(4), Margen(5), Markup(6), P.Dist(8) */
   .tabla-productos th:nth-child(3),
   .tabla-productos td:nth-child(3),
   .tabla-productos th:nth-child(4),
@@ -252,27 +246,19 @@
   .tabla-productos th:nth-child(6),
   .tabla-productos td:nth-child(6),
   .tabla-productos th:nth-child(8),
-  .tabla-productos td:nth-child(8) {
-    display: none !important;
-  }
+  .tabla-productos td:nth-child(8) { display: none !important; }
 
-  /* Nombre: permitir wrap y ocupar espacio */
-  .tabla-productos td:nth-child(2) {
-    white-space: normal;
-    word-break: break-word;
-    max-width: 180px;
-  }
+  .tabla-productos td:nth-child(1) { white-space: nowrap; }
+  .tabla-productos .sku-tag { font-size: 0.62rem; padding: 0.05rem 0.3rem; }
+  .tabla-productos td:nth-child(2) { white-space: normal; word-break: break-word; line-height: 1.3; }
+  .tabla-productos td:nth-child(7) { font-size: 0.75rem; white-space: nowrap; }
 
-  /* Precio consumidor: compacto */
-  .tabla-productos td:nth-child(7) {
-    font-size: 0.75rem;
-    white-space: nowrap;
-  }
+  /* Quitar anchos fijos heredados */
+  .tabla-productos th,
+  .tabla-productos td { width: auto !important; overflow: visible; text-overflow: clip; }
 
-  /* Fila de categoría: colspan se adapta automáticamente */
-
-  /* ── INSUMOS: ocultar columnas extra ────────────────────────────────── */
-  /* En mobile: mostrar solo Nombre, Costo unitario y Acciones */
+  /* ── #7 — INSUMOS ───────────────────────────────────────────────────── */
+  /* Ocultar: Cat(2), PrecioCompra(4), CantCompra(5), Proveedor(7) */
   .tabla-insumos th:nth-child(2),
   .tabla-insumos td:nth-child(2),
   .tabla-insumos th:nth-child(4),
@@ -280,50 +266,76 @@
   .tabla-insumos th:nth-child(5),
   .tabla-insumos td:nth-child(5),
   .tabla-insumos th:nth-child(7),
-  .tabla-insumos td:nth-child(7) {
-    display: none !important;
-  }
+  .tabla-insumos td:nth-child(7) { display: none !important; }
 
-  .tabla-insumos td:nth-child(1) {
-    white-space: normal;
-    word-break: break-word;
-  }
+  .tabla-insumos td:nth-child(1) { white-space: normal; word-break: break-word; line-height: 1.3; }
+  .tabla-insumos th,
+  .tabla-insumos td { width: auto !important; overflow: visible; text-overflow: clip; }
 
-  /* ── CLIENTES: solo nombre, tipo, acciones ──────────────────────────── */
+  /* ── #17 — PRESUPUESTOS HISTORIAL ───────────────────────────────────── */
+  /* Ocultar: Fecha(3), Vence(4), Tipo(5), Items(6) */
+  .tabla-presupuestos th:nth-child(3),
+  .tabla-presupuestos td:nth-child(3),
+  .tabla-presupuestos th:nth-child(4),
+  .tabla-presupuestos td:nth-child(4),
+  .tabla-presupuestos th:nth-child(5),
+  .tabla-presupuestos td:nth-child(5),
+  .tabla-presupuestos th:nth-child(6),
+  .tabla-presupuestos td:nth-child(6) { display: none !important; }
+
+  .tabla-presupuestos td:nth-child(2) { white-space: normal; word-break: break-word; }
+  .tabla-presupuestos td:nth-child(7) { font-size: 0.75rem; white-space: nowrap; }
+
+  /* ── CLIENTES ───────────────────────────────────────────────────────── */
   .tabla-clientes th:nth-child(2),
   .tabla-clientes td:nth-child(2),
   .tabla-clientes th:nth-child(3),
   .tabla-clientes td:nth-child(3),
   .tabla-clientes th:nth-child(5),
-  .tabla-clientes td:nth-child(5) {
-    display: none !important;
-  }
+  .tabla-clientes td:nth-child(5) { display: none !important; }
 
-  .tabla-clientes td:nth-child(1) {
-    white-space: normal;
-    word-break: break-word;
-  }
+  .tabla-clientes td:nth-child(1) { white-space: normal; word-break: break-word; }
+  .tabla-clientes th,
+  .tabla-clientes td { width: auto !important; }
 
-  /* ── Todas las tablas: nombre legible ────────────────────────────────── */
-  .tabla td {
-    font-size: 0.8rem;
-    padding: 0.45rem 0.4rem;
-  }
+  /* ══════════════════════════════════════════════════════════════════════════
+     #36 — SIMULADOR
+     ══════════════════════════════════════════════════════════════════════════ */
 
-  .tabla th {
-    font-size: 0.6rem;
-    padding: 0.35rem 0.4rem;
+  .sim-controles { grid-template-columns: 1fr !important; }
+  .sim-kpis { grid-template-columns: 1fr 1fr !important; }
+  .sim-control-row { flex-wrap: wrap; }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     EXTRAS — PRIORIDAD MEDIA
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Edición masiva: 1 columna */
+  .masivo-controles {
+    display: flex !important; flex-direction: column !important; gap: 0.75rem !important;
   }
+  .masivo-controles > div { width: 100%; }
+  .masivo-controles .btn { width: 100%; }
+
+  .stock-grid { grid-template-columns: 1fr; }
+  .prod-stats-grid { grid-template-columns: 1fr; }
+  .stats-summary { grid-template-columns: 1fr 1fr !important; }
+
+  .sku-tag { font-size: 0.62rem; padding: 0.05rem 0.3rem; }
+
+  /* Órdenes en index: compactas */
+  .orden-inicio-item { gap: 0.5rem; padding: 0.5rem; font-size: 0.82rem; }
+  .orden-inicio-num { font-size: 0.75rem; min-width: 50px; }
+  .orden-inicio-cantidad { font-size: 0.75rem; min-width: 50px; }
+
+  /* Tabs de stock */
+  .stock-tabs .btn,
+  .stock-tabs button { font-size: 0.72rem; padding: 0.35rem 0.5rem; }
 
 }
 
-/* ── Breakpoint intermedio: tablets ──────────────────────────────────────── */
+/* ── Tablets ────────────────────────────────────────────────────────────── */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .main-content {
-    padding: 2rem 1.5rem 4rem;
-  }
-
-  .form-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .main-content { padding: 2rem 1.5rem 4rem; }
+  .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
