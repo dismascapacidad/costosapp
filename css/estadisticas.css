@@ -179,51 +179,186 @@
   background-color: rgba(239, 68, 68, 0.7);
 }
 
-/* Responsive */
+/* ==========================================================================
+   RESPONSIVE - MOBILE FIRST
+   ========================================================================== */
+
 @media (max-width: 768px) {
+  /* ---- Stats Summary ---- */
   .stats-summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
   
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .stat-value-sm {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  
+  /* ---- Chart ---- */
   .chart-container {
-    height: 300px;
+    height: 280px;
   }
   
+  /* ---- Card actions (botones de ordenar) ---- */
+  .card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .card-actions .btn-sm {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+  }
+  
+  /* ---- Tabla de Rentabilidad - Layout adaptativo ---- */
   #tabla-rentabilidad-wrapper {
-    overflow-x: auto;
-    /* Agrega sombra visual para indicar que hay scroll */
-    background: 
-      linear-gradient(90deg, var(--surface-1) 0%, transparent 20px),
-      linear-gradient(-90deg, var(--surface-1) 0%, transparent 20px);
-    background-repeat: no-repeat;
-    background-position: left center, right center;
-    background-attachment: local, local;
+    overflow-x: visible;
   }
   
   .tabla-rentabilidad {
-    font-size: 0.75rem;
-    min-width: 800px; /* Mantiene estructura en móvil */
+    table-layout: auto;
+    min-width: unset;
+    width: 100%;
+    font-size: 0.8rem;
+  }
+  
+  /* Ocultar columnas menos importantes en mobile */
+  .tabla-rentabilidad .col-categoria,
+  .tabla-rentabilidad .col-costo,
+  .tabla-rentabilidad .col-indicador {
+    display: none;
+  }
+  
+  /* Ajustar anchos de columnas visibles */
+  .tabla-rentabilidad .col-sku {
+    width: 60px;
+    min-width: 60px;
+  }
+  
+  .tabla-rentabilidad .col-producto {
+    width: auto;
+    min-width: 120px;
+    max-width: none;
+  }
+  
+  .tabla-rentabilidad .col-precio,
+  .tabla-rentabilidad .col-ganancia {
+    width: 85px;
+    min-width: 85px;
+  }
+  
+  .tabla-rentabilidad .col-margen {
+    width: 55px;
+    min-width: 55px;
   }
   
   .tabla-rentabilidad th,
   .tabla-rentabilidad td {
-    padding: 0.5rem 0.4rem;
+    padding: 0.6rem 0.4rem;
+    white-space: normal;
+    word-break: break-word;
   }
   
-  /* Hacer el SKU y badges más pequeños en móvil */
-  .sku-tag {
-    font-size: 0.65rem;
-    padding: 0.15rem 0.35rem;
+  /* Permitir que el nombre fluya en múltiples líneas */
+  .tabla-rentabilidad .col-producto strong {
+    display: block;
+    line-height: 1.3;
   }
   
-  .badge-margen {
+  /* SKU más compacto */
+  .tabla-rentabilidad .sku-tag {
     font-size: 0.6rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0.15rem 0.3rem;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
+  /* Números más compactos */
+  .tabla-rentabilidad .td-num {
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
+  }
+  
+  /* Badge de margen oculto, solo mostrar el porcentaje */
+  .badge-margen {
+    display: none;
+  }
+  
+  /* ---- Legend ---- */
   .legend-items {
     flex-direction: column;
     gap: 0.75rem;
+  }
+  
+  .legend-item {
+    font-size: 0.8rem;
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* Mobile extra pequeño */
+@media (max-width: 480px) {
+  .stats-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-card {
+    padding: 0.875rem;
+  }
+  
+  .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  /* Tabla aún más compacta */
+  .tabla-rentabilidad {
+    font-size: 0.75rem;
+  }
+  
+  .tabla-rentabilidad .col-sku {
+    width: 50px;
+    min-width: 50px;
+  }
+  
+  .tabla-rentabilidad .col-precio,
+  .tabla-rentabilidad .col-ganancia {
+    width: 70px;
+    min-width: 70px;
+  }
+  
+  .tabla-rentabilidad .col-margen {
+    width: 50px;
+    min-width: 50px;
+  }
+  
+  .tabla-rentabilidad th,
+  .tabla-rentabilidad td {
+    padding: 0.5rem 0.3rem;
+  }
+  
+  /* Ocultar también la ganancia en pantallas muy pequeñas */
+  .tabla-rentabilidad .col-ganancia {
+    display: none;
+  }
+  
+  .chart-container {
+    height: 240px;
   }
 }
 
@@ -823,12 +958,16 @@
   line-height: 1.4;
 }
 
-/* Responsive ABC */
-@media (max-width: 768px) {
+/* Responsive ABC - Consolidado */
+@media (max-width: 900px) {
   .abc-resumen {
     grid-template-columns: 1fr;
   }
-
+  
+  .abc-clase-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
   .recomendaciones-grid {
     grid-template-columns: 1fr;
   }
@@ -840,6 +979,48 @@
   .stats-tab {
     width: 100%;
     text-align: left;
+  }
+  
+  /* Tabla ABC responsive */
+  .tabla-abc {
+    font-size: 0.8rem;
+  }
+  
+  .tabla-abc th,
+  .tabla-abc td {
+    padding: 0.5rem 0.4rem;
+  }
+  
+  /* Ocultar columnas menos importantes en ABC */
+  .tabla-abc th:nth-child(6),
+  .tabla-abc td:nth-child(6),
+  .tabla-abc th:nth-child(7),
+  .tabla-abc td:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .abc-clase-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .abc-clase {
+    padding: 1rem;
+  }
+  
+  .abc-clase-titulo {
+    font-size: 1.25rem;
+  }
+  
+  .tabla-abc {
+    font-size: 0.75rem;
+  }
+  
+  /* Ocultar más columnas en móvil pequeño */
+  .tabla-abc th:nth-child(4),
+  .tabla-abc td:nth-child(4) {
+    display: none;
   }
 }
 
@@ -1066,18 +1247,6 @@
 .tabla-abc td:first-child {
   width: 100px;
 }
-
-/* Responsive: ABC en móvil */
-@media (max-width: 900px) {
-  .abc-resumen {
-    grid-template-columns: 1fr;
-  }
-  
-  .abc-clase-stats {
-    grid-template-columns: 1fr;
-  }
-}
-
 
 /* Alineación de columnas numéricas en tabla ABC */
 .tabla-abc th.td-num {
