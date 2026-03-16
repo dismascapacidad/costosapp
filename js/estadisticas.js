@@ -48,70 +48,96 @@ function cargarEstadisticas() {
  * Carga y renderiza el análisis ABC de ventas
  */
 function cargarAnalisisABC() {
+  var container = document.getElementById('analisis-abc-container');
+  if (!container) return;
+  
   var analisisABC = calcularAnalisisABC();
   
   if (!analisisABC.disponible) {
     // No hay ventas - mostrar mensaje
-    document.getElementById('seccion-abc').style.display = 'none';
-    document.getElementById('mensaje-sin-ventas').style.display = 'block';
+    container.innerHTML = '<p class="tabla-vacia">No hay datos de ventas. <a href="importar-ventas.html">Importá tus ventas</a> para ver el análisis ABC.</p>';
     return;
   }
   
-  // Hay ventas - mostrar análisis ABC
-  document.getElementById('seccion-abc').style.display = 'block';
-  document.getElementById('mensaje-sin-ventas').style.display = 'none';
+  // Hay ventas - renderizar análisis ABC completo
+  container.innerHTML = _generarHTMLAnalisisABC(analisisABC);
   
-  renderResumenABC(analisisABC);
-  renderTablaABC(analisisABC.productos);
-  renderGraficoABC(analisisABC);
+  // Bindear eventos de filtro
+  var filtros = container.querySelectorAll('.filtro-abc');
+  filtros.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var clase = this.dataset.clase;
+      filtrarClaseABC(clase);
+      // Actualizar estado activo
+      filtros.forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
 }
 
 /**
- * Renderiza el resumen de clasificación ABC
+ * Genera el HTML completo del análisis ABC
  */
-function renderResumenABC(analisis) {
-  // Clase A
-  document.getElementById('abc-a-productos').textContent = analisis.statsA.cantidad;
-  document.getElementById('abc-a-ingresos').textContent = 'ARS ' + formatNum(analisis.statsA.ingresoTotal);
+function _generarHTMLAnalisisABC(analisis) {
+  var html = '';
   
-  // Clase B
-  document.getElementById('abc-b-productos').textContent = analisis.statsB.cantidad;
-  document.getElementById('abc-b-ingresos').textContent = 'ARS ' + formatNum(analisis.statsB.ingresoTotal);
+  // Resumen por clases
+  html += '<div class="abc-resumen">';
+  html += _generarCardClase('A', analisis.statsA, 'Productos estrella', 'abc-clase-a');
+  html += _generarCardClase('B', analisis.statsB, 'Productos regulares', 'abc-clase-b');
+  html += _generarCardClase('C', analisis.statsC, 'Productos de bajo impacto', 'abc-clase-c');
+  html += '</div>';
   
-  // Clase C
-  document.getElementById('abc-c-productos').textContent = analisis.statsC.cantidad;
-  document.getElementById('abc-c-ingresos').textContent = 'ARS ' + formatNum(analisis.statsC.ingresoTotal);
+  // Filtros
+  html += '<div class="abc-filtros" style="margin-bottom:1rem;">';
+  html += '<button class="btn btn-sm filtro-abc active" data-clase="todos">Todos</button> ';
+  html += '<button class="btn btn-sm filtro-abc" data-clase="A">Clase A</button> ';
+  html += '<button class="btn btn-sm filtro-abc" data-clase="B">Clase B</button> ';
+  html += '<button class="btn btn-sm filtro-abc" data-clase="C">Clase C</button>';
+  html += '</div>';
+  
+  // Tabla
+  html += '<div id="tabla-abc-wrapper">';
+  html += _generarTablaABC(analisis.productos);
+  html += '</div>';
+  
+  return html;
 }
 
 /**
- * Renderiza la tabla de productos ABC
+ * Genera una card de resumen para una clase ABC
  */
-var _filtroClaseActual = 'todos';
+function _generarCardClase(letra, stats, descripcion, clase) {
+  return '<div class="abc-clase ' + clase + '">' +
+    '<div class="abc-clase-header">' +
+      '<span class="abc-clase-titulo">Clase ' + letra + '</span>' +
+    '</div>' +
+    '<p class="abc-clase-descripcion">' + descripcion + '</p>' +
+    '<div class="abc-clase-stats">' +
+      '<div class="abc-stat">' +
+        '<span class="abc-stat-label">Productos</span>' +
+        '<span class="abc-stat-valor">' + stats.cantidad + '</span>' +
+      '</div>' +
+      '<div class="abc-stat">' +
+        '<span class="abc-stat-label">Ingresos</span>' +
+        '<span class="abc-stat-valor">ARS ' + formatNum(stats.ingresoTotal) + '</span>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
 
-function renderTablaABC(productos) {
-  var wrapper = document.getElementById('tabla-abc-wrapper');
-  
+/**
+ * Genera la tabla HTML de productos ABC
+ */
+function _generarTablaABC(productos) {
   if (!productos || productos.length === 0) {
-    wrapper.innerHTML = '<p class="tabla-vacia">No hay datos de ventas.</p>';
-    return;
+    return '<p class="tabla-vacia">No hay datos.</p>';
   }
   
-  // Filtrar según clase seleccionada
-  var productosFiltrados = _filtroClaseActual === 'todos' 
-    ? productos 
-    : productos.filter(function(p) { return p.clase === _filtroClaseActual; });
-  
-  if (productosFiltrados.length === 0) {
-    wrapper.innerHTML = '<p class="tabla-vacia">No hay productos en esta clase.</p>';
-    return;
-  }
-  
-  var filas = productosFiltrados.map(function(p) {
+  var filas = productos.map(function(p) {
     var claseColor = 'abc-badge-' + p.clase.toLowerCase();
-    var claseBadge = '<span class="abc-badge ' + claseColor + '">Clase ' + p.clase + '</span>';
-    
     return '<tr>' +
-      '<td>' + claseBadge + '</td>' +
+      '<td><span class="abc-badge ' + claseColor + '">Clase ' + p.clase + '</span></td>' +
       '<td><span class="sku-tag">' + escapar(p.productoSKU || '-') + '</span></td>' +
       '<td>' + escapar(p.productoNombre) + '</td>' +
       '<td class="td-num">' + p.unidadesVendidas + '</td>' +
@@ -121,20 +147,24 @@ function renderTablaABC(productos) {
     '</tr>';
   }).join('');
   
-  wrapper.innerHTML = 
-    '<table class="tabla tabla-abc">' +
-      '<thead><tr>' +
-        '<th>Clase</th>' +
-        '<th>SKU</th>' +
-        '<th>Producto</th>' +
-        '<th class="td-num">Unidades Vendidas</th>' +
-        '<th class="td-num">Ingresos Totales</th>' +
-        '<th class="td-num">% Ingresos</th>' +
-        '<th class="td-num">% Acumulado</th>' +
-      '</tr></thead>' +
-      '<tbody>' + filas + '</tbody>' +
-    '</table>';
+  return '<table class="tabla tabla-abc">' +
+    '<thead><tr>' +
+      '<th>Clase</th>' +
+      '<th>SKU</th>' +
+      '<th>Producto</th>' +
+      '<th class="td-num">Unidades</th>' +
+      '<th class="td-num">Ingresos</th>' +
+      '<th class="td-num">% Ingr.</th>' +
+      '<th class="td-num">% Acum.</th>' +
+    '</tr></thead>' +
+    '<tbody>' + filas + '</tbody>' +
+  '</table>';
 }
+
+/**
+ * Variable global para tracking del filtro ABC
+ */
+var _filtroClaseActual = 'todos';
 
 /**
  * Filtra la tabla ABC por clase
@@ -143,8 +173,18 @@ function filtrarClaseABC(clase) {
   _filtroClaseActual = clase;
   
   var analisisABC = calcularAnalisisABC();
-  if (analisisABC.disponible) {
-    renderTablaABC(analisisABC.productos);
+  if (!analisisABC.disponible) return;
+  
+  var productos = analisisABC.productos;
+  
+  // Filtrar según clase seleccionada
+  var productosFiltrados = clase === 'todos' 
+    ? productos 
+    : productos.filter(function(p) { return p.clase === clase; });
+  
+  var wrapper = document.getElementById('tabla-abc-wrapper');
+  if (wrapper) {
+    wrapper.innerHTML = _generarTablaABC(productosFiltrados);
   }
 }
 

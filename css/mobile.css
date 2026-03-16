@@ -1,341 +1,256 @@
-/*
- * mobile.css — CostosApp responsive
- * Breakpoint principal: 768px
- * Se carga DESPUÉS de styles.css y de los CSS de cada módulo.
- *
- * FIXES IMPLEMENTADOS:
- *  #1  Modales: fullscreen en mobile
- *  #3  Overflow-x hidden en body
- *  #7  Tabla insumos: nombre legible
- *  #9  Tabla productos: nombre legible
- *  #11 Precio duo-grid: stack vertical
- *  #16 Linea agregar presupuesto: stack
- *  #17 Tabla presupuestos historial: ocultar columnas
- *  #27 Modal producción: fullscreen + stack
- *  #36 Simulador: controles 1 columna
+/**
+ * mobile.css
+ * Estilos responsive centralizados para CostosApp
+ * 
+ * Este archivo contiene TODOS los estilos mobile-specific.
+ * Debe cargarse DESPUÉS de los CSS de cada módulo.
  */
 
-.mobile-header {
-  display: none;
-}
+/* ==========================================================================
+   UTILIDADES
+   ========================================================================== */
 
 @media (max-width: 768px) {
-
-  :root {
-    --sidebar-w: 280px;
+  .hide-mobile {
+    display: none !important;
   }
-
-  /* #3 — Overflow-x global */
-  html, body {
-    overflow-x: hidden;
-  }
-
-  .main-content {
-    margin-left: 0;
-    padding: 68px 0.75rem 2rem;
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-
-  /* ── Header mobile ──────────────────────────────────────────────────── */
-  .mobile-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 52px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 1rem;
-    z-index: 150;
-  }
-
-  .mobile-hamburger {
-    background: none;
-    border: none;
-    color: var(--text-2);
-    font-size: 1.4rem;
-    cursor: pointer;
-    padding: 0.25rem;
-    line-height: 1;
-    transition: color 0.15s;
-  }
-
-  .mobile-hamburger:hover,
-  .mobile-hamburger:active {
-    color: var(--accent-text);
-  }
-
-  .mobile-title {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--accent-text);
-    letter-spacing: 0.03em;
-    flex: 1;
-  }
-
-  .mobile-logout {
-    background: none;
-    border: none;
-    color: var(--text-3);
-    font-size: 0.75rem;
-    cursor: pointer;
-    padding: 0.3rem 0.5rem;
-    font-family: var(--font-sans);
-    transition: color 0.15s;
-  }
-
-  .mobile-logout:hover { color: var(--text-1); }
-
-  /* ── Sidebar overlay ────────────────────────────────────────────────── */
-  .sidebar {
-    display: flex !important;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    z-index: 300;
-    width: 280px;
-  }
-
-  .sidebar.abierta { transform: translateX(0); }
-
-  .sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 250;
-  }
-
-  .sidebar-overlay.activo { display: block; }
-
-  /* ── Layout general compacto ────────────────────────────────────────── */
-  .card { padding: 0.85rem; }
-
-  .page-header { margin-bottom: 1rem; padding-bottom: 0.75rem; }
-  .page-header h2 { font-size: 0.95rem; }
-  .page-header p { font-size: 0.8rem; }
-
-  .form-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-
-  .form-actions { flex-wrap: wrap; }
-  .form-actions .btn { flex: 1; min-width: 100px; }
-
-  .buscador-wrapper { max-width: 100%; width: 100%; }
-  .buscador-input { max-width: 100%; width: 100%; }
-
-  .tabla-header { flex-wrap: wrap; gap: 0.5rem; }
-  .tabla-header h3 { width: 100%; }
-
-  .dolar-widget { display: none; }
-  #btn-logout { display: none; }
-
-  #resumen-estado { grid-template-columns: 1fr 1fr; }
-
-  .menu-dropdown,
-  .menu-dropdown-presup { right: 0; left: auto; }
-
-  /* ══════════════════════════════════════════════════════════════════════════
-     #1 + #27 — MODALES FULLSCREEN
-     ══════════════════════════════════════════════════════════════════════════ */
-
-  .modal-overlay { padding: 0; }
-  .modal-box {
-    max-width: 100%; margin: 0; border-radius: 0;
-    max-height: 100vh; min-height: 100vh;
-    overflow-y: auto; padding: 1rem;
-  }
-
-  /* Modal productos */
-  .modal-overlay-producto { padding: 0 !important; }
-  .modal-producto-content {
-    max-width: 100%; max-height: 100vh; min-height: 100vh;
-    border-radius: 0;
-  }
-  .modal-producto-body { padding: 1rem; }
-  .modal-form-actions { flex-wrap: wrap; }
-  .modal-form-actions .btn { flex: 1; min-width: 100px; }
-
-  /* Modal insumos */
-  .modal-overlay-insumo { padding: 0 !important; }
-  .modal-insumo-content {
-    max-width: 100%; max-height: 100vh; border-radius: 0;
-  }
-  .modal-insumo-body { padding: 1rem; }
-
-  /* Modal producción */
-  .modal-orden-overlay { padding: 0 !important; }
-  .modal-orden {
-    max-width: 100%; max-height: 100vh; min-height: 100vh;
-    border-radius: 0;
-  }
-  .modal-orden-body { padding: 1rem; }
-  .modal-form-grid { grid-template-columns: 1fr !important; }
-
-  .agregar-producto-row {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-  .agregar-producto-row .producto-search-container,
-  .agregar-producto-row .campo-cantidad-agregar {
-    width: 100% !important; min-width: 0 !important;
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════════
-     #11 — PRECIO DUO-GRID STACK
-     ══════════════════════════════════════════════════════════════════════════ */
-
-  .precio-duo-grid {
-    grid-template-columns: 1fr !important;
-    gap: 0.5rem !important;
-  }
-  .precio-duo-sep { display: none; }
-  .precio-seccion { padding: 0.75rem !important; }
-
-  /* ══════════════════════════════════════════════════════════════════════════
-     #16 — LINEA AGREGAR PRESUPUESTO STACK
-     ══════════════════════════════════════════════════════════════════════════ */
-
-  .linea-agregar-presup {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-  .linea-agregar-presup .producto-search-wrap { min-width: 0; width: 100%; }
-  .linea-agregar-presup .campo-cantidad { width: 100% !important; }
-  .linea-agregar-presup .btn-agregar { width: 100%; }
-
-  /* Linea agregar insumos (en modal producto) */
-  .linea-agregar { flex-direction: column; align-items: stretch; }
-  .linea-agregar select,
-  .linea-agregar input { min-width: 0; width: 100%; }
-  .insumo-search-wrap { min-width: 0 !important; width: 100%; }
-
-  .presup-layout { grid-template-columns: 1fr; }
-
-  /* ══════════════════════════════════════════════════════════════════════════
-     TABLAS — COLUMNAS VISIBLES EN MOBILE
-     ══════════════════════════════════════════════════════════════════════════ */
-
-  /* Reset: quitar table-layout fixed */
-  .tabla-insumos,
-  .tabla-productos,
-  .tabla-presupuestos,
-  .tabla-clientes {
-    table-layout: auto !important;
-  }
-
-  /* Compactar todas las tablas */
-  .tabla td { font-size: 0.8rem; padding: 0.45rem 0.35rem; white-space: normal; word-break: break-word; }
-  .tabla th { font-size: 0.6rem; padding: 0.35rem 0.35rem; }
-
-  /* Mantener nowrap en numéricas y acciones */
-  .tabla .td-num,
-  .tabla .td-acciones,
-  .tabla .td-acciones-menu,
-  .tabla .presup-num { white-space: nowrap; }
-
-  /* ── #9 — PRODUCTOS ─────────────────────────────────────────────────── */
-  /* Ocultar: Cat(3), Costo(4), Margen(5), Markup(6), P.Dist(8) */
-  .tabla-productos th:nth-child(3),
-  .tabla-productos td:nth-child(3),
-  .tabla-productos th:nth-child(4),
-  .tabla-productos td:nth-child(4),
-  .tabla-productos th:nth-child(5),
-  .tabla-productos td:nth-child(5),
-  .tabla-productos th:nth-child(6),
-  .tabla-productos td:nth-child(6),
-  .tabla-productos th:nth-child(8),
-  .tabla-productos td:nth-child(8) { display: none !important; }
-
-  .tabla-productos td:nth-child(1) { white-space: nowrap; }
-  .tabla-productos .sku-tag { font-size: 0.62rem; padding: 0.05rem 0.3rem; }
-  .tabla-productos td:nth-child(2) { white-space: normal; word-break: break-word; line-height: 1.3; }
-  .tabla-productos td:nth-child(7) { font-size: 0.75rem; white-space: nowrap; }
-
-  /* Quitar anchos fijos heredados */
-  .tabla-productos th,
-  .tabla-productos td { width: auto !important; overflow: visible; text-overflow: clip; }
-
-  /* ── #7 — INSUMOS ───────────────────────────────────────────────────── */
-  /* Ocultar: Cat(2), PrecioCompra(4), CantCompra(5), Proveedor(7) */
-  .tabla-insumos th:nth-child(2),
-  .tabla-insumos td:nth-child(2),
-  .tabla-insumos th:nth-child(4),
-  .tabla-insumos td:nth-child(4),
-  .tabla-insumos th:nth-child(5),
-  .tabla-insumos td:nth-child(5),
-  .tabla-insumos th:nth-child(7),
-  .tabla-insumos td:nth-child(7) { display: none !important; }
-
-  .tabla-insumos td:nth-child(1) { white-space: normal; word-break: break-word; line-height: 1.3; }
-  .tabla-insumos th,
-  .tabla-insumos td { width: auto !important; overflow: visible; text-overflow: clip; }
-
-  /* ── #17 — PRESUPUESTOS HISTORIAL ───────────────────────────────────── */
-  /* Ocultar: Fecha(3), Vence(4), Tipo(5), Items(6) */
-  .tabla-presupuestos th:nth-child(3),
-  .tabla-presupuestos td:nth-child(3),
-  .tabla-presupuestos th:nth-child(4),
-  .tabla-presupuestos td:nth-child(4),
-  .tabla-presupuestos th:nth-child(5),
-  .tabla-presupuestos td:nth-child(5),
-  .tabla-presupuestos th:nth-child(6),
-  .tabla-presupuestos td:nth-child(6) { display: none !important; }
-
-  .tabla-presupuestos td:nth-child(2) { white-space: normal; word-break: break-word; }
-  .tabla-presupuestos td:nth-child(7) { font-size: 0.75rem; white-space: nowrap; }
-
-  /* ── CLIENTES ───────────────────────────────────────────────────────── */
-  .tabla-clientes th:nth-child(2),
-  .tabla-clientes td:nth-child(2),
-  .tabla-clientes th:nth-child(3),
-  .tabla-clientes td:nth-child(3),
-  .tabla-clientes th:nth-child(5),
-  .tabla-clientes td:nth-child(5) { display: none !important; }
-
-  .tabla-clientes td:nth-child(1) { white-space: normal; word-break: break-word; }
-  .tabla-clientes th,
-  .tabla-clientes td { width: auto !important; }
-
-  /* ══════════════════════════════════════════════════════════════════════════
-     #36 — SIMULADOR
-     ══════════════════════════════════════════════════════════════════════════ */
-
-  .sim-controles { grid-template-columns: 1fr !important; }
-  .sim-kpis { grid-template-columns: 1fr 1fr !important; }
-  .sim-control-row { flex-wrap: wrap; }
-
-  /* ══════════════════════════════════════════════════════════════════════════
-     EXTRAS — PRIORIDAD MEDIA
-     ══════════════════════════════════════════════════════════════════════════ */
-
-  /* Edición masiva: 1 columna */
-  .masivo-controles {
-    display: flex !important; flex-direction: column !important; gap: 0.75rem !important;
-  }
-  .masivo-controles > div { width: 100%; }
-  .masivo-controles .btn { width: 100%; }
-
-  .stock-grid { grid-template-columns: 1fr; }
-  .prod-stats-grid { grid-template-columns: 1fr; }
-  .stats-summary { grid-template-columns: 1fr 1fr !important; }
-
-  .sku-tag { font-size: 0.62rem; padding: 0.05rem 0.3rem; }
-
-  /* Órdenes en index: compactas */
-  .orden-inicio-item { gap: 0.5rem; padding: 0.5rem; font-size: 0.82rem; }
-  .orden-inicio-num { font-size: 0.75rem; min-width: 50px; }
-  .orden-inicio-cantidad { font-size: 0.75rem; min-width: 50px; }
-
-  /* Tabs de stock */
-  .stock-tabs .btn,
-  .stock-tabs button { font-size: 0.72rem; padding: 0.35rem 0.5rem; }
-
 }
 
-/* ── Tablets ────────────────────────────────────────────────────────────── */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .main-content { padding: 2rem 1.5rem 4rem; }
-  .form-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 480px) {
+  .hide-mobile-sm {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: ESTADÍSTICAS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Stats Summary - 2 columnas */
+  .stats-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .stat-value-sm {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  
+  /* Chart */
+  .chart-container {
+    height: 280px;
+  }
+  
+  /* Card actions */
+  .card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .card-actions .btn-sm {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+  }
+  
+  /* Tabla de Rentabilidad */
+  #tabla-rentabilidad-wrapper {
+    overflow-x: visible;
+  }
+  
+  .tabla-rentabilidad {
+    table-layout: auto;
+    min-width: unset;
+    width: 100%;
+    font-size: 0.8rem;
+  }
+  
+  /* Ocultar columnas menos importantes */
+  .tabla-rentabilidad .col-categoria,
+  .tabla-rentabilidad .col-costo,
+  .tabla-rentabilidad .col-indicador {
+    display: none;
+  }
+  
+  /* Anchos de columnas visibles */
+  .tabla-rentabilidad .col-sku {
+    width: 60px;
+    min-width: 60px;
+  }
+  
+  .tabla-rentabilidad .col-producto {
+    width: auto;
+    min-width: 120px;
+    max-width: none;
+  }
+  
+  .tabla-rentabilidad .col-precio,
+  .tabla-rentabilidad .col-ganancia {
+    width: 85px;
+    min-width: 85px;
+  }
+  
+  .tabla-rentabilidad .col-margen {
+    width: 55px;
+    min-width: 55px;
+  }
+  
+  .tabla-rentabilidad th,
+  .tabla-rentabilidad td {
+    padding: 0.6rem 0.4rem;
+    white-space: normal;
+    word-break: break-word;
+  }
+  
+  /* Nombre fluye en múltiples líneas */
+  .tabla-rentabilidad .col-producto strong {
+    display: block;
+    line-height: 1.3;
+  }
+  
+  /* SKU compacto */
+  .tabla-rentabilidad .sku-tag {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.3rem;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Números compactos */
+  .tabla-rentabilidad .td-num {
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
+  }
+  
+  /* Ocultar badge de margen */
+  .tabla-rentabilidad .badge-margen {
+    display: none;
+  }
+  
+  /* Legend */
+  .stats-legend .legend-items {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .stats-legend .legend-item {
+    font-size: 0.8rem;
+  }
+  
+  .stats-legend .legend-color {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* ABC Resumen */
+  .abc-resumen {
+    grid-template-columns: 1fr;
+  }
+  
+  .abc-clase-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .recomendaciones-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Tabla ABC */
+  .tabla-abc {
+    font-size: 0.8rem;
+  }
+  
+  .tabla-abc th,
+  .tabla-abc td {
+    padding: 0.5rem 0.4rem;
+  }
+  
+  /* Ocultar % Ingresos y % Acumulado */
+  .tabla-abc th:nth-child(6),
+  .tabla-abc td:nth-child(6),
+  .tabla-abc th:nth-child(7),
+  .tabla-abc td:nth-child(7) {
+    display: none;
+  }
+}
+
+/* Mobile pequeño (≤480px) */
+@media (max-width: 480px) {
+  .stats-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-card {
+    padding: 0.875rem;
+  }
+  
+  .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  /* Tabla más compacta */
+  .tabla-rentabilidad {
+    font-size: 0.75rem;
+  }
+  
+  .tabla-rentabilidad .col-sku {
+    width: 50px;
+    min-width: 50px;
+  }
+  
+  .tabla-rentabilidad .col-precio,
+  .tabla-rentabilidad .col-ganancia {
+    width: 70px;
+    min-width: 70px;
+  }
+  
+  .tabla-rentabilidad .col-margen {
+    width: 50px;
+    min-width: 50px;
+  }
+  
+  .tabla-rentabilidad th,
+  .tabla-rentabilidad td {
+    padding: 0.5rem 0.3rem;
+  }
+  
+  /* Ocultar ganancia en pantallas muy pequeñas */
+  .tabla-rentabilidad .col-ganancia {
+    display: none;
+  }
+  
+  .chart-container {
+    height: 240px;
+  }
+  
+  /* ABC más compacto */
+  .abc-clase-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .abc-clase {
+    padding: 1rem;
+  }
+  
+  .tabla-abc {
+    font-size: 0.75rem;
+  }
+  
+  /* Ocultar Unidades en ABC */
+  .tabla-abc th:nth-child(4),
+  .tabla-abc td:nth-child(4) {
+    display: none;
+  }
 }
