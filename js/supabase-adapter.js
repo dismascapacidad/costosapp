@@ -337,6 +337,43 @@ async function guardarDatosEnSupabase(data) {
   if (!sb || !userId) return false;
 
   try {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PROTECCIÓN ANTI-BORRADO DESTRUCTIVO
+    // Verificar que no estemos por borrar más datos de los que vamos a insertar
+    // ═══════════════════════════════════════════════════════════════════════════
+    var conteoSupabase = await Promise.all([
+      sb.from('insumos').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      sb.from('productos').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+    ]);
+    
+    var insumosEnSupabase = conteoSupabase[0].count || 0;
+    var productosEnSupabase = conteoSupabase[1].count || 0;
+    var insumosAGuardar = (data.insumos || []).length;
+    var productosAGuardar = (data.productos || []).length;
+    
+    // Si Supabase tiene datos y vamos a guardar vacío → BLOQUEAR
+    if (insumosEnSupabase > 0 && insumosAGuardar === 0) {
+      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + insumosEnSupabase + ' insumos, no se permite guardar 0.');
+      return false;
+    }
+    if (productosEnSupabase > 0 && productosAGuardar === 0) {
+      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + productosEnSupabase + ' productos, no se permite guardar 0.');
+      return false;
+    }
+    
+    // Si vamos a guardar significativamente menos datos → ADVERTIR y BLOQUEAR
+    if (insumosEnSupabase > 10 && insumosAGuardar < insumosEnSupabase * 0.5) {
+      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + insumosEnSupabase + ' insumos, se intentó guardar solo ' + insumosAGuardar + '. Esto parece un error.');
+      return false;
+    }
+    if (productosEnSupabase > 10 && productosAGuardar < productosEnSupabase * 0.5) {
+      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + productosEnSupabase + ' productos, se intentó guardar solo ' + productosAGuardar + '. Esto parece un error.');
+      return false;
+    }
+    
+    console.log('[supabase-adapter] ✓ Validación OK. Supabase: ' + insumosEnSupabase + ' insumos, ' + productosEnSupabase + ' productos. A guardar: ' + insumosAGuardar + ' insumos, ' + productosAGuardar + ' productos.');
+    // ═══════════════════════════════════════════════════════════════════════════
+    
     // Config: upsert (insertar o actualizar)
     await sb.from('config').upsert({
       user_id:                    userId,
