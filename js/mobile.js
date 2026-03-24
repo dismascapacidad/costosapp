@@ -1,110 +1,130 @@
 /**
  * mobile.js
- * Lógica del menú mobile: hamburger, sidebar overlay, cierre automático.
- * Se carga en todas las páginas (excepto login.html).
+ * Navegación mobile para CostosApp
+ * - Hamburger menu
+ * - Sidebar como overlay
+ * - Cierre con tap fuera o swipe
  */
 
 (function() {
-  // Solo activar en pantallas móviles
-  // Pero crear los elementos siempre — CSS se encarga de ocultarlos en desktop
+  'use strict';
 
-  document.addEventListener('DOMContentLoaded', function() {
-    _crearHeaderMobile();
-    _crearOverlay();
-    _bindEventos();
-  });
+  // Solo ejecutar en mobile
+  function isMobile() {
+    return window.innerWidth <= 700;
+  }
 
-  function _crearHeaderMobile() {
-    // Evitar duplicados
-    if (document.querySelector('.mobile-header')) return;
+  // Crear elementos de navegación mobile
+  function initMobileNav() {
+    // No hacer nada si ya existe
+    if (document.getElementById('hamburger-btn')) return;
 
-    var header = document.createElement('div');
-    header.className = 'mobile-header';
-
-    // Hamburger
+    // 1. Crear botón hamburger
     var hamburger = document.createElement('button');
-    hamburger.className = 'mobile-hamburger';
-    hamburger.id = 'btn-hamburger';
+    hamburger.id = 'hamburger-btn';
+    hamburger.className = 'hamburger-btn';
     hamburger.setAttribute('aria-label', 'Abrir menú');
-    hamburger.textContent = '☰';
+    hamburger.innerHTML = '☰';
+    document.body.appendChild(hamburger);
 
-    // Título
-    var titulo = document.createElement('span');
-    titulo.className = 'mobile-title';
-    titulo.textContent = 'CostosApp';
-
-    // Botón logout
-    var btnLogout = document.createElement('button');
-    btnLogout.className = 'mobile-logout';
-    btnLogout.textContent = 'Salir';
-    btnLogout.onclick = function() {
-      if (typeof logout === 'function') logout();
-    };
-
-    header.appendChild(hamburger);
-    header.appendChild(titulo);
-    header.appendChild(btnLogout);
-
-    // Insertar al inicio del body
-    document.body.insertBefore(header, document.body.firstChild);
-  }
-
-  function _crearOverlay() {
-    if (document.querySelector('.sidebar-overlay')) return;
-
+    // 2. Crear overlay oscuro
     var overlay = document.createElement('div');
-    overlay.className = 'sidebar-overlay';
     overlay.id = 'sidebar-overlay';
+    overlay.className = 'sidebar-overlay';
     document.body.appendChild(overlay);
-  }
 
-  function _bindEventos() {
-    var hamburger = document.getElementById('btn-hamburger');
-    var overlay = document.getElementById('sidebar-overlay');
+    // 3. Agregar botón cerrar al sidebar
     var sidebar = document.querySelector('.sidebar');
+    if (sidebar && !sidebar.querySelector('.sidebar-close')) {
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'sidebar-close';
+      closeBtn.setAttribute('aria-label', 'Cerrar menú');
+      closeBtn.innerHTML = '✕';
+      sidebar.insertBefore(closeBtn, sidebar.firstChild);
+      
+      closeBtn.addEventListener('click', closeSidebar);
+    }
 
-    if (!hamburger || !sidebar) return;
+    // 4. Event listeners
+    hamburger.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', closeSidebar);
 
-    // Abrir sidebar
-    hamburger.addEventListener('click', function() {
-      sidebar.classList.add('abierta');
-      overlay.classList.add('activo');
-      hamburger.textContent = '✕';
-      hamburger.setAttribute('aria-label', 'Cerrar menú');
-    });
-
-    // Cerrar con overlay
-    overlay.addEventListener('click', function() {
-      _cerrarSidebar();
-    });
-
-    // Cerrar con links de navegación
-    var navLinks = sidebar.querySelectorAll('nav a');
-    navLinks.forEach(function(link) {
-      link.addEventListener('click', function() {
-        _cerrarSidebar();
-      });
-    });
-
-    // Cerrar con Escape
+    // 5. Cerrar con Escape
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && sidebar.classList.contains('abierta')) {
-        _cerrarSidebar();
-      }
+      if (e.key === 'Escape') closeSidebar();
     });
+
+    // 6. Cerrar al hacer click en un link del sidebar
+    if (sidebar) {
+      sidebar.querySelectorAll('nav a').forEach(function(link) {
+        link.addEventListener('click', function() {
+          // Pequeño delay para que se vea el click
+          setTimeout(closeSidebar, 100);
+        });
+      });
+    }
+
+    // 7. Actualizar visibilidad según tamaño
+    updateVisibility();
+    window.addEventListener('resize', updateVisibility);
   }
 
-  function _cerrarSidebar() {
+  function toggleSidebar() {
     var sidebar = document.querySelector('.sidebar');
     var overlay = document.getElementById('sidebar-overlay');
-    var hamburger = document.getElementById('btn-hamburger');
-
-    if (sidebar) sidebar.classList.remove('abierta');
-    if (overlay) overlay.classList.remove('activo');
-    if (hamburger) {
-      hamburger.textContent = '☰';
-      hamburger.setAttribute('aria-label', 'Abrir menú');
+    var hamburger = document.getElementById('hamburger-btn');
+    
+    if (sidebar && overlay) {
+      var isOpen = sidebar.classList.contains('open');
+      
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        hamburger.innerHTML = '✕';
+        hamburger.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
     }
   }
 
+  function closeSidebar() {
+    var sidebar = document.querySelector('.sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+    var hamburger = document.getElementById('hamburger-btn');
+    
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    if (hamburger) {
+      hamburger.innerHTML = '☰';
+      hamburger.classList.remove('open');
+    }
+    document.body.style.overflow = '';
+  }
+
+  function updateVisibility() {
+    var hamburger = document.getElementById('hamburger-btn');
+    var overlay = document.getElementById('sidebar-overlay');
+    
+    if (isMobile()) {
+      if (hamburger) hamburger.style.display = 'flex';
+      closeSidebar(); // Asegurar que está cerrado al cambiar a mobile
+    } else {
+      if (hamburger) hamburger.style.display = 'none';
+      if (overlay) overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  }
+
+  // Inicializar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileNav);
+  } else {
+    initMobileNav();
+  }
+
+  // Exponer para debug
+  window.toggleSidebar = toggleSidebar;
+  window.closeSidebar = closeSidebar;
 })();

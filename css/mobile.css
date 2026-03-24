@@ -1,16 +1,477 @@
 /**
  * mobile.css
- * Estilos responsive centralizados para CostosApp
- * 
- * Este archivo contiene TODOS los estilos mobile-specific.
- * Debe cargarse DESPUÉS de los CSS de cada módulo.
+ * Estilos responsive para CostosApp
+ * Incluye: navegación mobile, sidebar overlay, y ajustes por módulo
  */
 
 /* ==========================================================================
-   UTILIDADES
+   NAVEGACIÓN MOBILE
    ========================================================================== */
 
-@media (max-width: 768px) {
+/* Botón hamburger */
+.hamburger-btn {
+  display: none; /* Se muestra via JS en mobile */
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface, #17191e);
+  border: 1px solid var(--border, #2a2e38);
+  border-radius: var(--radius, 8px);
+  color: var(--accent-text, #fbbf24);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hamburger-btn:hover,
+.hamburger-btn:active {
+  background: var(--surface-2, #1e2128);
+  border-color: var(--accent, #f59e0b);
+}
+
+.hamburger-btn.open {
+  background: var(--accent, #f59e0b);
+  color: var(--bg, #0f1013);
+}
+
+/* Overlay oscuro */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Botón cerrar dentro del sidebar */
+.sidebar-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border, #2a2e38);
+  border-radius: var(--radius-sm, 5px);
+  color: var(--text-2, #8b90a0);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.sidebar-close:hover {
+  background: var(--surface-2, #1e2128);
+  color: var(--text-1, #e8eaf0);
+}
+
+/* ==========================================================================
+   MOBILE (≤700px)
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  /* Sidebar como drawer lateral */
+  .sidebar {
+    display: flex !important; /* Overridear el display:none de styles.css */
+    position: fixed;
+    top: 0;
+    left: -280px; /* Oculto a la izquierda */
+    width: 280px;
+    height: 100vh;
+    z-index: 100;
+    transition: left 0.3s ease;
+    overflow-y: auto;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-close {
+    display: flex;
+  }
+
+  /* Main content sin margen */
+  .main-content {
+    margin-left: 0 !important;
+    padding-top: 70px; /* Espacio para el hamburger */
+  }
+
+  /* Page header ajustado */
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.25rem;
+  }
+
+  /* Cards más compactas */
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  .card-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .card-body {
+    padding: 0.875rem;
+  }
+
+  /* Tabla header wrapping */
+  .tabla-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tabla-header h3 {
+    font-size: 0.95rem;
+    flex: 1 1 100%;
+  }
+
+  /* Tablas más compactas */
+  .tabla {
+    font-size: 0.78rem;
+  }
+
+  .tabla th,
+  .tabla td {
+    padding: 0.4rem 0.5rem;
+  }
+
+  /* SKU tags */
+  .sku-tag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  /* Botones */
+  .btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Storage toolbar en sidebar */
+  .storage-toolbar {
+    padding: 0.75rem;
+  }
+
+  .storage-toolbar .btn {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  /* Dolar widget más compacto */
+  .dolar-widget {
+    padding: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: INDEX (Inicio)
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  /* Resumen cards en grid */
+  #resumen-estado .card-body {
+    padding: 0.75rem;
+  }
+
+  /* Alertas de stock */
+  #bloque-alertas .alert-item,
+  #bloque-ordenes .orden-item {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: ESTADÍSTICAS
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  /* Stats Summary - 2 columnas */
+  .stats-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 0.875rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-value-sm {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  /* Chart */
+  .chart-container {
+    height: 250px;
+  }
+
+  /* Tabla de Rentabilidad */
+  #tabla-rentabilidad-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla-rentabilidad {
+    min-width: 500px;
+    font-size: 0.75rem;
+  }
+
+  /* Ocultar columnas menos importantes */
+  .tabla-rentabilidad .col-categoria,
+  .tabla-rentabilidad .col-indicador {
+    display: none;
+  }
+
+  /* Legend */
+  .legend-items {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .legend-item {
+    font-size: 0.75rem;
+  }
+
+  /* ABC */
+  .abc-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .abc-clase-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .recomendaciones-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tabla ABC */
+  .tabla-abc {
+    font-size: 0.75rem;
+  }
+
+  /* Ocultar % Ingresos y % Acumulado */
+  .tabla-abc th:nth-child(6),
+  .tabla-abc td:nth-child(6),
+  .tabla-abc th:nth-child(7),
+  .tabla-abc td:nth-child(7) {
+    display: none;
+  }
+}
+
+/* Mobile extra pequeño */
+@media (max-width: 480px) {
+  .stats-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+
+  .abc-clase-stats {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ocultar más columnas */
+  .tabla-abc th:nth-child(4),
+  .tabla-abc td:nth-child(4) {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: INSUMOS
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  /* Ocultar columnas: proveedor, stock mínimo */
+  .tabla-insumos th:nth-child(5),
+  .tabla-insumos td:nth-child(5),
+  .tabla-insumos th:nth-child(7),
+  .tabla-insumos td:nth-child(7) {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: PRODUCTOS
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  /* Ocultar: categoría, costo hora, markup */
+  .tabla-productos th:nth-child(3),
+  .tabla-productos td:nth-child(3) {
+    display: none;
+  }
+
+  /* Detalles de producto más compactos */
+  .producto-detalle {
+    padding: 0.75rem;
+  }
+
+  .producto-insumos-lista {
+    font-size: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: PRESUPUESTOS
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  .presup-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .totales-presup {
+    margin-top: 1rem;
+  }
+
+  .tipo-cliente-selector {
+    flex-direction: column;
+  }
+
+  .tipo-btn {
+    padding: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: STOCK
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  .stock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ocultar columna de stock mínimo en tabla */
+  .tabla-stock th:nth-child(4),
+  .tabla-stock td:nth-child(4) {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: PRODUCCIÓN
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  .orden-card {
+    padding: 0.875rem;
+  }
+
+  .orden-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .orden-acciones {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .orden-lineas {
+    font-size: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: CLIENTES
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  /* Ocultar teléfono y dirección */
+  .tabla-clientes th:nth-child(3),
+  .tabla-clientes td:nth-child(3),
+  .tabla-clientes th:nth-child(4),
+  .tabla-clientes td:nth-child(4) {
+    display: none;
+  }
+
+  .cliente-card {
+    padding: 0.875rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: SIMULADOR
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  .simulador-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .simulador-resultados {
+    font-size: 0.85rem;
+  }
+}
+
+/* ==========================================================================
+   MÓDULO: IMPORTAR VENTAS
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  .importador-pasos {
+    flex-direction: column;
+  }
+
+  .paso-item {
+    padding: 0.75rem;
+  }
+
+  .mapeo-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .mapeo-select {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   UTILIDADES MOBILE
+   ========================================================================== */
+
+@media (max-width: 700px) {
   .hide-mobile {
     display: none !important;
   }
@@ -22,235 +483,15 @@
   }
 }
 
-/* ==========================================================================
-   MÓDULO: ESTADÍSTICAS
-   ========================================================================== */
-
-@media (max-width: 768px) {
-  /* Stats Summary - 2 columnas */
-  .stats-summary {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-  
-  .stat-card {
-    padding: 1rem;
-  }
-  
-  .stat-value {
-    font-size: 1.5rem;
-  }
-  
-  .stat-value-sm {
-    font-size: 0.85rem;
-    line-height: 1.3;
-    word-break: break-word;
-  }
-  
-  /* Chart */
-  .chart-container {
-    height: 280px;
-  }
-  
-  /* Card actions */
-  .card-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .card-actions .btn-sm {
-    font-size: 0.7rem;
-    padding: 0.35rem 0.6rem;
-  }
-  
-  /* Tabla de Rentabilidad */
-  #tabla-rentabilidad-wrapper {
-    overflow-x: visible;
-  }
-  
-  .tabla-rentabilidad {
-    table-layout: auto;
-    min-width: unset;
-    width: 100%;
-    font-size: 0.8rem;
-  }
-  
-  /* Ocultar columnas menos importantes */
-  .tabla-rentabilidad .col-categoria,
-  .tabla-rentabilidad .col-costo,
-  .tabla-rentabilidad .col-indicador {
-    display: none;
-  }
-  
-  /* Anchos de columnas visibles */
-  .tabla-rentabilidad .col-sku {
-    width: 60px;
-    min-width: 60px;
-  }
-  
-  .tabla-rentabilidad .col-producto {
-    width: auto;
-    min-width: 120px;
-    max-width: none;
-  }
-  
-  .tabla-rentabilidad .col-precio,
-  .tabla-rentabilidad .col-ganancia {
-    width: 85px;
-    min-width: 85px;
-  }
-  
-  .tabla-rentabilidad .col-margen {
-    width: 55px;
-    min-width: 55px;
-  }
-  
-  .tabla-rentabilidad th,
-  .tabla-rentabilidad td {
-    padding: 0.6rem 0.4rem;
-    white-space: normal;
-    word-break: break-word;
-  }
-  
-  /* Nombre fluye en múltiples líneas */
-  .tabla-rentabilidad .col-producto strong {
-    display: block;
-    line-height: 1.3;
-  }
-  
-  /* SKU compacto */
-  .tabla-rentabilidad .sku-tag {
-    font-size: 0.6rem;
-    padding: 0.15rem 0.3rem;
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  /* Números compactos */
-  .tabla-rentabilidad .td-num {
-    font-size: 0.75rem;
-    font-family: var(--font-mono, monospace);
-  }
-  
-  /* Ocultar badge de margen */
-  .tabla-rentabilidad .badge-margen {
-    display: none;
-  }
-  
-  /* Legend */
-  .stats-legend .legend-items {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .stats-legend .legend-item {
-    font-size: 0.8rem;
-  }
-  
-  .stats-legend .legend-color {
-    width: 16px;
-    height: 16px;
-  }
-  
-  /* ABC Resumen */
-  .abc-resumen {
-    grid-template-columns: 1fr;
-  }
-  
-  .abc-clase-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .recomendaciones-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  /* Tabla ABC */
-  .tabla-abc {
-    font-size: 0.8rem;
-  }
-  
-  .tabla-abc th,
-  .tabla-abc td {
-    padding: 0.5rem 0.4rem;
-  }
-  
-  /* Ocultar % Ingresos y % Acumulado */
-  .tabla-abc th:nth-child(6),
-  .tabla-abc td:nth-child(6),
-  .tabla-abc th:nth-child(7),
-  .tabla-abc td:nth-child(7) {
-    display: none;
-  }
-}
-
-/* Mobile pequeño (≤480px) */
-@media (max-width: 480px) {
-  .stats-summary {
-    grid-template-columns: 1fr;
-  }
-  
-  .stat-card {
-    padding: 0.875rem;
-  }
-  
-  .stat-value {
-    font-size: 1.25rem;
-  }
-  
-  /* Tabla más compacta */
-  .tabla-rentabilidad {
-    font-size: 0.75rem;
-  }
-  
-  .tabla-rentabilidad .col-sku {
-    width: 50px;
-    min-width: 50px;
-  }
-  
-  .tabla-rentabilidad .col-precio,
-  .tabla-rentabilidad .col-ganancia {
-    width: 70px;
-    min-width: 70px;
-  }
-  
-  .tabla-rentabilidad .col-margen {
-    width: 50px;
-    min-width: 50px;
-  }
-  
-  .tabla-rentabilidad th,
-  .tabla-rentabilidad td {
-    padding: 0.5rem 0.3rem;
-  }
-  
-  /* Ocultar ganancia en pantallas muy pequeñas */
-  .tabla-rentabilidad .col-ganancia {
-    display: none;
-  }
-  
-  .chart-container {
-    height: 240px;
-  }
-  
-  /* ABC más compacto */
-  .abc-clase-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .abc-clase {
-    padding: 1rem;
-  }
-  
-  .tabla-abc {
-    font-size: 0.75rem;
-  }
-  
-  /* Ocultar Unidades en ABC */
-  .tabla-abc th:nth-child(4),
-  .tabla-abc td:nth-child(4) {
-    display: none;
-  }
+/* Clase para debug */
+.debug-mobile::before {
+  content: "MOBILE";
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  font-size: 10px;
+  z-index: 9999;
 }
