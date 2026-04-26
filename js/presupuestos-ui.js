@@ -107,11 +107,11 @@ async function actualizarCotizacionSeleccionada() {
   var tipo = document.getElementById('campo-tipo-dolar').value;
   tipoDolarActual = tipo;
   var registro = await _fetchCotizacionDolar(tipo);
-  tipoCambioActual = registro ? (registro.venta || 0) : 0;
+  tipoCambioActual = registro ? (registro.compra || 0) : 0;
   var display = document.getElementById('tipo-cambio-display');
   if (display) {
     display.textContent = tipoCambioActual > 0
-      ? '1 USD = ARS ' + Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      ? '1 USD = ARS ' + Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' (compra)'
       : 'Cotización no disponible';
   }
   recalcularTotales();
