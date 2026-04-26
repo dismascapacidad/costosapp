@@ -15,7 +15,7 @@ const DOLAR_OFICIAL_CACHE_KEY = 'costosApp_dolarOficialCache';
 const DOLAR_DIVISA_CACHE_KEY  = 'costosApp_dolarDivisaCache';
 const DOLAR_API_URL           = 'https://dolarapi.com/v1/dolares/blue';
 const DOLAR_OFICIAL_API_URL   = 'https://dolarapi.com/v1/dolares/oficial';
-const DOLAR_DIVISA_API_URL    = 'https://dolarapi.com/v1/dolares/bolsa';
+const DOLAR_DIVISA_API_URL    = 'https://dolarapi.com/v1/dolares/mayorista';
 
 /**
  * Obtiene compra y venta del dólar blue.

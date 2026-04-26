@@ -796,7 +796,7 @@ function mostrarDetallePresupuesto(id) {
   html += _campoDetalle('Válido hasta', vence + (vencido ? ' <span style="color:var(--error)">⚠ Vencido</span>' : ''));
   html += _campoDetalle('Validez', p.validezDias + ' días');
   html += _campoDetalle('Moneda', p.moneda === 'USD'
-    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Divisa (MEP)' : 'Blue') +
+    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Mayorista' : 'Blue') +
       ' — 1 USD = ARS ' + formatNum(p.tipoCambio)
     : 'ARS');
   html += _campoDetalle('Descuento', p.descuento + '%');
@@ -920,7 +920,7 @@ function _exportarPresupExcel(id) {
   var tipo   = p.tipoCliente === 'distribuidor' ? 'Distribuidor' : 'Consumidor final';
   var simX   = p.moneda === 'USD' ? 'USD' : 'ARS';
   var monedaLabel = p.moneda === 'USD'
-    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Divisa (MEP)' : 'Blue') + ' (1 USD = ARS ' + formatNum(p.tipoCambio) + ')'
+    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Mayorista' : 'Blue') + ' (1 USD = ARS ' + formatNum(p.tipoCambio) + ')'
     : 'ARS';
 
   var data = [];
@@ -993,7 +993,7 @@ function _exportarPresupPDF(id) {
   var tipo   = p.tipoCliente === 'distribuidor' ? 'Distribuidor' : 'Consumidor final';
   var simP   = p.moneda === 'USD' ? 'USD ' : 'ARS ';
   var monedaInfoPDF = p.moneda === 'USD'
-    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Divisa (MEP)' : 'Blue') + ' (1 USD = ARS ' + formatNum(p.tipoCambio) + ')'
+    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Mayorista' : 'Blue') + ' (1 USD = ARS ' + formatNum(p.tipoCambio) + ')'
     : 'ARS';
 
   var lineasHTML = (p.lineas || []).map(function(l) {
