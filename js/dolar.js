@@ -10,8 +10,12 @@
  * que otros módulos que lo lean no rompan.
  */
 
-const DOLAR_CACHE_KEY = 'costosApp_dolarCache';
-const DOLAR_API_URL   = 'https://dolarapi.com/v1/dolares/blue';
+const DOLAR_CACHE_KEY         = 'costosApp_dolarCache';
+const DOLAR_OFICIAL_CACHE_KEY = 'costosApp_dolarOficialCache';
+const DOLAR_DIVISA_CACHE_KEY  = 'costosApp_dolarDivisaCache';
+const DOLAR_API_URL           = 'https://dolarapi.com/v1/dolares/blue';
+const DOLAR_OFICIAL_API_URL   = 'https://dolarapi.com/v1/dolares/oficial';
+const DOLAR_DIVISA_API_URL    = 'https://dolarapi.com/v1/dolares/bolsa';
 
 /**
  * Obtiene compra y venta del dólar blue.
@@ -114,6 +118,50 @@ function getDolarCompra() {
   if (window.AppData && window.AppData.dolarCompra > 0) return window.AppData.dolarCompra;
   if (window.AppData && window.AppData.tipoCambioManual > 0) return window.AppData.tipoCambioManual;
   return 0;
+}
+
+/**
+ * Fetch genérico para cualquier tipo de dólar.
+ * @param {string} url  URL de la API
+ * @param {string} cacheKey  clave localStorage
+ * @returns {Promise<{ compra: number, venta: number, fecha: string, fuente: 'api'|'cache' }>}
+ */
+async function _fetchDolar(url, cacheKey) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const compra = json.compra;
+    const venta  = json.venta;
+    if (!compra || isNaN(compra) || !venta || isNaN(venta))
+      throw new Error('Respuesta inesperada de la API');
+    const registro = { compra, venta, fecha: new Date().toISOString(), fuente: 'api' };
+    localStorage.setItem(cacheKey, JSON.stringify(registro));
+    return registro;
+  } catch (err) {
+    console.warn(`[dolar] API no disponible (${url}), usando cache:`, err.message);
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) return { ...JSON.parse(raw), fuente: 'cache' };
+    } catch (_) {}
+    return { compra: 0, venta: 0, fecha: null, fuente: 'cache' };
+  }
+}
+
+/**
+ * Obtiene compra y venta del dólar oficial.
+ * @returns {Promise<{ compra: number, venta: number, fecha: string, fuente: 'api'|'cache' }>}
+ */
+async function fetchDolarOficial() {
+  return _fetchDolar(DOLAR_OFICIAL_API_URL, DOLAR_OFICIAL_CACHE_KEY);
+}
+
+/**
+ * Obtiene compra y venta del dólar divisa (MEP/bolsa).
+ * @returns {Promise<{ compra: number, venta: number, fecha: string, fuente: 'api'|'cache' }>}
+ */
+async function fetchDolarDivisa() {
+  return _fetchDolar(DOLAR_DIVISA_API_URL, DOLAR_DIVISA_CACHE_KEY);
 }
 
 /**

@@ -35,6 +35,28 @@
   margin-top: 0.5rem;
 }
 
+.presup-moneda-grupo {
+  margin-top: 0.75rem;
+}
+
+.select-tipo-dolar {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tipo-cambio-info {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    METADATOS TOTALES
    ══════════════════════════════════════════════════════════════════════════ */

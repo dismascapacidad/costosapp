@@ -126,6 +126,24 @@
             </div>
           </div>
 
+          <!-- Selector de moneda -->
+          <div class="form-group presup-moneda-grupo">
+            <label>Moneda del presupuesto</label>
+            <div class="tipo-cliente-selector">
+              <button type="button" class="tipo-btn activo" id="btn-moneda-ars">$ ARS</button>
+              <button type="button" class="tipo-btn" id="btn-moneda-usd">USD</button>
+            </div>
+            <div id="selector-tipo-dolar" class="oculto" style="margin-top:0.75rem;">
+              <label for="campo-tipo-dolar" style="font-size:0.82rem;margin-bottom:0.25rem;">Tipo de dólar a usar</label>
+              <select id="campo-tipo-dolar" class="select-tipo-dolar">
+                <option value="blue">Dólar Blue</option>
+                <option value="oficial">Dólar Oficial</option>
+                <option value="divisa">Dólar Divisa (MEP/Bolsa)</option>
+              </select>
+              <div id="tipo-cambio-display" class="tipo-cambio-info"></div>
+            </div>
+          </div>
+
           <!-- Sección de productos -->
           <div class="insumos-seccion">
             <h4>Productos del presupuesto</h4>

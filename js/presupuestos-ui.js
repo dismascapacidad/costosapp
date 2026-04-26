@@ -11,6 +11,9 @@
 
 let lineasPresupTemp  = [];
 let tipoClienteActual = 'consumidor';
+let monedaActual      = 'ARS';
+let tipoDolarActual   = 'blue';
+let tipoCambioActual  = 0;
 let _clientesParaDropdown = [];
 let _ddClienteCursor = -1;
 let _clienteSeleccionado = null;
@@ -82,6 +85,54 @@ function renderDolarWidget(registro) {
     fechaEl.textContent  = registro.fecha
       ? formatearAntiguedad(registro.fecha) + ' — puede estar desactualizado'
       : '';
+  }
+}
+
+// =============================================================================
+// Moneda del presupuesto
+// =============================================================================
+
+function _labelTipoDolar(tipo) {
+  return tipo === 'oficial' ? 'Oficial' : tipo === 'divisa' ? 'Divisa' : 'Blue';
+}
+
+async function _fetchCotizacionDolar(tipo) {
+  if (tipo === 'oficial') return fetchDolarOficial();
+  if (tipo === 'divisa')  return fetchDolarDivisa();
+  return fetchDolarBlue();
+}
+
+async function actualizarCotizacionSeleccionada() {
+  if (monedaActual !== 'USD') return;
+  var tipo = document.getElementById('campo-tipo-dolar').value;
+  tipoDolarActual = tipo;
+  var registro = await _fetchCotizacionDolar(tipo);
+  tipoCambioActual = registro ? (registro.venta || 0) : 0;
+  var display = document.getElementById('tipo-cambio-display');
+  if (display) {
+    display.textContent = tipoCambioActual > 0
+      ? '1 USD = ARS ' + Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : 'Cotización no disponible';
+  }
+  recalcularTotales();
+}
+
+function setMoneda(moneda) {
+  monedaActual = moneda;
+  var btnARS = document.getElementById('btn-moneda-ars');
+  var btnUSD = document.getElementById('btn-moneda-usd');
+  var selectorDolar = document.getElementById('selector-tipo-dolar');
+
+  btnARS.classList.toggle('activo', moneda === 'ARS');
+  btnUSD.classList.toggle('activo', moneda === 'USD');
+
+  if (moneda === 'USD') {
+    selectorDolar.classList.remove('oculto');
+    actualizarCotizacionSeleccionada();
+  } else {
+    selectorDolar.classList.add('oculto');
+    tipoCambioActual = 0;
+    recalcularTotales();
   }
 }
 
@@ -470,6 +521,15 @@ function eliminarLineaPresup(index) {
 // Totales en vivo
 // =============================================================================
 
+function _simbol() {
+  return monedaActual === 'USD' ? 'USD ' : 'ARS ';
+}
+
+function _convertirPrecio(precioARS) {
+  if (monedaActual === 'USD' && tipoCambioActual > 0) return precioARS / tipoCambioActual;
+  return precioARS;
+}
+
 function recalcularTotales() {
   var descuento  = parseFloat(document.getElementById('campo-descuento').value) || 0;
   var costoEnvio = parseFloat(document.getElementById('campo-envio').value)     || 0;
@@ -478,19 +538,30 @@ function recalcularTotales() {
     : document.getElementById('campo-cliente-texto').value.trim();
   var validez = parseInt(document.getElementById('campo-validez').value) || 0;
 
-  var t = calcularTotalesPresupuesto(lineasPresupTemp, descuento, costoEnvio);
+  // Las líneas ya tienen precioUnitario en ARS; convertir para mostrar
+  var lineasConvertidas = lineasPresupTemp.map(function(l) {
+    return {
+      cantidad:       l.cantidad,
+      precioUnitario: _convertirPrecio(l.precioUnitario),
+      subtotal:       _convertirPrecio(l.subtotal)
+    };
+  });
+  var costoEnvioConvertido = _convertirPrecio(costoEnvio);
 
-  document.getElementById('tot-subtotal').textContent = 'ARS ' + formatNum(t.subtotalLineas);
-  document.getElementById('tot-envio').textContent    = 'ARS ' + formatNum(costoEnvio);
-  document.getElementById('tot-total').textContent    = 'ARS ' + formatNum(t.total);
+  var t = calcularTotalesPresupuesto(lineasConvertidas, descuento, costoEnvioConvertido);
+  var s = _simbol();
+
+  document.getElementById('tot-subtotal').textContent = s + formatNum(t.subtotalLineas);
+  document.getElementById('tot-envio').textContent    = s + formatNum(costoEnvioConvertido);
+  document.getElementById('tot-total').textContent    = s + formatNum(t.total);
 
   var filaDesc = document.getElementById('fila-descuento');
   if (descuento > 0) {
-    filaDesc.classList.remove("oculto");
+    filaDesc.classList.remove('oculto');
     document.getElementById('lbl-descuento').textContent = 'Descuento (' + descuento + '%)';
-    document.getElementById('tot-descuento').textContent = '— ARS ' + formatNum(t.montoDescuento);
+    document.getElementById('tot-descuento').textContent = '— ' + s + formatNum(t.montoDescuento);
   } else {
-    filaDesc.classList.add("oculto");
+    filaDesc.classList.add('oculto');
   }
 
   document.getElementById('totales-cliente').textContent =
@@ -521,6 +592,9 @@ function guardarPresupuesto() {
     cliente:     clienteNombre,
     validezDias: document.getElementById('campo-validez').value,
     tipoCliente: tipoClienteActual,
+    moneda:      monedaActual,
+    tipoDolar:   monedaActual === 'USD' ? tipoDolarActual : null,
+    tipoCambio:  monedaActual === 'USD' ? tipoCambioActual : 0,
     descuento:   document.getElementById('campo-descuento').value,
     costoEnvio:  document.getElementById('campo-envio').value,
     lineasBase:  lineasPresupTemp.map(function(l) {
@@ -552,8 +626,12 @@ function limpiarFormPresupuesto() {
   document.getElementById('campo-descuento').value = '0';
   lineasPresupTemp  = [];
   tipoClienteActual = 'consumidor';
+  monedaActual      = 'ARS';
+  tipoDolarActual   = 'blue';
+  tipoCambioActual  = 0;
   _clienteSeleccionado = null;
   setTipoCliente('consumidor');
+  setMoneda('ARS');
   renderLineasPresup();
   recalcularTotales();
   document.getElementById('btn-cancelar-presup').classList.add('oculto');
@@ -599,7 +677,7 @@ function renderPresupuestosList() {
         vence + (vencido ? ' ⚠' : '') + '</td>' +
       '<td>' + tipo + '</td>' +
       '<td class="td-num">' + items + ' ítem' + (items !== 1 ? 's' : '') + '</td>' +
-      '<td class="td-num td-costo">ARS ' + formatNum(p.total) + '</td>' +
+      '<td class="td-num td-costo">' + (p.moneda === 'USD' ? 'USD ' : 'ARS ') + formatNum(p.total) + '</td>' +
       '<td class="td-acciones-menu">' +
         '<div class="menu-acciones-presup">' +
           '<button type="button" class="btn-menu-presup" data-menu-id="' + p.id + '">⋯</button>' +
@@ -717,8 +795,13 @@ function mostrarDetallePresupuesto(id) {
   html += _campoDetalle('Fecha de emisión', fecha);
   html += _campoDetalle('Válido hasta', vence + (vencido ? ' <span style="color:var(--error)">⚠ Vencido</span>' : ''));
   html += _campoDetalle('Validez', p.validezDias + ' días');
+  html += _campoDetalle('Moneda', p.moneda === 'USD'
+    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Divisa (MEP)' : 'Blue') +
+      ' — 1 USD = ARS ' + formatNum(p.tipoCambio)
+    : 'ARS');
   html += _campoDetalle('Descuento', p.descuento + '%');
-  html += _campoDetalle('Costo de envío', 'ARS ' + formatNum(p.costoEnvio));
+  var simM = p.moneda === 'USD' ? 'USD ' : 'ARS ';
+  html += _campoDetalle('Costo de envío', simM + formatNum(p.costoEnvio));
   html += '</div></div>';
 
   // Tabla de productos
@@ -734,8 +817,8 @@ function mostrarDetallePresupuesto(id) {
     html += '<td>' + (l.sku && l.sku !== '—' ? '<span class="sku-tag">' + escapar(l.sku) + '</span>' : '—') + '</td>';
     html += '<td>' + escapar(l.nombre) + '</td>';
     html += '<td class="td-num">' + l.cantidad + '</td>';
-    html += '<td class="td-num">ARS ' + formatNum(l.precioUnitario) + '</td>';
-    html += '<td class="td-num td-costo">ARS ' + formatNum(l.subtotal) + '</td>';
+    html += '<td class="td-num">' + simM + formatNum(l.precioUnitario) + '</td>';
+    html += '<td class="td-num td-costo">' + simM + formatNum(l.subtotal) + '</td>';
     html += '</tr>';
   });
 
@@ -745,14 +828,14 @@ function mostrarDetallePresupuesto(id) {
   html += '<div class="detalle-seccion">';
   html += '<h4>Totales</h4>';
   html += '<div class="detalle-totales">';
-  html += '<div class="totales-fila"><span class="tl">Subtotal</span><span class="tv">ARS ' + formatNum(p.subtotalLineas) + '</span></div>';
+  html += '<div class="totales-fila"><span class="tl">Subtotal</span><span class="tv">' + simM + formatNum(p.subtotalLineas) + '</span></div>';
 
   if (p.descuento > 0) {
-    html += '<div class="totales-fila descuento-fila"><span class="tl">Descuento (' + p.descuento + '%)</span><span class="tv">— ARS ' + formatNum(p.montoDescuento) + '</span></div>';
+    html += '<div class="totales-fila descuento-fila"><span class="tl">Descuento (' + p.descuento + '%)</span><span class="tv">— ' + simM + formatNum(p.montoDescuento) + '</span></div>';
   }
 
-  html += '<div class="totales-fila"><span class="tl">Costo de envío</span><span class="tv">ARS ' + formatNum(p.costoEnvio) + '</span></div>';
-  html += '<div class="totales-fila total-final"><span class="tl">TOTAL</span><span class="tv">ARS ' + formatNum(p.total) + '</span></div>';
+  html += '<div class="totales-fila"><span class="tl">Costo de envío</span><span class="tv">' + simM + formatNum(p.costoEnvio) + '</span></div>';
+  html += '<div class="totales-fila total-final"><span class="tl">TOTAL</span><span class="tv">' + simM + formatNum(p.total) + '</span></div>';
   html += '</div></div>';
 
   document.getElementById('modal-presup-contenido').innerHTML = html;
@@ -832,9 +915,13 @@ function _exportarPresupExcel(id) {
     return;
   }
 
-  var fecha = new Date(p.fecha).toLocaleDateString('es-AR');
-  var vence = new Date(p.fechaVencimiento).toLocaleDateString('es-AR');
-  var tipo  = p.tipoCliente === 'distribuidor' ? 'Distribuidor' : 'Consumidor final';
+  var fecha  = new Date(p.fecha).toLocaleDateString('es-AR');
+  var vence  = new Date(p.fechaVencimiento).toLocaleDateString('es-AR');
+  var tipo   = p.tipoCliente === 'distribuidor' ? 'Distribuidor' : 'Consumidor final';
+  var simX   = p.moneda === 'USD' ? 'USD' : 'ARS';
+  var monedaLabel = p.moneda === 'USD'
+    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Divisa (MEP)' : 'Blue') + ' (1 USD = ARS ' + formatNum(p.tipoCambio) + ')'
+    : 'ARS';
 
   var data = [];
 
@@ -847,12 +934,13 @@ function _exportarPresupExcel(id) {
   data.push(['Válido hasta:', vence]);
   data.push(['Cliente:', p.cliente || '—']);
   data.push(['Tipo:', tipo]);
+  data.push(['Moneda:', monedaLabel]);
   data.push(['Descuento:', p.descuento + '%']);
-  data.push(['Costo de envío:', p.costoEnvio]);
+  data.push(['Costo de envío (' + simX + '):', p.costoEnvio]);
   data.push([]);
 
   // Encabezados de productos
-  data.push(['SKU', 'Producto', 'Cantidad', 'Precio unitario', 'Subtotal']);
+  data.push(['SKU', 'Producto', 'Cantidad', 'P. Unitario (' + simX + ')', 'Subtotal (' + simX + ')']);
 
   // Líneas de productos
   (p.lineas || []).forEach(function(linea) {
@@ -872,7 +960,7 @@ function _exportarPresupExcel(id) {
     data.push(['', '', '', 'Descuento (' + p.descuento + '%):', -(p.montoDescuento || 0)]);
   }
   data.push(['', '', '', 'Costo de envío:', p.costoEnvio || 0]);
-  data.push(['', '', '', 'TOTAL:', p.total || 0]);
+  data.push(['', '', '', 'TOTAL ' + simX + ':', p.total || 0]);
 
   // Crear Excel
   var ws = XLSX.utils.aoa_to_sheet(data);
@@ -900,17 +988,21 @@ function _exportarPresupPDF(id) {
   var p = getPresupuestoPorId(id);
   if (!p) { alert('Presupuesto no encontrado.'); return; }
 
-  var fecha = new Date(p.fecha).toLocaleDateString('es-AR');
-  var vence = new Date(p.fechaVencimiento).toLocaleDateString('es-AR');
-  var tipo  = p.tipoCliente === 'distribuidor' ? 'Distribuidor' : 'Consumidor final';
+  var fecha  = new Date(p.fecha).toLocaleDateString('es-AR');
+  var vence  = new Date(p.fechaVencimiento).toLocaleDateString('es-AR');
+  var tipo   = p.tipoCliente === 'distribuidor' ? 'Distribuidor' : 'Consumidor final';
+  var simP   = p.moneda === 'USD' ? 'USD ' : 'ARS ';
+  var monedaInfoPDF = p.moneda === 'USD'
+    ? 'USD — Dólar ' + (p.tipoDolar === 'oficial' ? 'Oficial' : p.tipoDolar === 'divisa' ? 'Divisa (MEP)' : 'Blue') + ' (1 USD = ARS ' + formatNum(p.tipoCambio) + ')'
+    : 'ARS';
 
   var lineasHTML = (p.lineas || []).map(function(l) {
     return '<tr>' +
       '<td>' + escapar(l.sku || '—') + '</td>' +
       '<td>' + escapar(l.nombre) + '</td>' +
       '<td style="text-align:right">' + l.cantidad + '</td>' +
-      '<td style="text-align:right">ARS ' + formatNum(l.precioUnitario) + '</td>' +
-      '<td style="text-align:right">ARS ' + formatNum(l.subtotal) + '</td>' +
+      '<td style="text-align:right">' + simP + formatNum(l.precioUnitario) + '</td>' +
+      '<td style="text-align:right">' + simP + formatNum(l.subtotal) + '</td>' +
     '</tr>';
   }).join('');
 
@@ -919,7 +1011,7 @@ function _exportarPresupPDF(id) {
     descuentoHTML =
       '<tr>' +
         '<td colspan="4" style="text-align:right;padding:4px 8px;">Descuento (' + p.descuento + '%)</td>' +
-        '<td style="text-align:right;padding:4px 8px;color:#c00;">— ARS ' + formatNum(p.montoDescuento) + '</td>' +
+        '<td style="text-align:right;padding:4px 8px;color:#c00;">— ' + simP + formatNum(p.montoDescuento) + '</td>' +
       '</tr>';
   }
 
@@ -941,10 +1033,11 @@ function _exportarPresupPDF(id) {
     '<div class="info">' +
       '<strong>Cliente:</strong> ' + escapar(p.cliente) + '<br>' +
       '<strong>Tipo:</strong> ' + tipo + '<br>' +
+      '<strong>Moneda:</strong> ' + monedaInfoPDF + '<br>' +
       '<strong>Fecha:</strong> ' + fecha + '<br>' +
       '<strong>Válido hasta:</strong> ' + vence + '<br>' +
       '<strong>Descuento:</strong> ' + p.descuento + '%<br>' +
-      '<strong>Costo de envío:</strong> ARS ' + formatNum(p.costoEnvio) + '<br>' +
+      '<strong>Costo de envío:</strong> ' + simP + formatNum(p.costoEnvio) + '<br>' +
     '</div>' +
     '<table>' +
       '<thead><tr><th>SKU</th><th>Producto</th><th style="text-align:right">Cant.</th>' +
@@ -953,12 +1046,12 @@ function _exportarPresupPDF(id) {
       '<tfoot class="totales">' +
         '<tr><td colspan="5"></td></tr>' +
         '<tr><td colspan="4" style="text-align:right;padding:4px 8px;">Subtotal</td>' +
-          '<td style="text-align:right;padding:4px 8px;">ARS ' + formatNum(p.subtotalLineas) + '</td></tr>' +
+          '<td style="text-align:right;padding:4px 8px;">' + simP + formatNum(p.subtotalLineas) + '</td></tr>' +
         descuentoHTML +
         '<tr><td colspan="4" style="text-align:right;padding:4px 8px;">Costo de envío</td>' +
-          '<td style="text-align:right;padding:4px 8px;">ARS ' + formatNum(p.costoEnvio) + '</td></tr>' +
+          '<td style="text-align:right;padding:4px 8px;">' + simP + formatNum(p.costoEnvio) + '</td></tr>' +
         '<tr class="total-final"><td colspan="4" style="text-align:right;padding:4px 8px;">TOTAL</td>' +
-          '<td style="text-align:right;padding:4px 8px;">ARS ' + formatNum(p.total) + '</td></tr>' +
+          '<td style="text-align:right;padding:4px 8px;">' + simP + formatNum(p.total) + '</td></tr>' +
       '</tfoot>' +
     '</table>' +
     '<div class="footer">Presupuesto generado por CostosApp — Dismascapacidad</div>' +
@@ -1019,6 +1112,11 @@ function bindFormPresupuesto() {
   document.getElementById('btn-tipo-distribuidor').addEventListener('click', function() {
     setTipoCliente('distribuidor');
   });
+
+  // Moneda
+  document.getElementById('btn-moneda-ars').addEventListener('click', function() { setMoneda('ARS'); });
+  document.getElementById('btn-moneda-usd').addEventListener('click', function() { setMoneda('USD'); });
+  document.getElementById('campo-tipo-dolar').addEventListener('change', actualizarCotizacionSeleccionada);
 
   // Buscador de productos
   var campoProd = document.getElementById('campo-presup-producto-buscar');

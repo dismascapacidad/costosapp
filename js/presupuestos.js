@@ -9,10 +9,13 @@
  *   cliente:         string,
  *   validezDias:     number,   // días de validez desde fecha de emisión
  *   tipoCliente:     'consumidor' | 'distribuidor',
+ *   moneda:          'ARS' | 'USD',
+ *   tipoDolar:       'blue' | 'oficial' | 'divisa' | null,
+ *   tipoCambio:      number,   // tasa usada al crear (ARS por USD); 0 si moneda=ARS
  *   descuento:       number,   // porcentaje 0-100
- *   costoEnvio:      number,
+ *   costoEnvio:      number,   // en la moneda del presupuesto
  *   lineas:          [{ productoId, cantidad, precioUnitario, subtotal }],
- *   subtotalLineas:  number,   // suma de subtotales antes de descuento
+ *   subtotalLineas:  number,
  *   montoDescuento:  number,
  *   totalSinEnvio:   number,
  *   total:           number,   // totalSinEnvio + costoEnvio
@@ -85,25 +88,29 @@ function calcularTotalesPresupuesto(lineas, descuento, costoEnvio) {
  * Construye un presupuesto completo (sin persistir).
  */
 function crearPresupuesto(campos, productos, insumos) {
-  var cliente    = campos.cliente;
+  var cliente     = campos.cliente;
   var validezDias = campos.validezDias;
   var tipoCliente = campos.tipoCliente || 'consumidor';
-  var descuento  = campos.descuento || 0;
-  var costoEnvio = campos.costoEnvio || 0;
-  var lineasBase = campos.lineasBase;
+  var moneda      = campos.moneda     || 'ARS';
+  var tipoDolar   = campos.tipoDolar  || null;
+  var tipoCambio  = parseFloat(campos.tipoCambio) || 0;
+  var descuento   = campos.descuento  || 0;
+  var costoEnvio  = campos.costoEnvio || 0;
+  var lineasBase  = campos.lineasBase;
 
   validarPresupuesto({ cliente: cliente, validezDias: validezDias, descuento: descuento, costoEnvio: costoEnvio, lineas: lineasBase });
 
   var lineas = lineasBase.map(function(l) {
-    var precioUnitario = resolverPrecioUnitario(l.productoId, tipoCliente, productos, insumos);
+    var precioARS = resolverPrecioUnitario(l.productoId, tipoCliente, productos, insumos);
+    var precio    = (moneda === 'USD' && tipoCambio > 0) ? precioARS / tipoCambio : precioARS;
     var p = productos.find(function(x) { return x.id === l.productoId; });
     return {
       productoId:     l.productoId,
       sku:            p ? p.sku || '—' : '—',
       nombre:         p ? p.nombre || '(desconocido)' : '(desconocido)',
       cantidad:       parseFloat(l.cantidad),
-      precioUnitario: precioUnitario,
-      subtotal:       parseFloat(l.cantidad) * precioUnitario
+      precioUnitario: precio,
+      subtotal:       parseFloat(l.cantidad) * precio
     };
   });
 
@@ -121,6 +128,9 @@ function crearPresupuesto(campos, productos, insumos) {
     cliente:         cliente.trim(),
     validezDias:     parseInt(validezDias),
     tipoCliente:     tipoCliente,
+    moneda:          moneda,
+    tipoDolar:       moneda === 'USD' ? tipoDolar : null,
+    tipoCambio:      moneda === 'USD' ? tipoCambio : 0,
     descuento:       d,
     costoEnvio:      ce,
     lineas:          lineas,

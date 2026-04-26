@@ -39,6 +39,28 @@
           <span class="dolar-col-valor" id="dolar-valor-venta">—</span>
         </div>
       </div>
+      <div class="dolar-label" style="margin-top:0.5rem;">DÓLAR OFICIAL</div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-oficial-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-oficial-venta">—</span>
+        </div>
+      </div>
+      <div class="dolar-label" style="margin-top:0.5rem;">DÓLAR DIVISA</div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-divisa-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-divisa-venta">—</span>
+        </div>
+      </div>
       <div class="dolar-fecha" id="dolar-fecha"></div>
       <button class="btn btn-sm dolar-refresh" onclick="actualizarDolar()">↻ Actualizar</button>
     </div>
@@ -126,11 +148,22 @@ function renderDolarWidget(registro) {
   }
 }
 
+function renderDolarExtra(tipo, registro) {
+  if (!registro) return;
+  var compraEl = document.getElementById('dolar-' + tipo + '-compra');
+  var ventaEl  = document.getElementById('dolar-' + tipo + '-venta');
+  if (compraEl) compraEl.textContent = '$ ' + Number(registro.compra || 0).toLocaleString('es-AR');
+  if (ventaEl)  ventaEl.textContent  = '$ ' + Number(registro.venta  || 0).toLocaleString('es-AR');
+}
+
 function actualizarDolar() {
   var btn = document.querySelector('.dolar-refresh');
   btn.disabled = true; btn.textContent = '↻ Actualizando…';
-  fetchDolarBlue().then(function(r) { renderDolarWidget(r); })
-    .finally(function() { btn.disabled = false; btn.textContent = '↻ Actualizar'; });
+  Promise.all([
+    fetchDolarBlue().then(function(r) { renderDolarWidget(r); }),
+    fetchDolarOficial().then(function(r) { renderDolarExtra('oficial', r); }),
+    fetchDolarDivisa().then(function(r) { renderDolarExtra('divisa', r); })
+  ]).finally(function() { btn.disabled = false; btn.textContent = '↻ Actualizar'; });
 }
 
 function renderAlertas() {
@@ -235,6 +268,8 @@ function initIndex() {
   var cache = getCacheDolar();
   renderDolarWidget(cache);
   fetchDolarBlue().then(renderDolarWidget);
+  fetchDolarOficial().then(function(r) { renderDolarExtra('oficial', r); });
+  fetchDolarDivisa().then(function(r) { renderDolarExtra('divisa', r); });
 }
 </script>
 
