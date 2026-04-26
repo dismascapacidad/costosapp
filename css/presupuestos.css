@@ -426,13 +426,34 @@
 /* Tabla de historial: columnas compactas y alineadas */
 .tabla-presupuestos {
   overflow: visible;
+  table-layout: fixed;
+  width: 100%;
 }
 
 .tabla-presupuestos th,
 .tabla-presupuestos td {
   padding: 0.5rem 0.65rem;
   vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Anchos fijos por columna */
+.tabla-presupuestos th:nth-child(1),
+.tabla-presupuestos td:nth-child(1) { width: 70px; }  /* N° */
+.tabla-presupuestos th:nth-child(2),
+.tabla-presupuestos td:nth-child(2) { width: auto; }   /* Cliente */
+.tabla-presupuestos th:nth-child(3),
+.tabla-presupuestos td:nth-child(3) { width: 90px; }   /* Fecha */
+.tabla-presupuestos th:nth-child(4),
+.tabla-presupuestos td:nth-child(4) { width: 100px; }  /* Vence */
+.tabla-presupuestos th:nth-child(5),
+.tabla-presupuestos td:nth-child(5) { width: 55px; }   /* Tipo */
+.tabla-presupuestos th:nth-child(6),
+.tabla-presupuestos td:nth-child(6) { width: 55px; }   /* Ítems */
+.tabla-presupuestos th:nth-child(7),
+.tabla-presupuestos td:nth-child(7) { width: 110px; }  /* Total */
 
 .tabla-presupuestos tbody {
   overflow: visible;

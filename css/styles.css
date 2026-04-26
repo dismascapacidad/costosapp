@@ -47,11 +47,11 @@
 /* ── Reset ───────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { color-scheme: dark; }
+html { color-scheme: dark; font-size: 14px; }
 
 body {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--text-1);
   background: var(--bg);
