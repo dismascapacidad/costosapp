@@ -279,31 +279,31 @@
 
 /* Anchos de columnas: SKU | Nombre | Cat | Costo | Markup | Margen | P.Cons | P.Dist | Acc */
 .tabla-productos th:nth-child(1),
-.tabla-productos td:nth-child(1) { width: 70px; }
+.tabla-productos td:nth-child(1) { width: 60px; }
 
 .tabla-productos th:nth-child(2),
 .tabla-productos td:nth-child(2) { width: auto; }
 
 .tabla-productos th:nth-child(3),
-.tabla-productos td:nth-child(3) { width: 95px; }
+.tabla-productos td:nth-child(3) { width: 78px; }
 
 .tabla-productos th:nth-child(4),
-.tabla-productos td:nth-child(4) { width: 95px; }
+.tabla-productos td:nth-child(4) { width: 82px; }
 
 .tabla-productos th:nth-child(5),
-.tabla-productos td:nth-child(5) { width: 70px; }
+.tabla-productos td:nth-child(5) { width: 58px; }
 
 .tabla-productos th:nth-child(6),
-.tabla-productos td:nth-child(6) { width: 70px; }
+.tabla-productos td:nth-child(6) { width: 58px; }
 
 .tabla-productos th:nth-child(7),
-.tabla-productos td:nth-child(7) { width: 110px; }
+.tabla-productos td:nth-child(7) { width: 90px; }
 
 .tabla-productos th:nth-child(8),
-.tabla-productos td:nth-child(8) { width: 110px; }
+.tabla-productos td:nth-child(8) { width: 90px; }
 
 .tabla-productos th:nth-child(9),
-.tabla-productos td:nth-child(9) { width: 50px; }
+.tabla-productos td:nth-child(9) { width: 44px; }
 
 /* Responsive */
 @media (max-width: 1300px) {
