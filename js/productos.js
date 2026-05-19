@@ -156,9 +156,19 @@ function crearProducto({
   };
 }
 
+// Detecta si añadir `candidatoId` como componente de `raizId` generaría una dependencia circular.
+function tieneCirculo(raizId, candidatoId, productos) {
+  if (candidatoId === raizId) return true;
+  const candidato = (productos || []).find(function(p) { return p.id === candidatoId; });
+  if (!candidato) return false;
+  return (candidato.insumos || []).some(function(l) {
+    return l.productoId && tieneCirculo(raizId, l.productoId, productos);
+  });
+}
+
 function agregarProducto(producto) {
   try {
-    const r = calcularResumen(producto, window.AppData.insumos);
+    const r = calcularResumen(producto, window.AppData.insumos, window.AppData.productos);
     producto.markup = r.markup;
   } catch(e) { producto.markup = 0; }
   window.AppData.productos.push(producto);
@@ -199,8 +209,15 @@ function actualizarProducto(id, cambios) {
     margenDeseado:      margenSync,
     fechaActualizacion: new Date().toISOString()
   };
+  // Validar circularidad en sub-productos
+  (window.AppData.productos[index].insumos || []).forEach(function(l) {
+    if (l.productoId && tieneCirculo(id, l.productoId, window.AppData.productos)) {
+      throw new Error('El componente "' + (window.AppData.productos.find(function(p){return p.id===l.productoId;})||{nombre:'?'}).nombre + '" generaría una dependencia circular.');
+    }
+  });
+
   try {
-    const r = calcularResumen(window.AppData.productos[index], window.AppData.insumos);
+    const r = calcularResumen(window.AppData.productos[index], window.AppData.insumos, window.AppData.productos);
     window.AppData.productos[index].markup = r.markup;
   } catch(e) { window.AppData.productos[index].markup = 0; }
   saveData(window.AppData);

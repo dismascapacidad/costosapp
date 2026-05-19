@@ -51,7 +51,7 @@ function _productoDesdeForm() {
 function recalcularDesdeForm() {
   var p = _productoDesdeForm();
   var r;
-  try { r = calcularResumen(p, window.AppData.insumos); } catch(e) { return; }
+  try { r = calcularResumen(p, window.AppData.insumos, window.AppData.productos); } catch(e) { return; }
 
   if (_modoConsumidor === 'margen') {
     _setSilently('campo-precio-final', r.precioFinal > 0 ? fmtN(r.precioFinal) : '');
@@ -212,14 +212,23 @@ function mostrarToastCopiado() {
 
 function renderLineasTemp() {
   var wrapper = document.getElementById('lineas-insumos-wrapper');
-  if (lineasTemp.length === 0) { wrapper.innerHTML = '<p class="tabla-vacia" style="padding:.75rem 0">Sin insumos agregados.</p>'; recalcularDesdeForm(); return; }
+  if (lineasTemp.length === 0) { wrapper.innerHTML = '<p class="tabla-vacia" style="padding:.75rem 0">Sin componentes agregados.</p>'; recalcularDesdeForm(); return; }
   var table = document.createElement('table'); table.className = 'tabla tabla-lineas';
-  table.innerHTML = '<thead><tr><th>Insumo</th><th class="td-num">Cantidad</th><th>Unidad</th><th>Acción</th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>Componente</th><th class="td-num">Cantidad</th><th>Unidad</th><th>Acción</th></tr></thead>';
   var tbody = document.createElement('tbody');
   lineasTemp.forEach(function(l, i) {
-    var ins = window.AppData.insumos.find(function(x) { return x.id === l.insumoId; });
+    var nombre, unidad;
+    if (l.productoId) {
+      var prod = (window.AppData.productos || []).find(function(x) { return x.id === l.productoId; });
+      nombre = '<span class="badge-subproducto">P</span> ' + (prod ? escapar(prod.nombre) : '<em>(eliminado)</em>');
+      unidad = 'unidad';
+    } else {
+      var ins = window.AppData.insumos.find(function(x) { return x.id === l.insumoId; });
+      nombre = ins ? escapar(ins.nombre) : '<em>(eliminado)</em>';
+      unidad = ins ? escapar(ins.unidad) : '';
+    }
     var tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + (ins ? escapar(ins.nombre) : '(eliminado)') + '</td><td class="td-num td-cantidad-edit"></td><td>' + (ins ? escapar(ins.unidad) : '') + '</td><td class="td-acciones"></td>';
+    tr.innerHTML = '<td>' + nombre + '</td><td class="td-num td-cantidad-edit"></td><td>' + unidad + '</td><td class="td-acciones"></td>';
     var inp = document.createElement('input'); inp.type = 'number'; inp.className = 'input-cant-inline'; inp.min = '0.001'; inp.step = 'any'; inp.value = fmtN(l.cantidad);
     inp.oninput = (function(idx) { return function() { var v = parseFloat(this.value); if (!isNaN(v) && v > 0) { lineasTemp[idx].cantidad = v; recalcularDesdeForm(); } }; })(i);
     tr.querySelector('.td-cantidad-edit').appendChild(inp);
@@ -231,6 +240,63 @@ function renderLineasTemp() {
   table.appendChild(tbody); wrapper.innerHTML = ''; wrapper.appendChild(table); recalcularDesdeForm();
 }
 function handleEliminarLineaTemp(i) { lineasTemp.splice(i, 1); renderLineasTemp(); }
+
+// ── Dropdown de sub-productos ───────────────────────────────────────────────
+var _subprodCursor = -1;
+function filtrarDropdownSubproductos(q) {
+  var dd = document.getElementById('subproducto-dropdown'); if (!dd) return;
+  var editandoId = document.getElementById('campo-producto-id').value;
+  var query = (q || '').toLowerCase().trim();
+  var lista = (window.AppData.productos || []).filter(function(p) {
+    return p.id !== editandoId && (!query || p.nombre.toLowerCase().indexOf(query) >= 0 || (p.sku || '').toLowerCase().indexOf(query) >= 0);
+  });
+  dd.innerHTML = '';
+  if (lista.length === 0) {
+    var em = document.createElement('div'); em.className = 'insumo-dd-item insumo-dd-empty'; em.textContent = 'Sin resultados'; dd.appendChild(em);
+  } else {
+    lista.forEach(function(p) {
+      var item = document.createElement('div'); item.className = 'insumo-dd-item';
+      item.textContent = (p.sku ? '[' + p.sku + '] ' : '') + p.nombre;
+      item.dataset.id = p.id; item.dataset.nom = item.textContent;
+      item.onmousedown = function(e) { e.preventDefault(); seleccionarSubproductoDropdown(p.id, item.textContent); };
+      dd.appendChild(item);
+    });
+  }
+  dd.style.display = 'block'; _subprodCursor = -1;
+}
+function cerrarDropdownSubproductos() { setTimeout(function() { var dd = document.getElementById('subproducto-dropdown'); if (dd) dd.style.display = 'none'; }, 150); }
+function seleccionarSubproductoDropdown(id, txt) {
+  document.getElementById('campo-subproducto-id').value = id;
+  document.getElementById('campo-subproducto-texto').value = txt;
+  var dd = document.getElementById('subproducto-dropdown'); if (dd) dd.style.display = 'none';
+  document.getElementById('campo-subproducto-cantidad').focus();
+}
+function handleSubproductoKeydown(e) {
+  var items = document.querySelectorAll('#subproducto-dropdown .insumo-dd-item:not(.insumo-dd-empty)');
+  if (e.key === 'ArrowDown') { e.preventDefault(); _subprodCursor = Math.min(_subprodCursor + 1, items.length - 1); items.forEach(function(el, i) { el.classList.toggle('insumo-dd-activo', i === _subprodCursor); }); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _subprodCursor = Math.max(_subprodCursor - 1, 0); items.forEach(function(el, i) { el.classList.toggle('insumo-dd-activo', i === _subprodCursor); }); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (_subprodCursor >= 0 && items[_subprodCursor]) seleccionarSubproductoDropdown(items[_subprodCursor].dataset.id, items[_subprodCursor].dataset.nom); else if (items.length === 1) seleccionarSubproductoDropdown(items[0].dataset.id, items[0].dataset.nom); }
+}
+function handleAgregarSubProducto() {
+  ocultarErrorLineas();
+  var productoId = document.getElementById('campo-subproducto-id').value;
+  var cantidad   = parseFloat(document.getElementById('campo-subproducto-cantidad').value);
+  if (!productoId) { mostrarErrorLineas('Seleccioná un producto de la lista.'); return; }
+  if (!cantidad || cantidad <= 0) { mostrarErrorLineas('La cantidad debe ser mayor a 0.'); return; }
+  var editandoId = document.getElementById('campo-producto-id').value;
+  if (editandoId && tieneCirculo(editandoId, productoId, window.AppData.productos)) {
+    mostrarErrorLineas('No se puede agregar: generaría una dependencia circular.');
+    return;
+  }
+  var ex = lineasTemp.find(function(l) { return l.productoId === productoId; });
+  if (ex) { ex.cantidad = cantidad; }
+  else { lineasTemp.push({ productoId: productoId, cantidad: cantidad }); }
+  document.getElementById('campo-subproducto-id').value = '';
+  document.getElementById('campo-subproducto-texto').value = '';
+  document.getElementById('campo-subproducto-cantidad').value = '';
+  var dd = document.getElementById('subproducto-dropdown'); if (dd) dd.style.display = 'none';
+  renderLineasTemp();
+}
 
 // Dropdown de insumos
 var _insumosParaDropdown = []; var _ddCursor = -1;
@@ -251,14 +317,24 @@ function abrirModalCostos(id) {
 
   var recetaHTML = '';
   if (p.insumos && p.insumos.length > 0) {
-    recetaHTML = '<table class="tabla tabla-receta-costos"><thead><tr><th>Insumo</th><th class="td-num">Cantidad</th><th>Unidad</th><th class="td-num">Costo unit.</th><th class="td-num">Subtotal</th></tr></thead><tbody>';
+    recetaHTML = '<table class="tabla tabla-receta-costos"><thead><tr><th>Componente</th><th class="td-num">Cantidad</th><th>Unidad</th><th class="td-num">Costo unit.</th><th class="td-num">Subtotal</th></tr></thead><tbody>';
     p.insumos.forEach(function(linea) {
-      var ins = window.AppData.insumos.find(function(x) { return x.id === linea.insumoId; });
-      var cu = ins ? ins.costoUnitario : 0;
-      recetaHTML += '<tr><td>' + (ins ? escapar(ins.nombre) : '(eliminado)') + '</td><td class="td-num">' + fmtN(linea.cantidad) + '</td><td>' + (ins ? escapar(ins.unidad) : '') + '</td><td class="td-num">ARS ' + formatNum(cu) + '</td><td class="td-num">ARS ' + formatNum(linea.cantidad * cu) + '</td></tr>';
+      var nombre, unidad, cu;
+      if (linea.productoId) {
+        var sub = (window.AppData.productos || []).find(function(x) { return x.id === linea.productoId; });
+        nombre = sub ? '<span class="badge-subproducto">P</span> ' + escapar(sub.nombre) : '(eliminado)';
+        unidad = 'unidad';
+        try { cu = calcularCostoTotal(sub, window.AppData.insumos, window.AppData.productos); } catch(e) { cu = 0; }
+      } else {
+        var ins = window.AppData.insumos.find(function(x) { return x.id === linea.insumoId; });
+        nombre = ins ? escapar(ins.nombre) : '(eliminado)';
+        unidad = ins ? escapar(ins.unidad) : '';
+        cu = ins ? ins.costoUnitario : 0;
+      }
+      recetaHTML += '<tr><td>' + nombre + '</td><td class="td-num">' + fmtN(linea.cantidad) + '</td><td>' + unidad + '</td><td class="td-num">ARS ' + formatNum(cu) + '</td><td class="td-num">ARS ' + formatNum(linea.cantidad * cu) + '</td></tr>';
     });
     recetaHTML += '</tbody></table>';
-  } else { recetaHTML = '<p class="tabla-vacia">Sin insumos en la receta.</p>'; }
+  } else { recetaHTML = '<p class="tabla-vacia">Sin componentes en la receta.</p>'; }
   document.getElementById('modal-costos-receta').innerHTML = recetaHTML;
 
   if (r) {
@@ -315,7 +391,7 @@ function abrirEdicionProducto(id) {
   document.getElementById('campo-precio-final').value = p.precioFinal > 0 ? fmtN(p.precioFinal) : '';
   document.getElementById('campo-margen-distribuidor').value = fmtN(p.margenDistribuidor != null ? p.margenDistribuidor : cfg.margenGlobalDistribuidor);
   document.getElementById('campo-precio-distribuidor').value = p.precioDistribuidor > 0 ? fmtN(p.precioDistribuidor) : '';
-  _badges(); lineasTemp = p.insumos.map(function(l) { return { insumoId: l.insumoId, cantidad: l.cantidad }; });
+  _badges(); lineasTemp = p.insumos.map(function(l) { return l.productoId ? { productoId: l.productoId, cantidad: l.cantidad } : { insumoId: l.insumoId, cantidad: l.cantidad }; });
   document.getElementById('form-producto-titulo').textContent = 'Editar producto'; document.getElementById('btn-guardar-producto').textContent = 'Actualizar producto';
   poblarDropdownInsumos(); renderLineasTemp(); ocultarErrorProducto(); ocultarErrorLineas();
 }
@@ -334,7 +410,7 @@ function limpiarFormularioProducto() {
 function duplicarProducto(id) {
   var o = getProductoPorId(id); if (!o) return;
   var c = crearProducto({ nombre: 'Copia de ' + o.nombre, sku: '', categoria: o.categoria || '', horasTrabajo: o.horasTrabajo, costoHora: o.costoHora, modoConsumidor: o.modoConsumidor || 'margen', margenConsumidor: o.margenConsumidor, precioFinal: o.precioFinal || 0, modoDistribuidor: o.modoDistribuidor || 'margen', margenDistribuidor: o.margenDistribuidor, precioDistribuidor: o.precioDistribuidor || 0 });
-  c.insumos = o.insumos.map(function(l) { return { insumoId: l.insumoId, cantidad: l.cantidad }; });
+  c.insumos = o.insumos.map(function(l) { return l.productoId ? { productoId: l.productoId, cantidad: l.cantidad } : { insumoId: l.insumoId, cantidad: l.cantidad }; });
   agregarProducto(c); renderProductosList(); abrirEdicionProducto(c.id);
 }
 function confirmarEliminarProducto(id, nombre) { if (!confirm('Eliminar "' + nombre + '"?')) return; eliminarProducto(id); renderProductosList(); }

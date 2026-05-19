@@ -23,8 +23,18 @@
 
 // ── Costos de producción (sin cambio) ─────────────────────────────────────────
 
-function calcularCostoMateriales(producto, insumos) {
+function calcularCostoMateriales(producto, insumos, productos) {
   return (producto.insumos || []).reduce((total, linea) => {
+    if (linea.productoId) {
+      // Línea de sub-producto: usar su costo de producción (nunca el precio de venta)
+      const sub = (productos || []).find(p => p.id === linea.productoId);
+      if (!sub) {
+        console.warn(`[costos] Sub-producto ${linea.productoId} no encontrado en "${producto.nombre}".`);
+        return total;
+      }
+      return total + linea.cantidad * calcularCostoTotal(sub, insumos, productos);
+    }
+    // Línea de insumo normal
     const insumo = insumos.find(i => i.id === linea.insumoId);
     if (!insumo) {
       console.warn(`[costos] Insumo ${linea.insumoId} no encontrado en "${producto.nombre}".`);
@@ -38,8 +48,8 @@ function calcularCostoManoObra(producto) {
   return (producto.horasTrabajo || 0) * (producto.costoHora || 0);
 }
 
-function calcularCostoTotal(producto, insumos) {
-  return calcularCostoMateriales(producto, insumos) + calcularCostoManoObra(producto);
+function calcularCostoTotal(producto, insumos, productos) {
+  return calcularCostoMateriales(producto, insumos, productos) + calcularCostoManoObra(producto);
 }
 
 // ── Precio consumidor final ───────────────────────────────────────────────────
@@ -135,8 +145,8 @@ function calcularMarkupImplicito(costo, precio) {
  *   precioDistribuidor: number
  * }}
  */
-function calcularResumen(producto, insumos) {
-  const costoMateriales = calcularCostoMateriales(producto, insumos);
+function calcularResumen(producto, insumos, productos) {
+  const costoMateriales = calcularCostoMateriales(producto, insumos, productos);
   const costoManoObra   = calcularCostoManoObra(producto);
   const costoTotal      = costoMateriales + costoManoObra;
 

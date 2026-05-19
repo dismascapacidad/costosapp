@@ -219,11 +219,14 @@
           <p class="precio-hint" id="hint-distribuidor"></p>
         </div>
 
-        <!-- Insumos -->
+        <!-- Componentes de la receta -->
         <div class="insumos-seccion">
-          <h4>Insumos del producto</h4>
+          <h4>Receta del producto</h4>
           <div id="lineas-insumos-error" class="form-error" style="display:none"></div>
           <div id="lineas-insumos-wrapper"></div>
+
+          <!-- Agregar insumo -->
+          <p class="receta-tipo-label">Agregar insumo</p>
           <div class="linea-agregar">
             <div class="insumo-search-wrap" id="insumo-search-wrap">
               <input type="text" id="campo-linea-insumo-texto"
@@ -239,6 +242,25 @@
             </div>
             <input type="number" id="campo-linea-cantidad" min="0.001" step="any" placeholder="Cantidad" />
             <button type="button" class="btn btn-primary btn-sm" onclick="handleAgregarLinea()">+ Agregar</button>
+          </div>
+
+          <!-- Agregar producto como componente -->
+          <p class="receta-tipo-label" style="margin-top:0.75rem;">Agregar producto como componente</p>
+          <div class="linea-agregar">
+            <div class="insumo-search-wrap" id="subproducto-search-wrap">
+              <input type="text" id="campo-subproducto-texto"
+                placeholder="Buscar producto..."
+                autocomplete="off"
+                oninput="filtrarDropdownSubproductos(this.value)"
+                onfocus="filtrarDropdownSubproductos(this.value)"
+                onblur="cerrarDropdownSubproductos()"
+                onkeydown="handleSubproductoKeydown(event)"
+              />
+              <div id="subproducto-dropdown" class="insumo-dropdown" style="display:none"></div>
+              <input type="hidden" id="campo-subproducto-id" />
+            </div>
+            <input type="number" id="campo-subproducto-cantidad" min="0.001" step="any" placeholder="Cantidad" />
+            <button type="button" class="btn btn-sm" onclick="handleAgregarSubProducto()">+ Agregar</button>
           </div>
         </div>
 
