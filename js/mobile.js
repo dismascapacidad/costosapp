@@ -64,6 +64,26 @@
       });
     }
 
+    // 7. Swipe izquierda para cerrar el sidebar
+    var _swipeStartX = 0;
+    var _swipeStartY = 0;
+
+    if (sidebar) {
+      sidebar.addEventListener('touchstart', function(e) {
+        _swipeStartX = e.touches[0].clientX;
+        _swipeStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      sidebar.addEventListener('touchend', function(e) {
+        var dx = e.changedTouches[0].clientX - _swipeStartX;
+        var dy = e.changedTouches[0].clientY - _swipeStartY;
+        // Swipe izquierda: desplazamiento horizontal > 60px, más horizontal que vertical
+        if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          closeSidebar();
+        }
+      }, { passive: true });
+    }
+
     // 7. Actualizar visibilidad según tamaño
     updateVisibility();
     window.addEventListener('resize', updateVisibility);
