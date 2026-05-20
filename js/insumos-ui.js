@@ -139,6 +139,20 @@ function cerrarModalDetalleOverlay(e) { if (e.target === document.getElementById
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 
+function abrirModalInsumo() {
+  limpiarFormulario();
+  document.getElementById('modal-insumo').classList.add('activo');
+  document.getElementById('campo-nombre').focus();
+}
+function cerrarModalInsumo() {
+  document.getElementById('modal-insumo').classList.remove('activo');
+  limpiarFormulario();
+  ocultarError();
+}
+function cerrarModalInsumoOverlay(e) {
+  if (e.target === document.getElementById('modal-insumo')) cerrarModalInsumo();
+}
+
 function bindFormInsumo() {
   document.getElementById('form-insumo').addEventListener('submit', function(e) {
     e.preventDefault(); ocultarError();
@@ -147,7 +161,7 @@ function bindFormInsumo() {
     try {
       if (id) { actualizarInsumo(id, campos); }
       else    { agregarInsumo(crearInsumo(campos)); }
-      limpiarFormulario(); renderInsumosList();
+      cerrarModalInsumo(); renderInsumosList();
     } catch(err) { mostrarError(err.message); }
   });
 }
@@ -174,21 +188,19 @@ function abrirEdicion(id) {
   document.getElementById('campo-precio').value    = ins.precioCompra;
   document.getElementById('campo-cantidad').value  = ins.cantidadCompra;
   document.getElementById('campo-proveedor').value = ins.proveedor;
-  document.getElementById('form-titulo').textContent    = 'Editar insumo';
-  document.getElementById('btn-guardar').textContent    = 'Actualizar insumo';
-  document.getElementById('btn-cancelar').classList.remove('oculto');
-  document.getElementById('card-form').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('modal-insumo-titulo').textContent = 'Editar insumo';
+  document.getElementById('btn-guardar').textContent         = 'Actualizar insumo';
+  document.getElementById('modal-insumo').classList.add('activo');
   ocultarError();
 }
 
-function cancelarEdicion() { limpiarFormulario(); ocultarError(); }
+function cancelarEdicion() { cerrarModalInsumo(); }
 
 function limpiarFormulario() {
   document.getElementById('form-insumo').reset();
-  document.getElementById('campo-id').value           = '';
-  document.getElementById('form-titulo').textContent  = 'Nuevo insumo';
-  document.getElementById('btn-guardar').textContent  = 'Guardar insumo';
-  document.getElementById('btn-cancelar').classList.add('oculto');
+  document.getElementById('campo-id').value                  = '';
+  document.getElementById('modal-insumo-titulo').textContent = 'Nuevo insumo';
+  document.getElementById('btn-guardar').textContent         = 'Guardar insumo';
 }
 
 function confirmarEliminar(id, nombre) {

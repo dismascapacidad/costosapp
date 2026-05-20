@@ -581,6 +581,18 @@ function recalcularTotales() {
 // Guardar presupuesto
 // =============================================================================
 
+function abrirModalPresupuesto() {
+  limpiarFormPresupuesto();
+  document.getElementById('modal-presupuesto').classList.add('activo');
+}
+function cerrarModalPresupuesto() {
+  document.getElementById('modal-presupuesto').classList.remove('activo');
+  limpiarFormPresupuesto();
+}
+function cerrarModalPresupuestoOverlay(e) {
+  if (e.target === document.getElementById('modal-presupuesto')) cerrarModalPresupuesto();
+}
+
 function guardarPresupuesto() {
   ocultarErrorPresup();
 
@@ -608,13 +620,13 @@ function guardarPresupuesto() {
     );
     agregarPresupuesto(presupuesto);
     renderPresupuestosList();
-    limpiarFormPresupuesto();
+    cerrarModalPresupuesto();
   } catch (err) {
     mostrarErrorPresup(err.message);
   }
 }
 
-function cancelarPresupuesto() { limpiarFormPresupuesto(); }
+function cancelarPresupuesto() { cerrarModalPresupuesto(); }
 
 function limpiarFormPresupuesto() {
   document.getElementById('campo-cliente-texto').value = '';
@@ -634,7 +646,6 @@ function limpiarFormPresupuesto() {
   setMoneda('ARS');
   renderLineasPresup();
   recalcularTotales();
-  document.getElementById('btn-cancelar-presup').classList.add('oculto');
   document.getElementById('form-presup-titulo').textContent = 'Nuevo presupuesto';
   ocultarErrorPresup();
   ocultarErrorLineasPresup();

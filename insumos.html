@@ -57,9 +57,65 @@
       <p>Materias primas y componentes con sus costos unitarios.</p>
     </div>
 
-    <!-- Formulario -->
-    <div class="card" id="card-form">
-      <h3 id="form-titulo">Nuevo insumo</h3>
+    <!-- Tabla -->
+    <div class="card">
+      <div class="tabla-header">
+        <h3>Listado de insumos</h3>
+        <span id="contador-insumos" class="badge"></span>
+        <div class="buscador-wrapper">
+          <input type="text" id="buscador-insumos" class="buscador-input"
+            placeholder="Buscar por nombre o categoría…" oninput="renderInsumosList()" />
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalInsumo()">+ Nuevo insumo</button>
+      </div>
+      <div id="tabla-wrapper"></div>
+    </div>
+
+    <!-- Panel edición masiva -->
+    <div class="panel-masivo" id="panel-masivo-insumos" style="margin-top:1.25rem;">
+      <div class="panel-masivo-header" id="toggle-masivo-insumos" onclick="togglePanelMasivo('insumos')">
+        <span class="panel-masivo-titulo">Edición masiva de precios</span>
+        <span class="panel-masivo-chevron">▼</span>
+      </div>
+      <div class="panel-masivo-body" id="body-masivo-insumos">
+        <div class="masivo-controles">
+          <div class="form-group">
+            <label>Modo de ajuste</label>
+            <select id="masivo-insumos-modo">
+              <option value="porcentaje">Porcentaje (%)</option>
+              <option value="suma">Suma fija (ARS)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor (puede ser negativo)</label>
+            <input type="number" id="masivo-insumos-valor" step="any" placeholder="Ej: 10 o -5" />
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:flex-end;">
+            <button class="btn btn-primary" onclick="previsualizarMasivoInsumos()">Previsualizar</button>
+            <button class="btn" onclick="seleccionarTodosInsumos(true)">Sel. todos</button>
+            <button class="btn" onclick="seleccionarTodosInsumos(false)">Desel. todos</button>
+          </div>
+        </div>
+        <div id="masivo-insumos-preview"></div>
+        <div id="masivo-insumos-acciones" class="oculto" style="margin-top:0.75rem;">
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="aplicarMasivoInsumos()">Aplicar a seleccionados</button>
+            <button class="btn" onclick="limpiarMasivoInsumos()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal nuevo/editar insumo -->
+<div class="modal-overlay-producto" id="modal-insumo" onclick="cerrarModalInsumoOverlay(event)">
+  <div class="modal-producto-content" style="max-width:560px;">
+    <div class="modal-producto-header">
+      <h3 id="modal-insumo-titulo">Nuevo insumo</h3>
+      <button class="modal-close-btn" onclick="cerrarModalInsumo()">&times;</button>
+    </div>
+    <div class="modal-producto-body">
       <div id="form-error" class="form-error oculto"></div>
       <form id="form-insumo" novalidate>
         <input type="hidden" id="campo-id" />
@@ -105,61 +161,13 @@
             <input type="text" id="campo-proveedor" placeholder="Nombre del proveedor" />
           </div>
         </div>
-        <div class="form-actions">
+        <div class="form-actions modal-form-actions">
+          <button type="button" class="btn" onclick="cerrarModalInsumo()">Cancelar</button>
           <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar insumo</button>
-          <button type="button" class="btn oculto" id="btn-cancelar" onclick="cancelarEdicion()">Cancelar</button>
         </div>
       </form>
     </div>
-
-    <!-- Tabla -->
-    <div class="card" style="margin-top: 1.25rem;">
-      <div class="tabla-header">
-        <h3>Listado de insumos</h3>
-        <span id="contador-insumos" class="badge"></span>
-        <div class="buscador-wrapper">
-          <input type="text" id="buscador-insumos" class="buscador-input"
-            placeholder="Buscar por nombre o categoría…" oninput="renderInsumosList()" />
-        </div>
-      </div>
-      <div id="tabla-wrapper"></div>
-    </div>
-
-    <!-- Panel edición masiva -->
-    <div class="panel-masivo" id="panel-masivo-insumos" style="margin-top:1.25rem;">
-      <div class="panel-masivo-header" id="toggle-masivo-insumos" onclick="togglePanelMasivo('insumos')">
-        <span class="panel-masivo-titulo">Edición masiva de precios</span>
-        <span class="panel-masivo-chevron">▼</span>
-      </div>
-      <div class="panel-masivo-body" id="body-masivo-insumos">
-        <div class="masivo-controles">
-          <div class="form-group">
-            <label>Modo de ajuste</label>
-            <select id="masivo-insumos-modo">
-              <option value="porcentaje">Porcentaje (%)</option>
-              <option value="suma">Suma fija (ARS)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Valor (puede ser negativo)</label>
-            <input type="number" id="masivo-insumos-valor" step="any" placeholder="Ej: 10 o -5" />
-          </div>
-          <div style="display:flex; gap:0.5rem; align-items:flex-end;">
-            <button class="btn btn-primary" onclick="previsualizarMasivoInsumos()">Previsualizar</button>
-            <button class="btn" onclick="seleccionarTodosInsumos(true)">Sel. todos</button>
-            <button class="btn" onclick="seleccionarTodosInsumos(false)">Desel. todos</button>
-          </div>
-        </div>
-        <div id="masivo-insumos-preview"></div>
-        <div id="masivo-insumos-acciones" class="oculto" style="margin-top:0.75rem;">
-          <div class="form-actions">
-            <button class="btn btn-primary" onclick="aplicarMasivoInsumos()">Aplicar a seleccionados</button>
-            <button class="btn" onclick="limpiarMasivoInsumos()">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
+  </div>
 </div>
 
 <!-- Modal detalle insumo -->

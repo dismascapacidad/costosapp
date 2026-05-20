@@ -58,16 +58,35 @@
       <p>Armá un presupuesto con productos, cantidades, descuento y envío.</p>
     </div>
 
-    <!-- ── Formulario nuevo presupuesto ── -->
-    <div class="presup-layout">
+    <!-- ── Historial de presupuestos ── -->
+    <div class="card presup-historial-card">
+      <div class="tabla-header">
+        <h3>Historial de presupuestos</h3>
+        <span id="contador-presupuestos" class="badge"></span>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalPresupuesto()">+ Nuevo presupuesto</button>
+      </div>
+      <div class="presup-tabla-responsive">
+        <div id="tabla-presupuestos-wrapper"></div>
+      </div>
+    </div>
 
-      <!-- Columna izquierda: datos del presupuesto + líneas -->
-      <div>
-        <div class="card" id="card-form-presupuesto">
-          <h3 id="form-presup-titulo">Nuevo presupuesto</h3>
-          <div id="form-presup-error" class="form-error oculto"></div>
+  </main>
+</div>
 
-          <!-- Campo de cliente — ancho completo -->
+<!-- ── Modal nuevo presupuesto ── -->
+<div class="modal-overlay-producto" id="modal-presupuesto" onclick="cerrarModalPresupuestoOverlay(event)">
+  <div class="modal-producto-content" style="max-width:860px;">
+    <div class="modal-producto-header">
+      <h3 id="form-presup-titulo">Nuevo presupuesto</h3>
+      <button class="modal-close-btn" onclick="cerrarModalPresupuesto()">&times;</button>
+    </div>
+    <div class="modal-producto-body">
+      <div id="form-presup-error" class="form-error oculto"></div>
+
+      <div class="presup-layout">
+        <!-- Columna izquierda: datos + líneas -->
+        <div>
+          <!-- Campo de cliente -->
           <div class="form-group presup-campo-cliente">
             <label for="campo-cliente-texto">Cliente *</label>
             <div class="cliente-search-wrap">
@@ -97,7 +116,7 @@
             </div>
           </div>
 
-          <!-- Resto de campos en grilla -->
+          <!-- Campos grilla -->
           <div class="form-grid presup-campos-grid">
             <div class="form-group">
               <label for="campo-validez">Validez (días) *</label>
@@ -113,20 +132,16 @@
             </div>
           </div>
 
-          <!-- Selector tipo de cliente -->
+          <!-- Tipo de precio -->
           <div class="form-group presup-tipo-grupo">
             <label>Tipo de precio</label>
             <div class="tipo-cliente-selector">
-              <button type="button" class="tipo-btn activo" id="btn-tipo-consumidor">
-                Consumidor final
-              </button>
-              <button type="button" class="tipo-btn" id="btn-tipo-distribuidor">
-                Distribuidor / Mayorista
-              </button>
+              <button type="button" class="tipo-btn activo" id="btn-tipo-consumidor">Consumidor final</button>
+              <button type="button" class="tipo-btn" id="btn-tipo-distribuidor">Distribuidor / Mayorista</button>
             </div>
           </div>
 
-          <!-- Selector de moneda -->
+          <!-- Moneda -->
           <div class="form-group presup-moneda-grupo">
             <label>Moneda del presupuesto</label>
             <div class="tipo-cliente-selector">
@@ -144,13 +159,11 @@
             </div>
           </div>
 
-          <!-- Sección de productos -->
+          <!-- Productos -->
           <div class="insumos-seccion">
             <h4>Productos del presupuesto</h4>
             <div id="lineas-presup-error" class="form-error oculto"></div>
             <div id="lineas-presup-wrapper"></div>
-
-            <!-- Fila para agregar producto -->
             <div class="linea-agregar-presup">
               <div class="producto-search-wrap">
                 <input type="text" id="campo-presup-producto-buscar" class="producto-search-input"
@@ -166,57 +179,42 @@
           </div>
 
           <!-- Acciones -->
-          <div class="form-actions">
-            <button type="button" class="btn btn-primary" id="btn-guardar-presup">
-              Guardar presupuesto
-            </button>
-            <button type="button" class="btn oculto" id="btn-cancelar-presup">
-              Cancelar
-            </button>
+          <div class="form-actions modal-form-actions">
+            <button type="button" class="btn" onclick="cerrarModalPresupuesto()">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btn-guardar-presup">Guardar presupuesto</button>
+          </div>
+        </div>
+
+        <!-- Columna derecha: totales en vivo -->
+        <div>
+          <div class="card" id="panel-totales" style="position:sticky;top:0;">
+            <h3>Totales</h3>
+            <p id="totales-cliente" class="totales-meta">Sin cliente aún</p>
+            <div class="totales-presup" id="totales-grid">
+              <div class="totales-fila">
+                <span class="tl">Subtotal</span>
+                <span class="tv" id="tot-subtotal">ARS 0,00</span>
+              </div>
+              <div class="totales-fila descuento-fila oculto" id="fila-descuento">
+                <span class="tl" id="lbl-descuento">Descuento (0%)</span>
+                <span class="tv" id="tot-descuento">— ARS 0,00</span>
+              </div>
+              <div class="totales-fila">
+                <span class="tl">Costo de envío</span>
+                <span class="tv" id="tot-envio">ARS 0,00</span>
+              </div>
+              <div class="totales-fila total-final">
+                <span class="tl">TOTAL</span>
+                <span class="tv" id="tot-total">ARS 0,00</span>
+              </div>
+            </div>
+            <p id="totales-validez" class="totales-validez"></p>
           </div>
         </div>
       </div>
 
-      <!-- Columna derecha: totales en vivo -->
-      <div>
-        <div class="card" id="panel-totales">
-          <h3>Totales</h3>
-          <p id="totales-cliente" class="totales-meta">Sin cliente aún</p>
-          <div class="totales-presup" id="totales-grid">
-            <div class="totales-fila">
-              <span class="tl">Subtotal</span>
-              <span class="tv" id="tot-subtotal">ARS 0,00</span>
-            </div>
-            <div class="totales-fila descuento-fila oculto" id="fila-descuento">
-              <span class="tl" id="lbl-descuento">Descuento (0%)</span>
-              <span class="tv" id="tot-descuento">— ARS 0,00</span>
-            </div>
-            <div class="totales-fila">
-              <span class="tl">Costo de envío</span>
-              <span class="tv" id="tot-envio">ARS 0,00</span>
-            </div>
-            <div class="totales-fila total-final">
-              <span class="tl">TOTAL</span>
-              <span class="tv" id="tot-total">ARS 0,00</span>
-            </div>
-          </div>
-          <p id="totales-validez" class="totales-validez"></p>
-        </div>
-      </div>
     </div>
-
-    <!-- ── Historial de presupuestos ── -->
-    <div class="card presup-historial-card">
-      <div class="tabla-header">
-        <h3>Historial de presupuestos</h3>
-        <span id="contador-presupuestos" class="badge"></span>
-      </div>
-      <div class="presup-tabla-responsive">
-        <div id="tabla-presupuestos-wrapper"></div>
-      </div>
-    </div>
-
-  </main>
+  </div>
 </div>
 
 <!-- ── Modal detalle presupuesto ── -->

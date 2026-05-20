@@ -253,68 +253,6 @@
       </div>
     </div>
 
-    <!-- Formulario -->
-    <div class="card" id="card-form-cliente">
-      <h3 id="form-titulo">Nuevo cliente</h3>
-      <div id="form-error" class="form-error" style="display:none"></div>
-
-      <form id="form-cliente" novalidate>
-        <input type="hidden" id="campo-id" />
-        
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="campo-nombre">Nombre completo *</label>
-            <input type="text" id="campo-nombre" placeholder="Juan Pérez" />
-          </div>
-          <div class="form-group">
-            <label for="campo-email">Email</label>
-            <input type="email" id="campo-email" placeholder="juan@ejemplo.com" />
-          </div>
-          <div class="form-group">
-            <label for="campo-telefono">Teléfono</label>
-            <input type="tel" id="campo-telefono" placeholder="+54 9 11 1234-5678" />
-          </div>
-          <div class="form-group">
-            <label for="campo-tipo">Tipo de cliente</label>
-            <select id="campo-tipo">
-              <option value="consumidor">Consumidor final</option>
-              <option value="distribuidor">Distribuidor / Mayorista</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="campo-direccion">Dirección</label>
-            <input type="text" id="campo-direccion" placeholder="Calle 123" />
-          </div>
-          <div class="form-group">
-            <label for="campo-localidad">Localidad</label>
-            <input type="text" id="campo-localidad" placeholder="CABA" />
-          </div>
-          <div class="form-group">
-            <label for="campo-provincia">Provincia</label>
-            <input type="text" id="campo-provincia" placeholder="Buenos Aires" />
-          </div>
-          <div class="form-group">
-            <label for="campo-cp">Código Postal</label>
-            <input type="text" id="campo-cp" placeholder="1425" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="campo-notas">Notas</label>
-          <textarea id="campo-notas" rows="3" 
-            placeholder="Observaciones sobre el cliente..."></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar cliente</button>
-          <button type="button" class="btn" id="btn-cancelar" style="display:none"
-            onclick="cancelarEdicion()">Cancelar</button>
-        </div>
-      </form>
-    </div>
 
     <!-- Importar CSV -->
     <div class="card" style="margin-top:1.25rem;">
@@ -340,11 +278,75 @@
           <input type="text" id="buscador-clientes" class="buscador-input"
             placeholder="Buscar por nombre, email o teléfono..." oninput="renderClientesList()" />
         </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalCliente()">+ Nuevo cliente</button>
       </div>
       <div id="tabla-clientes-wrapper"></div>
     </div>
 
   </main>
+</div>
+
+<!-- Modal nuevo/editar cliente -->
+<div class="modal-overlay-producto" id="modal-cliente" onclick="cerrarModalClienteOverlay(event)">
+  <div class="modal-producto-content" style="max-width:620px;">
+    <div class="modal-producto-header">
+      <h3 id="modal-cliente-titulo">Nuevo cliente</h3>
+      <button class="modal-close-btn" onclick="cerrarModalCliente()">&times;</button>
+    </div>
+    <div class="modal-producto-body">
+      <div id="form-error" class="form-error" style="display:none"></div>
+      <form id="form-cliente" novalidate>
+        <input type="hidden" id="campo-id" />
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="campo-nombre">Nombre completo *</label>
+            <input type="text" id="campo-nombre" placeholder="Juan Pérez" />
+          </div>
+          <div class="form-group">
+            <label for="campo-email">Email</label>
+            <input type="email" id="campo-email" placeholder="juan@ejemplo.com" />
+          </div>
+          <div class="form-group">
+            <label for="campo-telefono">Teléfono</label>
+            <input type="tel" id="campo-telefono" placeholder="+54 9 11 1234-5678" />
+          </div>
+          <div class="form-group">
+            <label for="campo-tipo">Tipo de cliente</label>
+            <select id="campo-tipo">
+              <option value="consumidor">Consumidor final</option>
+              <option value="distribuidor">Distribuidor / Mayorista</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="campo-direccion">Dirección</label>
+            <input type="text" id="campo-direccion" placeholder="Calle 123" />
+          </div>
+          <div class="form-group">
+            <label for="campo-localidad">Localidad</label>
+            <input type="text" id="campo-localidad" placeholder="CABA" />
+          </div>
+          <div class="form-group">
+            <label for="campo-provincia">Provincia</label>
+            <input type="text" id="campo-provincia" placeholder="Buenos Aires" />
+          </div>
+          <div class="form-group">
+            <label for="campo-cp">Código Postal</label>
+            <input type="text" id="campo-cp" placeholder="1425" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="campo-notas">Notas</label>
+          <textarea id="campo-notas" rows="3" placeholder="Observaciones sobre el cliente..."></textarea>
+        </div>
+        <div class="form-actions modal-form-actions">
+          <button type="button" class="btn" onclick="cerrarModalCliente()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- Modal detalle de cliente -->
@@ -637,6 +639,21 @@ function renderClientesList() {
     </table>`;
 }
 
+// ── Modal cliente ─────────────────────────────────────────────────────────────
+function abrirModalCliente() {
+  limpiarFormulario();
+  document.getElementById('modal-cliente').classList.add('activo');
+  document.getElementById('campo-nombre').focus();
+}
+function cerrarModalCliente() {
+  document.getElementById('modal-cliente').classList.remove('activo');
+  limpiarFormulario();
+  ocultarError();
+}
+function cerrarModalClienteOverlay(e) {
+  if (e.target === document.getElementById('modal-cliente')) cerrarModalCliente();
+}
+
 // ── Formulario ────────────────────────────────────────────────────────────────
 function bindFormCliente() {
   document.getElementById('form-cliente').addEventListener('submit', e => {
@@ -647,7 +664,7 @@ function bindFormCliente() {
     try {
       if (id) { actualizarCliente(id, campos); }
       else    { agregarCliente(crearCliente(campos)); }
-      limpiarFormulario();
+      cerrarModalCliente();
       renderClientesList();
       renderResumen();
       renderAlertasComerciales();
@@ -673,7 +690,6 @@ function leerFormulario() {
 function abrirEdicion(id) {
   const c = getClientePorId(id);
   if (!c) return;
-  
   document.getElementById('campo-id').value        = c.id;
   document.getElementById('campo-nombre').value    = c.nombre;
   document.getElementById('campo-email').value     = c.email;
@@ -684,22 +700,19 @@ function abrirEdicion(id) {
   document.getElementById('campo-cp').value        = c.codigoPostal;
   document.getElementById('campo-tipo').value      = c.tipo;
   document.getElementById('campo-notas').value     = c.notas;
-  
-  document.getElementById('form-titulo').textContent         = 'Editar cliente';
-  document.getElementById('btn-guardar').textContent         = 'Actualizar cliente';
-  document.getElementById('btn-cancelar').style.display      = 'inline-flex';
-  document.getElementById('card-form-cliente').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('modal-cliente-titulo').textContent = 'Editar cliente';
+  document.getElementById('btn-guardar').textContent          = 'Actualizar cliente';
+  document.getElementById('modal-cliente').classList.add('activo');
   ocultarError();
 }
 
-function cancelarEdicion() { limpiarFormulario(); ocultarError(); }
+function cancelarEdicion() { cerrarModalCliente(); }
 
 function limpiarFormulario() {
   document.getElementById('form-cliente').reset();
-  document.getElementById('campo-id').value              = '';
-  document.getElementById('form-titulo').textContent     = 'Nuevo cliente';
-  document.getElementById('btn-guardar').textContent     = 'Guardar cliente';
-  document.getElementById('btn-cancelar').style.display = 'none';
+  document.getElementById('campo-id').value                   = '';
+  document.getElementById('modal-cliente-titulo').textContent = 'Nuevo cliente';
+  document.getElementById('btn-guardar').textContent          = 'Guardar cliente';
 }
 
 function confirmarEliminar(id, nombre) {
