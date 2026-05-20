@@ -453,6 +453,40 @@ function formatNum(n) { return Number(n).toLocaleString('es-AR', { minimumFracti
 function fmtN(n) { var v = Number(n); return isNaN(v) ? '' : String(Math.round(v * 10000) / 10000); }
 function escapar(str) { return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function handleImport(event) { var f = event.target.files[0]; if (!f) return; importData(f).then(function() { alert('Importado.'); location.reload(); }).catch(function(e) { alert(e.message); }); }
+
+function restaurarSoloProductos(event) {
+  var f = event.target.files[0];
+  event.target.value = '';
+  if (!f) return;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var parsed;
+    try { parsed = JSON.parse(e.target.result); }
+    catch (_) { alert('El archivo no es un JSON válido.'); return; }
+
+    if (!Array.isArray(parsed.productos) || parsed.productos.length === 0) {
+      alert('El archivo no contiene productos.'); return;
+    }
+
+    var cantidad = parsed.productos.length;
+    if (!confirm('Se van a restaurar ' + cantidad + ' productos.\n\nLos insumos, clientes, presupuestos y el resto de tus datos NO se modifican.\n\n¿Continuar?')) return;
+
+    // Fusionar solo productos en el AppData actual
+    window.AppData.productos = parsed.productos;
+
+    // Marcar como datos desde Supabase para que saveData los sincronice
+    _datosDesdeSupabase = true;
+
+    var ok = saveData(window.AppData);
+    if (!ok) { alert('Error al guardar en localStorage.'); return; }
+
+    renderProductosList();
+    alert('✓ ' + cantidad + ' productos restaurados correctamente.');
+  };
+  reader.onerror = function() { alert('Error al leer el archivo.'); };
+  reader.readAsText(f);
+}
 function toggleMenuProducto(event, id) { event.stopPropagation(); var m = document.getElementById('menu-prod-' + id); var open = m.style.display === 'block'; document.querySelectorAll('.menu-dropdown').forEach(function(x) { x.style.display = 'none'; }); m.style.display = open ? 'none' : 'block'; }
 function ocultarMenuProducto(id) { var m = document.getElementById('menu-prod-' + id); if (m) m.style.display = 'none'; }
 document.addEventListener('click', function() { document.querySelectorAll('.menu-dropdown').forEach(function(m) { m.style.display = 'none'; }); });

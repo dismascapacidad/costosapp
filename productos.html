@@ -67,6 +67,10 @@
         </div>
         <button class="btn btn-primary btn-sm" onclick="abrirModalProducto()">+ Nuevo producto</button>
         <button class="btn btn-sm" onclick="abrirModalExportar()">Exportar precios</button>
+        <label class="btn btn-sm" title="Restaura solo los productos de un backup JSON sin tocar insumos ni otros datos">
+          ↑ Restaurar productos
+          <input type="file" accept=".json" style="display:none" onchange="restaurarSoloProductos(event)" />
+        </label>
       </div>
       <div id="tabla-productos-wrapper"></div>
     </div>
