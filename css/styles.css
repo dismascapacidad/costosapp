@@ -1030,7 +1030,7 @@ nav a.active::before {
   overflow-y: auto;
 }
 .modal-overlay-producto.activo {
-  display: flex;
+  display: flex !important;
 }
 .modal-producto-content {
   background: var(--surface);

@@ -137,7 +137,7 @@ function abrirModalDetalle(id) {
 function cerrarModalDetalle() { document.getElementById('modal-detalle-insumo').classList.remove('activo'); }
 function cerrarModalDetalleOverlay(e) { if (e.target === document.getElementById('modal-detalle-insumo')) cerrarModalDetalle(); }
 
-// ── Formulario ──────────────────────────────────────────────────────────────
+// ── Modal ────────────────────────────────────────────────────────────────────
 
 function abrirModalInsumo() {
   limpiarFormulario();
@@ -152,6 +152,8 @@ function cerrarModalInsumo() {
 function cerrarModalInsumoOverlay(e) {
   if (e.target === document.getElementById('modal-insumo')) cerrarModalInsumo();
 }
+
+// ── Formulario ───────────────────────────────────────────────────────────────
 
 function bindFormInsumo() {
   document.getElementById('form-insumo').addEventListener('submit', function(e) {
