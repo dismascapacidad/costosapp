@@ -233,10 +233,13 @@ function _guardarEnSupabaseAsync(data) {
   _saveTimeout = setTimeout(function() {
     _guardandoEnSupabase = true;
 
-    var countData = _contarRegistros(data);
+    // Siempre usar window.AppData al momento de guardar, no el objeto capturado en el cierre
+    // (puede quedar desactualizado si Supabase reemplazó window.AppData mientras esperábamos)
+    var dataActual = window.AppData || data;
+    var countData = _contarRegistros(dataActual);
     console.log('[storage] Sincronizando ' + countData + ' registros a Supabase...');
 
-    guardarDatosEnSupabase(data)
+    guardarDatosEnSupabase(dataActual)
       .then(function(ok) {
         if (ok) {
           console.log('[storage] ✓ Datos sincronizados a Supabase.');

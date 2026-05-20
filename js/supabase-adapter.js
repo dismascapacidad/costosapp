@@ -345,12 +345,25 @@ async function guardarDatosEnSupabase(data) {
       sb.from('insumos').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       sb.from('productos').select('id', { count: 'exact', head: true }).eq('user_id', userId)
     ]);
-    
-    var insumosEnSupabase = conteoSupabase[0].count || 0;
-    var productosEnSupabase = conteoSupabase[1].count || 0;
-    var insumosAGuardar = (data.insumos || []).length;
-    var productosAGuardar = (data.productos || []).length;
-    
+
+    // Si las queries de conteo fallaron, abortar por seguridad (no arriesgar un DELETE)
+    if (conteoSupabase[0].error || conteoSupabase[1].error) {
+      console.error('[supabase-adapter] ⛔ Error al contar registros en Supabase, abortando guardado para proteger datos.',
+        conteoSupabase[0].error || conteoSupabase[1].error);
+      return false;
+    }
+
+    var insumosEnSupabase  = conteoSupabase[0].count != null ? conteoSupabase[0].count : -1;
+    var productosEnSupabase = conteoSupabase[1].count != null ? conteoSupabase[1].count : -1;
+    var insumosAGuardar    = (data.insumos   || []).length;
+    var productosAGuardar  = (data.productos || []).length;
+
+    // Si el conteo devolvió -1 (null/undefined inesperado), abortar
+    if (insumosEnSupabase < 0 || productosEnSupabase < 0) {
+      console.error('[supabase-adapter] ⛔ Conteo de Supabase devolvió null. Abortando guardado.');
+      return false;
+    }
+
     // Si Supabase tiene datos y vamos a guardar vacío → BLOQUEAR
     if (insumosEnSupabase > 0 && insumosAGuardar === 0) {
       console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + insumosEnSupabase + ' insumos, no se permite guardar 0.');
