@@ -308,6 +308,52 @@ function _resaltarDropdown(idx) { _ddCursor = idx; document.querySelectorAll('#i
 function handleInsumoKeydown(e) { var items = document.querySelectorAll('#insumo-dropdown .insumo-dd-item:not(.insumo-dd-empty)'); if (e.key === 'ArrowDown') { e.preventDefault(); _resaltarDropdown(Math.min(_ddCursor + 1, items.length - 1)); } else if (e.key === 'ArrowUp') { e.preventDefault(); _resaltarDropdown(Math.max(_ddCursor - 1, 0)); } else if (e.key === 'Enter') { e.preventDefault(); if (_ddCursor >= 0 && items[_ddCursor]) seleccionarInsumoDropdown(items[_ddCursor].dataset.id, items[_ddCursor].dataset.nom); else if (items.length === 1) seleccionarInsumoDropdown(items[0].dataset.id, items[0].dataset.nom); } }
 function handleAgregarLinea() { ocultarErrorLineas(); var insumoId = document.getElementById('campo-linea-insumo').value; var cantidad = document.getElementById('campo-linea-cantidad').value; try { validarLineaInsumo(insumoId, cantidad); var ex = lineasTemp.find(function(l) { return l.insumoId === insumoId; }); if (ex) ex.cantidad = parseFloat(cantidad); else lineasTemp.push({ insumoId: insumoId, cantidad: parseFloat(cantidad) }); document.getElementById('campo-linea-insumo').value = ''; document.getElementById('campo-linea-insumo-texto').value = ''; document.getElementById('campo-linea-cantidad').value = ''; var dd = document.getElementById('insumo-dropdown'); if (dd) dd.style.display = 'none'; renderLineasTemp(); } catch(err) { mostrarErrorLineas(err.message); } }
 
+// ── Modal insumo rápido ─────────────────────────────────────────────────────
+
+function abrirModalInsumoRapido() {
+  document.getElementById('form-insumo-rapido').reset();
+  document.getElementById('insumo-rapido-error').style.display = 'none';
+  document.getElementById('modal-insumo-rapido').classList.add('activo');
+  setTimeout(function() { document.getElementById('insumo-rapido-nombre').focus(); }, 50);
+}
+
+function cerrarModalInsumoRapido() {
+  document.getElementById('modal-insumo-rapido').classList.remove('activo');
+  document.getElementById('form-insumo-rapido').reset();
+  document.getElementById('insumo-rapido-error').style.display = 'none';
+}
+
+function cerrarModalInsumoRapidoOverlay(e) {
+  if (e.target === document.getElementById('modal-insumo-rapido')) cerrarModalInsumoRapido();
+}
+
+function guardarInsumoRapido() {
+  var nombre    = document.getElementById('insumo-rapido-nombre').value.trim();
+  var categoria = document.getElementById('insumo-rapido-categoria').value.trim();
+  var unidad    = document.getElementById('insumo-rapido-unidad').value;
+  var precio    = document.getElementById('insumo-rapido-precio').value;
+  var cantidad  = document.getElementById('insumo-rapido-cantidad').value;
+  var moneda    = document.getElementById('insumo-rapido-moneda').value;
+
+  var errEl = document.getElementById('insumo-rapido-error');
+  errEl.style.display = 'none';
+
+  try {
+    var nuevo = crearInsumo({
+      nombre: nombre, categoria: categoria, unidad: unidad,
+      precioCompra: precio, cantidadCompra: cantidad, moneda: moneda
+    });
+    agregarInsumo(nuevo);
+    // Refrescar lista interna y auto-seleccionar en la receta
+    poblarDropdownInsumos();
+    seleccionarInsumoDropdown(nuevo.id, nuevo.nombre + ' (' + nuevo.unidad + ')');
+    cerrarModalInsumoRapido();
+  } catch(err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'flex';
+  }
+}
+
 // ── Modal de COSTOS ─────────────────────────────────────────────────────────
 
 function abrirModalCostos(id) {
@@ -490,4 +536,16 @@ function restaurarSoloProductos(event) {
 function toggleMenuProducto(event, id) { event.stopPropagation(); var m = document.getElementById('menu-prod-' + id); var open = m.style.display === 'block'; document.querySelectorAll('.menu-dropdown').forEach(function(x) { x.style.display = 'none'; }); m.style.display = open ? 'none' : 'block'; }
 function ocultarMenuProducto(id) { var m = document.getElementById('menu-prod-' + id); if (m) m.style.display = 'none'; }
 document.addEventListener('click', function() { document.querySelectorAll('.menu-dropdown').forEach(function(m) { m.style.display = 'none'; }); });
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { var m1 = document.getElementById('modal-producto'); if (m1 && m1.classList.contains('activo')) { cerrarModalProducto(); return; } var m2 = document.getElementById('modal-costos'); if (m2 && m2.classList.contains('activo')) { cerrarModalCostos(); return; } var m3 = document.getElementById('modal-exportar'); if (m3 && m3.classList.contains('activo')) cerrarModalExportar(); } });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    // Cerrar en orden inverso de z-index (el más encima primero)
+    var mR = document.getElementById('modal-insumo-rapido');
+    if (mR && mR.classList.contains('activo')) { cerrarModalInsumoRapido(); return; }
+    var m1 = document.getElementById('modal-producto');
+    if (m1 && m1.classList.contains('activo')) { cerrarModalProducto(); return; }
+    var m2 = document.getElementById('modal-costos');
+    if (m2 && m2.classList.contains('activo')) { cerrarModalCostos(); return; }
+    var m3 = document.getElementById('modal-exportar');
+    if (m3 && m3.classList.contains('activo')) cerrarModalExportar();
+  }
+});
