@@ -26,7 +26,7 @@
       <a href="stock.html">Stock</a>
       <a href="produccion.html">Producción</a>
       <a href="importar-ventas.html">Importar ventas</a>
-      <a href="estadisticas.html">Estadísticas</a>
+      <a href="estadisticas.html" class="active">Estadísticas</a>
       <a href="simulador.html">Simulador</a>
     </nav>
     <div class="storage-toolbar">
@@ -40,88 +40,154 @@
   <main class="main-content">
     <div class="page-header">
       <h2>📊 Estadísticas y Análisis</h2>
-      <p>Análisis de rentabilidad, clasificación ABC y métricas clave de tu negocio.</p>
+      <p>Rentabilidad, ventas y métricas clave de tu negocio.</p>
     </div>
 
-    <!-- Panel de resumen ejecutivo -->
-    <div class="stats-summary">
-      <div class="stat-card">
-        <div class="stat-label">Total Productos</div>
-        <div class="stat-value" id="total-productos">0</div>
+    <!-- ── KPIs ───────────────────────────────────────────────────── -->
+    <div class="stats-kpis" id="stats-kpis">
+
+      <div class="kpi-card">
+        <div class="kpi-label">Productos</div>
+        <div class="kpi-valor" id="kpi-total-productos">—</div>
+        <div class="kpi-sub" id="kpi-productos-sub">en catálogo</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Margen Promedio</div>
-        <div class="stat-value" id="margen-promedio">0%</div>
+
+      <div class="kpi-card kpi-accent">
+        <div class="kpi-label">Ingresos Totales</div>
+        <div class="kpi-valor" id="kpi-ingresos-totales">—</div>
+        <div class="kpi-sub" id="kpi-ingresos-sub">de ventas importadas</div>
       </div>
-      <div class="stat-card stat-card-success">
-        <div class="stat-label">Más Rentable</div>
-        <div class="stat-value stat-value-sm" id="producto-top">-</div>
-        <div class="stat-extra" id="producto-top-margen">0%</div>
+
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label">Ganancia Bruta Est.</div>
+        <div class="kpi-valor" id="kpi-ganancia-bruta">—</div>
+        <div class="kpi-sub" id="kpi-ganancia-sub">ingresos × margen</div>
       </div>
-      <div class="stat-card stat-card-warning">
-        <div class="stat-label">Menos Rentable</div>
-        <div class="stat-value stat-value-sm" id="producto-bajo">-</div>
-        <div class="stat-extra" id="producto-bajo-margen">0%</div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Margen Prom. Pond.</div>
+        <div class="kpi-valor" id="kpi-margen-ponderado">—</div>
+        <div class="kpi-sub" id="kpi-margen-sub">ponderado por ingresos</div>
+      </div>
+
+      <div class="kpi-card kpi-highlight">
+        <div class="kpi-label">Top Producto</div>
+        <div class="kpi-valor kpi-valor-sm" id="kpi-top-nombre">—</div>
+        <div class="kpi-sub" id="kpi-top-sub">mayor ingreso</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-alertas-card">
+        <div class="kpi-label">Alertas</div>
+        <div class="kpi-valor" id="kpi-alertas-count">—</div>
+        <div class="kpi-sub" id="kpi-alertas-sub">bajo margen + alto volumen</div>
+      </div>
+
+    </div>
+
+    <!-- ── Tabs de sección ───────────────────────────────────────── -->
+    <div class="seccion-tabs" role="tablist">
+      <button class="seccion-tab active" id="tab-tabla"
+              onclick="mostrarSeccion('tabla')" role="tab">📋 Rentabilidad</button>
+      <button class="seccion-tab" id="tab-cuadrantes"
+              onclick="mostrarSeccion('cuadrantes')" role="tab">🎯 Cuadrantes</button>
+      <button class="seccion-tab" id="tab-ventas"
+              onclick="mostrarSeccion('ventas')" role="tab">📈 Ventas</button>
+      <button class="seccion-tab" id="tab-abc"
+              onclick="mostrarSeccion('abc')" role="tab">📊 ABC Pareto</button>
+    </div>
+
+    <!-- ── Sección: Tabla unificada ──────────────────────────────── -->
+    <div id="seccion-tabla" class="seccion-content">
+      <div class="card">
+        <div class="card-header">
+          <h3>Rentabilidad + Ventas</h3>
+          <div class="card-actions">
+            <button class="btn btn-sm" onclick="ordenarTablaUnificada('ingresos')">Por Ingresos</button>
+            <button class="btn btn-sm" onclick="ordenarTablaUnificada('margen')">Por Margen</button>
+            <button class="btn btn-sm" onclick="ordenarTablaUnificada('gananciaBruta')">Por Ganancia</button>
+            <button class="btn btn-sm" onclick="ordenarTablaUnificada('nombre')">A→Z</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="tabla-unificada-wrapper">
+            <p class="tabla-vacia">Cargando datos…</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Gráfico de barras -->
-    <div class="card">
-      <div class="card-header">
-        <h3>Top 10 Productos por Margen</h3>
-      </div>
-      <div class="card-body">
-        <div class="chart-container">
-          <canvas id="chart-top-productos"></canvas>
+    <!-- ── Sección: Cuadrantes ───────────────────────────────────── -->
+    <div id="seccion-cuadrantes" class="seccion-content" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <h3>🎯 Matriz Margen vs Volumen de Ventas</h3>
+        </div>
+        <div class="card-body">
+          <div class="cuadrantes-leyenda">
+            <div class="cuadrante-item cuadrante-estrella">
+              ⭐ <strong>Estrellas</strong>
+              <small>Alto margen + alto volumen. Proteger.</small>
+            </div>
+            <div class="cuadrante-item cuadrante-oportunidad">
+              🎯 <strong>Oportunidades</strong>
+              <small>Alto margen + bajo volumen. Promocionar.</small>
+            </div>
+            <div class="cuadrante-item cuadrante-riesgo">
+              ⚠️ <strong>Riesgo</strong>
+              <small>Bajo margen + alto volumen. Subir precio.</small>
+            </div>
+            <div class="cuadrante-item cuadrante-revision">
+              ❌ <strong>Revisar</strong>
+              <small>Bajo margen + bajo volumen. Evaluar.</small>
+            </div>
+          </div>
+          <div class="chart-container chart-cuadrantes" id="chart-cuadrantes-wrap">
+            <canvas id="chart-cuadrantes"></canvas>
+          </div>
+          <p class="cuadrantes-nota" id="cuadrantes-nota"></p>
         </div>
       </div>
     </div>
 
-    <!-- Tabla detallada -->
-    <div class="card" style="margin-top:1.5rem;">
-      <div class="card-header">
-        <h3>Detalle de Rentabilidad</h3>
-        <div class="card-actions">
-          <button class="btn btn-sm" onclick="ordenarTabla('nombre')">Por Nombre</button>
-          <button class="btn btn-sm" onclick="ordenarTabla('margen')">Por Margen</button>
-          <button class="btn btn-sm" onclick="ordenarTabla('ganancia')">Por Ganancia</button>
+    <!-- ── Sección: Ventas ───────────────────────────────────────── -->
+    <div id="seccion-ventas" class="seccion-content" style="display:none">
+      <div id="ventas-sin-datos" style="display:none">
+        <div class="card">
+          <div class="card-body">
+            <p class="tabla-vacia">
+              No hay datos de ventas importados.
+              <a href="importar-ventas.html">Importar ventas →</a>
+            </p>
+          </div>
         </div>
       </div>
-      <div class="card-body">
-        <div id="tabla-rentabilidad-wrapper">
-          <p class="tabla-vacia">Cargando datos...</p>
+      <div id="ventas-con-datos">
+        <div class="ventas-charts-grid">
+          <div class="card">
+            <div class="card-header"><h3>Ingresos por Mes</h3></div>
+            <div class="card-body">
+              <div class="chart-container chart-ventas-mes">
+                <canvas id="chart-ingresos-mes"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Métodos de Pago</h3></div>
+            <div class="card-body">
+              <div class="chart-container chart-metodos">
+                <canvas id="chart-metodos-pago"></canvas>
+              </div>
+              <div id="metodos-tabla"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Análisis ABC -->
-    <div class="card" style="margin-top:1.5rem;">
-      <div class="card-header">
-        <h3>📈 Análisis ABC (Pareto)</h3>
-      </div>
-      <div class="card-body">
-        <div id="analisis-abc-container">
-          <p class="tabla-vacia">Cargando análisis...</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Leyenda -->
-    <div class="stats-legend">
-      <h4>Referencia de Márgenes</h4>
-      <div class="legend-items">
-        <div class="legend-item">
-          <span class="legend-color legend-green"></span>
-          <span>Excelente (≥50%)</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color legend-yellow"></span>
-          <span>Aceptable (40-50%)</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color legend-red"></span>
-          <span>Bajo (&lt;40%)</span>
-        </div>
+    <!-- ── Sección: ABC Pareto ───────────────────────────────────── -->
+    <div id="seccion-abc" class="seccion-content" style="display:none">
+      <div id="analisis-abc-container">
+        <p class="tabla-vacia">Cargando análisis…</p>
       </div>
     </div>
 
@@ -150,9 +216,9 @@
 <script src="js/mobile.js"></script>
 <script>
 function handleImport(event) {
-  const file = event.target.files[0]; if (!file) return;
-  importData(file).then(() => { alert('Importado.'); location.reload(); })
-    .catch(err => alert(err.message));
+  var file = event.target.files[0]; if (!file) return;
+  importData(file).then(function() { alert('Importado.'); location.reload(); })
+    .catch(function(err) { alert(err.message); });
 }
 </script>
 </body>

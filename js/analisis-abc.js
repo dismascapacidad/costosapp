@@ -176,7 +176,7 @@ function obtenerRecomendacionesABC(analisis) {
     
     if (producto) {
       try {
-        var resumen = calcularResumen(producto, window.AppData.insumos);
+        var resumen = calcularResumen(producto, window.AppData.insumos, window.AppData.productos);
         
         // Alerta: Clase A con margen bajo
         if (resumen.margenConsumidor < 40) {

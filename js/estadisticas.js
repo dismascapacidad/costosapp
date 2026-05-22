@@ -1,563 +1,350 @@
 /**
- * estadisticas.js
- * Módulo de análisis de rentabilidad de productos
- * Calcula métricas, genera tablas y coordina visualizaciones
+ * estadisticas.js — v2
+ * Módulo unificado: rentabilidad + ventas + cuadrantes + ABC
  */
 
-// Variable global para tracking del orden de la tabla
-var _ordenActual = { campo: 'margen', direccion: 'desc' };
+var _ordenTabla  = { campo: 'ingresos', dir: 'desc' };
+var _datosCache  = null;
+var _chartsInit  = {};          // qué secciones ya renderizaron su chart
+var _seccionActiva = 'tabla';
 
-/**
- * Inicializa el módulo de estadísticas
- * Llamado desde app.js cuando la página carga
- */
+// ── Init ──────────────────────────────────────────────────────────────────────
+
 function initEstadisticas() {
-  console.log('[estadisticas] Inicializando módulo...');
-  
-  if (!window.AppData || !window.AppData.productos || !window.AppData.insumos) {
-    console.error('[estadisticas] AppData no disponible');
-    return;
-  }
-
+  if (!window.AppData) return;
   cargarEstadisticas();
 }
 
-/**
- * Carga y renderiza todas las estadísticas
- */
 function cargarEstadisticas() {
-  var analisis = calcularAnalisisRentabilidad();
-  
-  if (analisis.productos.length === 0) {
-    mostrarMensajeSinProductos();
-    return;
-  }
-
-  renderResumenEjecutivo(analisis);
-  renderTablaRentabilidad(analisis.productos);
-  renderGraficoTopProductos(analisis.productos);
-  
-  // Cargar análisis ABC después de un pequeño delay
-  // para asegurar que AppData.ventas esté completamente cargado
+  _datosCache = calcularDatosUnificados();
+  renderKPIs(_datosCache);
+  renderTablaUnificada(_datosCache);
+  // ABC se carga al mostrar su sección, pero iniciamos cálculo ya
   setTimeout(function() {
-    cargarAnalisisABC();
-  }, 100);
-}
-
-/**
- * Carga y renderiza el análisis ABC de ventas
- */
-function cargarAnalisisABC() {
-  var container = document.getElementById('analisis-abc-container');
-  if (!container) return;
-  
-  var analisisABC = calcularAnalisisABC();
-  
-  if (!analisisABC.disponible) {
-    // No hay ventas - mostrar mensaje
-    container.innerHTML = '<p class="tabla-vacia">No hay datos de ventas. <a href="importar-ventas.html">Importá tus ventas</a> para ver el análisis ABC.</p>';
-    return;
-  }
-  
-  // Hay ventas - renderizar análisis ABC completo
-  container.innerHTML = _generarHTMLAnalisisABC(analisisABC);
-  
-  // Bindear eventos de filtro
-  var filtros = container.querySelectorAll('.filtro-abc');
-  filtros.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var clase = this.dataset.clase;
-      filtrarClaseABC(clase);
-      // Actualizar estado activo
-      filtros.forEach(function(b) { b.classList.remove('active'); });
-      this.classList.add('active');
-    });
-  });
-}
-
-/**
- * Genera el HTML completo del análisis ABC
- */
-function _generarHTMLAnalisisABC(analisis) {
-  var html = '';
-  
-  // Resumen por clases
-  html += '<div class="abc-resumen">';
-  html += _generarCardClase('A', analisis.statsA, 'Productos estrella', 'abc-clase-a');
-  html += _generarCardClase('B', analisis.statsB, 'Productos regulares', 'abc-clase-b');
-  html += _generarCardClase('C', analisis.statsC, 'Productos de bajo impacto', 'abc-clase-c');
-  html += '</div>';
-  
-  // Filtros
-  html += '<div class="abc-filtros" style="margin-bottom:1rem;">';
-  html += '<button class="btn btn-sm filtro-abc active" data-clase="todos">Todos</button> ';
-  html += '<button class="btn btn-sm filtro-abc" data-clase="A">Clase A</button> ';
-  html += '<button class="btn btn-sm filtro-abc" data-clase="B">Clase B</button> ';
-  html += '<button class="btn btn-sm filtro-abc" data-clase="C">Clase C</button>';
-  html += '</div>';
-  
-  // Tabla
-  html += '<div id="tabla-abc-wrapper">';
-  html += _generarTablaABC(analisis.productos);
-  html += '</div>';
-  
-  return html;
-}
-
-/**
- * Genera una card de resumen para una clase ABC
- */
-function _generarCardClase(letra, stats, descripcion, clase) {
-  return '<div class="abc-clase ' + clase + '">' +
-    '<div class="abc-clase-header">' +
-      '<span class="abc-clase-titulo">Clase ' + letra + '</span>' +
-    '</div>' +
-    '<p class="abc-clase-descripcion">' + descripcion + '</p>' +
-    '<div class="abc-clase-stats">' +
-      '<div class="abc-stat">' +
-        '<span class="abc-stat-label">Productos</span>' +
-        '<span class="abc-stat-valor">' + stats.cantidad + '</span>' +
-      '</div>' +
-      '<div class="abc-stat">' +
-        '<span class="abc-stat-label">Ingresos</span>' +
-        '<span class="abc-stat-valor">ARS ' + formatNum(stats.ingresoTotal) + '</span>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-/**
- * Genera la tabla HTML de productos ABC
- */
-function _generarTablaABC(productos) {
-  if (!productos || productos.length === 0) {
-    return '<p class="tabla-vacia">No hay datos.</p>';
-  }
-  
-  var filas = productos.map(function(p) {
-    var claseColor = 'abc-badge-' + p.clase.toLowerCase();
-    return '<tr>' +
-      '<td><span class="abc-badge ' + claseColor + '">Clase ' + p.clase + '</span></td>' +
-      '<td><span class="sku-tag">' + escapar(p.productoSKU || '-') + '</span></td>' +
-      '<td>' + escapar(p.productoNombre) + '</td>' +
-      '<td class="td-num">' + p.unidadesVendidas + '</td>' +
-      '<td class="td-num">ARS ' + formatNum(p.ingresoTotal) + '</td>' +
-      '<td class="td-num">' + p.porcentajeIngreso.toFixed(1) + '%</td>' +
-      '<td class="td-num">' + p.porcentajeAcumulado.toFixed(1) + '%</td>' +
-    '</tr>';
-  }).join('');
-  
-  return '<table class="tabla tabla-abc">' +
-    '<thead><tr>' +
-      '<th>Clase</th>' +
-      '<th>SKU</th>' +
-      '<th>Producto</th>' +
-      '<th class="td-num">Unidades</th>' +
-      '<th class="td-num">Ingresos</th>' +
-      '<th class="td-num">% Ingr.</th>' +
-      '<th class="td-num">% Acum.</th>' +
-    '</tr></thead>' +
-    '<tbody>' + filas + '</tbody>' +
-  '</table>';
-}
-
-/**
- * Variable global para tracking del filtro ABC
- */
-var _filtroClaseActual = 'todos';
-
-/**
- * Filtra la tabla ABC por clase
- */
-function filtrarClaseABC(clase) {
-  _filtroClaseActual = clase;
-  
-  var analisisABC = calcularAnalisisABC();
-  if (!analisisABC.disponible) return;
-  
-  var productos = analisisABC.productos;
-  
-  // Filtrar según clase seleccionada
-  var productosFiltrados = clase === 'todos' 
-    ? productos 
-    : productos.filter(function(p) { return p.clase === clase; });
-  
-  var wrapper = document.getElementById('tabla-abc-wrapper');
-  if (wrapper) {
-    wrapper.innerHTML = _generarTablaABC(productosFiltrados);
-  }
-}
-
-/**
- * Renderiza el gráfico de Pareto ABC
- */
-var _chartABC = null; // Variable global para el gráfico ABC
-
-function renderGraficoABC(analisis) {
-  var ctx = document.getElementById('chart-abc-pareto');
-  if (!ctx) return;
-  
-  // Destruir gráfico anterior si existe
-  if (_chartABC) {
-    _chartABC.destroy();
-    _chartABC = null;
-  }
-  
-  // Tomar máximo 20 productos para el gráfico
-  var productos = analisis.productos.slice(0, 20);
-  
-  var labels = productos.map(function(p) {
-    return p.productoSKU || p.productoNombre.substring(0, 15);
-  });
-  
-  var ingresos = productos.map(function(p) { return p.ingresoTotal; });
-  var porcentajesAcum = productos.map(function(p) { return p.porcentajeAcumulado; });
-  
-  // Colores según clase
-  var coloresBarras = productos.map(function(p) {
-    if (p.clase === 'A') return 'rgba(34, 197, 94, 0.8)';
-    if (p.clase === 'B') return 'rgba(234, 179, 8, 0.8)';
-    return 'rgba(239, 68, 68, 0.8)';
-  });
-  
-  _chartABC = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Ingresos (ARS)',
-          data: ingresos,
-          backgroundColor: coloresBarras,
-          borderColor: coloresBarras.map(function(c) { return c.replace('0.8', '1'); }),
-          borderWidth: 1,
-          yAxisID: 'y'
-        },
-        {
-          label: '% Acumulado',
-          data: porcentajesAcum,
-          type: 'line',
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          borderWidth: 2,
-          fill: false,
-          yAxisID: 'y1',
-          tension: 0.4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color: '#e8eaf0', font: { size: 12 } }
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              var label = context.dataset.label || '';
-              if (context.parsed.y !== null) {
-                if (context.datasetIndex === 0) {
-                  label += ': ARS ' + formatNum(context.parsed.y);
-                } else {
-                  label += ': ' + context.parsed.y.toFixed(1) + '%';
-                }
-              }
-              return label;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#8b90a0', maxRotation: 45, minRotation: 45 },
-          grid: { color: '#2a2e38' }
-        },
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          ticks: {
-            color: '#8b90a0',
-            callback: function(value) { return 'ARS ' + formatNum(value); }
-          },
-          grid: { color: '#2a2e38' }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          min: 0,
-          max: 100,
-          ticks: {
-            color: '#f59e0b',
-            callback: function(value) { return value + '%'; }
-          },
-          grid: { drawOnChartArea: false }
-        }
-      }
+    var container = document.getElementById('analisis-abc-container');
+    if (container) {
+      try { renderAnalisisABC(); } catch(e) { console.warn('[estadisticas] ABC:', e); }
     }
-  });
+  }, 80);
 }
 
+// ── Cálculo central ───────────────────────────────────────────────────────────
 
-/**
- * Calcula el análisis completo de rentabilidad para todos los productos
- * @returns {Object} Objeto con métricas y array de productos analizados
- */
-function calcularAnalisisRentabilidad() {
-  var productos = window.AppData.productos;
-  var insumos = window.AppData.insumos;
-  var productosConRentabilidad = [];
+function calcularDatosUnificados() {
+  var productos = window.AppData.productos || [];
+  var insumos   = window.AppData.insumos   || [];
+  var ventas    = window.AppData.ventas    || [];
 
-  // Calcular rentabilidad de cada producto
+  // — Ventas por productoId —
+  var vMap = {};
+  ventas.forEach(function(v) {
+    if (!v.productoId) return;
+    if (!vMap[v.productoId]) {
+      vMap[v.productoId] = { unidades: 0, ingresos: 0, transacciones: 0 };
+    }
+    vMap[v.productoId].unidades      += (v.cantidad || 0);
+    vMap[v.productoId].ingresos      += (v.total    || 0);
+    vMap[v.productoId].transacciones += 1;
+  });
+
+  // — Clasificación ABC —
+  var abcMap = {};
+  if (ventas.length > 0) {
+    try {
+      var abc = calcularAnalisisABC();
+      if (abc.disponible) {
+        abc.productos.forEach(function(p) { abcMap[p.productoId] = p.clase; });
+      }
+    } catch(e) {}
+  }
+
+  // — Datos por producto —
+  var items = [];
   productos.forEach(function(p) {
     try {
-      var resumen = calcularResumen(p, insumos);
-      
-      productosConRentabilidad.push({
-        id: p.id,
-        nombre: p.nombre,
-        sku: p.sku || '-',
-        categoria: p.categoria || 'Sin categoría',
-        costoTotal: resumen.costoTotal,
-        precioFinal: resumen.precioFinal,
-        margenPorcentaje: resumen.margenConsumidor,
-        ganancia: resumen.ganancia,
-        precioDistribuidor: resumen.precioDistribuidor,
-        margenDistribuidor: resumen.margenDistribuidor
+      // FIX: pasar productos como tercer argumento para resolver sub-productos
+      var r  = calcularResumen(p, insumos, productos);
+      var vd = vMap[p.id] || { unidades: 0, ingresos: 0, transacciones: 0 };
+      // Ganancia bruta estimada = ingresos × margen%
+      var gBruta = vd.ingresos > 0 ? vd.ingresos * (r.margenConsumidor / 100) : 0;
+
+      items.push({
+        id:            p.id,
+        nombre:        p.nombre,
+        sku:           p.sku || '—',
+        categoria:     p.categoria || 'Sin categoría',
+        costo:         r.costoTotal,
+        precio:        r.precioFinal,
+        margen:        r.margenConsumidor,
+        gananciaUnit:  r.ganancia,
+        unidades:      vd.unidades,
+        ingresos:      vd.ingresos,
+        transacciones: vd.transacciones,
+        gananciaBruta: gBruta,
+        claseABC:      abcMap[p.id] || null,
+        tieneVentas:   vd.ingresos > 0
       });
-    } catch (err) {
-      console.warn('[estadisticas] Error calculando producto:', p.nombre, err);
+    } catch(e) {
+      console.warn('[estadisticas] Error en producto:', p.nombre, e.message);
     }
   });
 
-  // Calcular métricas globales
-  var totalProductos = productosConRentabilidad.length;
-  var margenPromedio = 0;
-  
-  if (totalProductos > 0) {
-    var sumaMargen = productosConRentabilidad.reduce(function(sum, p) {
-      return sum + p.margenPorcentaje;
-    }, 0);
-    margenPromedio = sumaMargen / totalProductos;
+  // — KPIs globales —
+  var totalIngresos = ventas.reduce(function(s, v) { return s + (v.total || 0); }, 0);
+  var totalGanBruta = items.reduce(function(s, p)  { return s + p.gananciaBruta; }, 0);
+
+  // Margen ponderado por ingresos (si hay ventas); si no, promedio simple
+  var conVentas = items.filter(function(p) { return p.ingresos > 0; });
+  var margenPonderado = 0;
+  if (conVentas.length > 0) {
+    var sumIng = conVentas.reduce(function(s, p) { return s + p.ingresos; }, 0);
+    margenPonderado = sumIng > 0
+      ? conVentas.reduce(function(s, p) { return s + p.ingresos * p.margen; }, 0) / sumIng
+      : 0;
+  } else if (items.length > 0) {
+    margenPonderado = items.reduce(function(s, p) { return s + p.margen; }, 0) / items.length;
   }
 
-  // Ordenar por margen para encontrar extremos
-  var ordenados = productosConRentabilidad.slice().sort(function(a, b) {
-    return b.margenPorcentaje - a.margenPorcentaje;
+  // Top producto por ingresos
+  var topPorIngreso = conVentas.length > 0
+    ? conVentas.slice().sort(function(a, b) { return b.ingresos - a.ingresos; })[0]
+    : null;
+
+  // Alertas: clase A o B con margen < 40%
+  var alertas = items.filter(function(p) {
+    return p.tieneVentas && p.margen < 40 && (p.claseABC === 'A' || p.claseABC === 'B');
+  });
+
+  // — Ventas por mes (últimas 18 meses) —
+  var mesesMap = {};
+  ventas.forEach(function(v) {
+    if (!v.fecha) return;
+    var mes = String(v.fecha).substring(0, 7); // "YYYY-MM"
+    mesesMap[mes] = (mesesMap[mes] || 0) + (v.total || 0);
+  });
+  var meses = Object.keys(mesesMap).sort();
+  if (meses.length > 18) meses = meses.slice(meses.length - 18);
+
+  // — Métodos de pago —
+  var pagosMap = {};
+  ventas.forEach(function(v) {
+    var m = (v.metodoPago || '').trim() || 'No especificado';
+    pagosMap[m] = (pagosMap[m] || 0) + (v.total || 0);
   });
 
   return {
-    totalProductos: totalProductos,
-    margenPromedio: margenPromedio,
-    productoMasRentable: ordenados[0] || null,
-    productoMenosRentable: ordenados[ordenados.length - 1] || null,
-    productos: productosConRentabilidad
+    items:               items,
+    totalProductos:      items.length,
+    totalIngresos:       totalIngresos,
+    totalGanBruta:       totalGanBruta,
+    margenPonderado:     margenPonderado,
+    topPorIngreso:       topPorIngreso,
+    alertas:             alertas,
+    hayVentas:           ventas.length > 0,
+    meses:               meses,
+    mesesMap:            mesesMap,
+    pagosMap:            pagosMap,
+    productosSinVentas:  items.filter(function(p) { return !p.tieneVentas; }).length
   };
 }
 
-/**
- * Renderiza el panel de resumen ejecutivo
- * @param {Object} analisis - Datos del análisis de rentabilidad
- */
-function renderResumenEjecutivo(analisis) {
-  document.getElementById('total-productos').textContent = analisis.totalProductos;
-  document.getElementById('margen-promedio').textContent = formatNum(analisis.margenPromedio) + '%';
-  
-  if (analisis.productoMasRentable) {
-    document.getElementById('producto-top').textContent = analisis.productoMasRentable.nombre;
-    document.getElementById('producto-top-margen').textContent = formatNum(analisis.productoMasRentable.margenPorcentaje) + '%';
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+
+function renderKPIs(d) {
+  _t('kpi-total-productos', d.totalProductos);
+  _t('kpi-productos-sub',   d.totalProductos + ' en catálogo');
+
+  if (d.hayVentas) {
+    _t('kpi-ingresos-totales', 'ARS ' + fmt(d.totalIngresos));
+    _t('kpi-ingresos-sub',     'de ventas importadas');
+    _t('kpi-ganancia-bruta',   'ARS ' + fmt(d.totalGanBruta));
+    _t('kpi-ganancia-sub',     'estimada (ingresos × margen)');
+  } else {
+    _t('kpi-ingresos-totales', '—');
+    _t('kpi-ingresos-sub',     'importá ventas para ver este dato');
+    _t('kpi-ganancia-bruta',   '—');
+    _t('kpi-ganancia-sub',     '—');
   }
-  
-  if (analisis.productoMenosRentable) {
-    document.getElementById('producto-bajo').textContent = analisis.productoMenosRentable.nombre;
-    document.getElementById('producto-bajo-margen').textContent = formatNum(analisis.productoMenosRentable.margenPorcentaje) + '%';
+
+  _t('kpi-margen-ponderado', fmtN(d.margenPonderado) + '%');
+  _t('kpi-margen-sub', d.hayVentas ? 'ponderado por ingresos' : 'promedio simple del catálogo');
+
+  if (d.topPorIngreso) {
+    _t('kpi-top-nombre', d.topPorIngreso.nombre);
+    _t('kpi-top-sub',    'ARS ' + fmt(d.topPorIngreso.ingresos) + ' en ventas');
+  } else {
+    _t('kpi-top-nombre', '—');
+    _t('kpi-top-sub',    'sin datos de ventas');
+  }
+
+  var alertCard = document.getElementById('kpi-alertas-card');
+  if (d.alertas.length > 0) {
+    _t('kpi-alertas-count', d.alertas.length);
+    _t('kpi-alertas-sub',
+       d.alertas.length + ' producto' + (d.alertas.length !== 1 ? 's' : '') +
+       ' clase A/B con margen bajo');
+    if (alertCard) alertCard.classList.add('kpi-danger');
+  } else {
+    _t('kpi-alertas-count', '0');
+    _t('kpi-alertas-sub',   'sin alertas críticas ✓');
+    if (alertCard) alertCard.classList.remove('kpi-danger');
   }
 }
 
-/**
- * Renderiza la tabla detallada de rentabilidad
- * @param {Array} productos - Array de productos con datos de rentabilidad
- */
-function renderTablaRentabilidad(productos) {
-  var wrapper = document.getElementById('tabla-rentabilidad-wrapper');
-  
-  if (productos.length === 0) {
-    wrapper.innerHTML = '<p class="tabla-vacia">No hay productos con datos de rentabilidad.</p>';
+// ── Tabla unificada ───────────────────────────────────────────────────────────
+
+function renderTablaUnificada(d) {
+  var wrapper = document.getElementById('tabla-unificada-wrapper');
+  if (!wrapper) return;
+
+  var items = _sortItems(d.items, _ordenTabla.campo, _ordenTabla.dir);
+
+  if (items.length === 0) {
+    wrapper.innerHTML = '<p class="tabla-vacia">No hay productos. <a href="productos.html">Crear productos →</a></p>';
     return;
   }
 
-  // Ordenar productos según criterio actual
-  var productosOrdenados = ordenarProductos(productos, _ordenActual.campo, _ordenActual.direccion);
-
-  var table = document.createElement('table');
-  table.className = 'tabla tabla-rentabilidad';
-  table.innerHTML = 
+  var html = '<table class="tabla tabla-unificada">' +
     '<thead><tr>' +
     '<th class="col-sku">SKU</th>' +
-    '<th class="col-producto">Producto</th>' +
-    '<th class="col-categoria">Categoría</th>' +
-    '<th class="td-num col-costo">Costo</th>' +
-    '<th class="td-num col-precio">Precio</th>' +
-    '<th class="td-num col-ganancia">Ganancia</th>' +
-    '<th class="td-num col-margen">Margen %</th>' +
-    '<th class="td-num col-indicador">Indicador</th>' +
-    '</tr></thead>';
+    '<th class="col-nombre">Producto</th>' +
+    '<th class="col-abc">ABC</th>' +
+    '<th class="col-margen td-num">Margen</th>' +
+    '<th class="col-costo td-num col-hide-mobile">Costo</th>' +
+    '<th class="col-precio td-num col-hide-mobile">Precio</th>' +
+    '<th class="col-ganunit td-num col-hide-mobile">Gan./u</th>' +
+    '<th class="col-unidades td-num">Uds</th>' +
+    '<th class="col-ingresos td-num">Ingresos</th>' +
+    '<th class="col-ganbruta td-num col-hide-mobile">Gan.Bruta</th>' +
+    '</tr></thead><tbody>';
 
-  var tbody = document.createElement('tbody');
+  items.forEach(function(p) {
+    var abcBadge = p.claseABC
+      ? '<span class="abc-badge abc-badge-' + p.claseABC.toLowerCase() + '">' + p.claseABC + '</span>'
+      : '<span class="abc-sin">—</span>';
 
-  productosOrdenados.forEach(function(p) {
-    var tr = document.createElement('tr');
-    
-    // Determinar clase de indicador según margen
-    var indicadorClass = getClaseMargen(p.margenPorcentaje);
-    var indicadorTexto = getTextoMargen(p.margenPorcentaje);
+    var mClass = p.margen >= 50 ? 'margen-excelente'
+               : p.margen >= 40 ? 'margen-aceptable' : 'margen-bajo';
 
-    tr.innerHTML = 
-      '<td class="col-sku"><span class="sku-tag">' + escapar(p.sku) + '</span></td>' +
-      '<td class="col-producto"><strong>' + escapar(p.nombre) + '</strong></td>' +
-      '<td class="col-categoria">' + escapar(p.categoria) + '</td>' +
-      '<td class="td-num col-costo">ARS ' + formatNum(p.costoTotal) + '</td>' +
-      '<td class="td-num col-precio">ARS ' + formatNum(p.precioFinal) + '</td>' +
-      '<td class="td-num col-ganancia">ARS ' + formatNum(p.ganancia) + '</td>' +
-      '<td class="td-num col-margen"><strong>' + formatNum(p.margenPorcentaje) + '%</strong></td>' +
-      '<td class="td-num col-indicador"><span class="badge-margen ' + indicadorClass + '">' + indicadorTexto + '</span></td>';
+    var vacio = '<span class="celda-sin-datos">—</span>';
 
-    tbody.appendChild(tr);
+    html += '<tr>' +
+      '<td class="col-sku"><span class="sku-tag">' + esc(p.sku) + '</span></td>' +
+      '<td class="col-nombre">' +
+        '<span class="prod-nombre">' + esc(p.nombre) + '</span>' +
+        '<span class="prod-cat col-hide-mobile">' + esc(p.categoria) + '</span>' +
+      '</td>' +
+      '<td class="col-abc td-center">' + abcBadge + '</td>' +
+      '<td class="col-margen td-num"><span class="badge-margen ' + mClass + '">' + fmtN(p.margen) + '%</span></td>' +
+      '<td class="col-costo  td-num col-hide-mobile">ARS ' + fmtN(p.costo) + '</td>' +
+      '<td class="col-precio td-num col-hide-mobile">ARS ' + fmtN(p.precio) + '</td>' +
+      '<td class="col-ganunit td-num col-hide-mobile">ARS ' + fmtN(p.gananciaUnit) + '</td>' +
+      '<td class="col-unidades td-num">' + (p.tieneVentas ? p.unidades : vacio) + '</td>' +
+      '<td class="col-ingresos td-num">' + (p.tieneVentas ? 'ARS ' + fmt(p.ingresos) : vacio) + '</td>' +
+      '<td class="col-ganbruta td-num col-hide-mobile">' + (p.tieneVentas ? 'ARS ' + fmt(p.gananciaBruta) : vacio) + '</td>' +
+      '</tr>';
   });
 
-  table.appendChild(tbody);
-  wrapper.innerHTML = '';
-  wrapper.appendChild(table);
+  html += '</tbody></table>';
+  wrapper.innerHTML = html;
 }
 
-/**
- * Ordena productos según campo y dirección especificados
- * @param {Array} productos - Array de productos
- * @param {string} campo - Campo por el que ordenar (nombre|margen|ganancia)
- * @param {string} direccion - Dirección del orden (asc|desc)
- * @returns {Array} Productos ordenados
- */
-function ordenarProductos(productos, campo, direccion) {
-  var copia = productos.slice();
-  
-  copia.sort(function(a, b) {
-    var valorA, valorB;
-    
-    switch(campo) {
-      case 'nombre':
-        valorA = a.nombre.toLowerCase();
-        valorB = b.nombre.toLowerCase();
-        return direccion === 'asc' 
-          ? valorA.localeCompare(valorB, 'es')
-          : valorB.localeCompare(valorA, 'es');
-      
-      case 'margen':
-        valorA = a.margenPorcentaje;
-        valorB = b.margenPorcentaje;
-        break;
-      
-      case 'ganancia':
-        valorA = a.ganancia;
-        valorB = b.ganancia;
-        break;
-      
-      default:
-        return 0;
+function _sortItems(items, campo, dir) {
+  return items.slice().sort(function(a, b) {
+    if (campo === 'nombre') {
+      return dir === 'asc'
+        ? a.nombre.localeCompare(b.nombre, 'es')
+        : b.nombre.localeCompare(a.nombre, 'es');
     }
-    
-    return direccion === 'asc' ? valorA - valorB : valorB - valorA;
+    var vA = a[campo] || 0;
+    var vB = b[campo] || 0;
+    return dir === 'asc' ? vA - vB : vB - vA;
   });
-  
-  return copia;
 }
 
-/**
- * Maneja el ordenamiento de la tabla desde los botones
- * @param {string} campo - Campo por el que ordenar
- */
-function ordenarTabla(campo) {
-  // Si se clickea el mismo campo, invertir dirección
-  if (_ordenActual.campo === campo) {
-    _ordenActual.direccion = _ordenActual.direccion === 'asc' ? 'desc' : 'asc';
+function ordenarTablaUnificada(campo) {
+  if (_ordenTabla.campo === campo) {
+    _ordenTabla.dir = _ordenTabla.dir === 'asc' ? 'desc' : 'asc';
   } else {
-    _ordenActual.campo = campo;
-    _ordenActual.direccion = campo === 'nombre' ? 'asc' : 'desc'; // nombres ascendente, números descendente
+    _ordenTabla.campo = campo;
+    _ordenTabla.dir   = campo === 'nombre' ? 'asc' : 'desc';
   }
-  
-  var analisis = calcularAnalisisRentabilidad();
-  renderTablaRentabilidad(analisis.productos);
+  if (_datosCache) renderTablaUnificada(_datosCache);
 }
 
-/**
- * Determina la clase CSS según el margen
- * @param {number} margen - Porcentaje de margen
- * @returns {string} Clase CSS
- */
-function getClaseMargen(margen) {
-  if (margen >= 50) return 'margen-excelente';
-  if (margen >= 40) return 'margen-aceptable';
-  return 'margen-bajo';
+// ── Navegación de secciones ───────────────────────────────────────────────────
+
+var _SECCIONES = ['tabla', 'cuadrantes', 'ventas', 'abc'];
+
+function mostrarSeccion(sec) {
+  _SECCIONES.forEach(function(s) {
+    var el  = document.getElementById('seccion-' + s);
+    var tab = document.getElementById('tab-'     + s);
+    if (el)  el.style.display = 'none';
+    if (tab) tab.classList.remove('active');
+  });
+
+  var el  = document.getElementById('seccion-' + sec);
+  var tab = document.getElementById('tab-'     + sec);
+  if (el)  el.style.display = 'block';
+  if (tab) tab.classList.add('active');
+  _seccionActiva = sec;
+
+  // Renderizar charts solo la primera vez que se activa la sección
+  if (!_chartsInit[sec] && _datosCache) {
+    _chartsInit[sec] = true;
+    if (sec === 'cuadrantes') {
+      renderGraficoCuadrantes(_datosCache);
+    } else if (sec === 'ventas') {
+      _renderSeccionVentas(_datosCache);
+    }
+    // 'tabla' no tiene chart; 'abc' ya se cargó en init
+  }
 }
 
-/**
- * Determina el texto del badge según el margen
- * @param {number} margen - Porcentaje de margen
- * @returns {string} Texto descriptivo
- */
-function getTextoMargen(margen) {
-  if (margen >= 50) return 'Excelente';
-  if (margen >= 40) return 'Aceptable';
-  return 'Bajo';
+function _renderSeccionVentas(d) {
+  var sinDatos  = document.getElementById('ventas-sin-datos');
+  var conDatos  = document.getElementById('ventas-con-datos');
+  if (!d.hayVentas) {
+    if (sinDatos) sinDatos.style.display = 'block';
+    if (conDatos) conDatos.style.display = 'none';
+  } else {
+    if (sinDatos) sinDatos.style.display = 'none';
+    if (conDatos) conDatos.style.display = 'block';
+    renderGraficoIngresosMes(d.meses, d.mesesMap);
+    renderGraficoMetodosPago(d.pagosMap);
+  }
 }
 
-/**
- * Muestra mensaje cuando no hay productos
- */
-function mostrarMensajeSinProductos() {
-  document.getElementById('total-productos').textContent = '0';
-  document.getElementById('margen-promedio').textContent = '-';
-  document.getElementById('producto-top').textContent = 'N/A';
-  document.getElementById('producto-top-margen').textContent = '-';
-  document.getElementById('producto-bajo').textContent = 'N/A';
-  document.getElementById('producto-bajo-margen').textContent = '-';
-  
-  document.getElementById('tabla-rentabilidad-wrapper').innerHTML = 
-    '<p class="tabla-vacia">No hay productos registrados. <a href="productos.html">Crea tu primer producto</a></p>';
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function _t(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
 }
 
-// ---- Funciones auxiliares ----
-
-/**
- * Formatea número con 2 decimales y separador de miles
- * @param {number} n - Número a formatear
- * @returns {string} Número formateado
- */
-function formatNum(n) {
-  return Number(n).toLocaleString('es-AR', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
+/** Formatea número SIN decimales (para cifras grandes) */
+function fmt(n) {
+  return Number(n || 0).toLocaleString('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
 }
 
-/**
- * Escapa caracteres HTML para prevenir XSS
- * @param {string} str - String a escapar
- * @returns {string} String escapado
- */
-function escapar(str) {
-  return String(str == null ? '' : str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+/** Formatea número CON 2 decimales */
+function fmtN(n) {
+  return Number(n || 0).toLocaleString('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
+
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Mantener retrocompatibilidad con app.js que puede llamar funciones viejas
+function formatNum(n) { return fmtN(n); }
+function escapar(str) { return esc(str); }
