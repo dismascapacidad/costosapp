@@ -175,6 +175,7 @@ function _reRenderizarPaginaActual() {
   if (page === 'estadisticas'    && typeof initEstadisticas    === 'function') initEstadisticas();
   if (page === 'importar-ventas' && typeof initImportarVentas  === 'function') initImportarVentas();
   if (page === 'simulador'       && typeof initSimulador       === 'function') initSimulador();
+  if (page === 'crm'             && typeof initCRM             === 'function') initCRM();
 }
 
 // ── saveData ──────────────────────────────────────────────────────────────────

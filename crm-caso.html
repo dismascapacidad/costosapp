@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caso CRM – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/crm.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+      <div class="nav-sep"></div>
+      <a href="crm.html">CRM</a>
+      <a href="crm-contactos.html" style="padding-left:1.5rem;font-size:0.82rem;">Contactos</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">DÓLAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">—</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div id="contenido-caso">
+      <p style="color:var(--text-3)">Cargando…</p>
+    </div>
+  </main>
+</div>
+
+<!-- Modal registrar interacción -->
+<div class="modal-overlay" id="modal-interaccion" style="display:none"
+     onclick="if(event.target===this)cerrarModalInteraccion()">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="crm-modal-header">
+      <h3>Registrar interacción</h3>
+      <button class="btn btn-sm" onclick="cerrarModalInteraccion()">✕</button>
+    </div>
+    <form id="form-interaccion" novalidate>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="int-fecha">Fecha *</label>
+          <input type="date" id="int-fecha" />
+        </div>
+        <div class="form-group">
+          <label for="int-canal">Canal *</label>
+          <select id="int-canal">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="email">Email</option>
+            <option value="telefono">Teléfono</option>
+            <option value="presencial">Presencial</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="int-resumen">Resumen *</label>
+        <textarea id="int-resumen" rows="4" placeholder="¿De qué se habló?"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="int-proximo-paso">Próximo paso acordado</label>
+        <input type="text" id="int-proximo-paso" placeholder="Qué se acordó hacer a continuación…" />
+      </div>
+      <div id="fila-fecha-proxima" style="display:none;">
+        <div class="form-group">
+          <label for="int-fecha-proxima">Fecha para ese paso</label>
+          <input type="date" id="int-fecha-proxima" />
+        </div>
+      </div>
+      <div id="int-form-error" class="form-error" style="display:none"></div>
+      <div class="form-actions" style="margin-top:1rem;">
+        <button type="button" class="btn" onclick="cerrarModalInteraccion()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-int">Guardar interacción</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal editar producto/estado -->
+<div class="modal-overlay" id="modal-editar-caso" style="display:none"
+     onclick="if(event.target===this)cerrarModalEditarCaso()">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="crm-modal-header">
+      <h3>Editar caso</h3>
+      <button class="btn btn-sm" onclick="cerrarModalEditarCaso()">✕</button>
+    </div>
+    <form id="form-editar-caso" novalidate>
+      <div class="form-group">
+        <label for="edit-producto">Producto / interés *</label>
+        <select id="edit-producto" onchange="toggleEditOtro()"></select>
+        <input type="text" id="edit-producto-otro" class="crm-campo-otro"
+               placeholder="Describir el producto o interés…" style="display:none;" />
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="edit-estado">Estado</label>
+          <select id="edit-estado">
+            <option value="nuevo">Nuevo</option>
+            <option value="en_conversacion">En conversación</option>
+            <option value="propuesta_enviada">Propuesta enviada</option>
+            <option value="convertido">Convertido</option>
+            <option value="sin_respuesta">Sin respuesta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-valor">Valor estimado (ARS)</label>
+          <input type="number" id="edit-valor" min="0" step="1" />
+        </div>
+      </div>
+      <div id="edit-caso-error" class="form-error" style="display:none"></div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="cerrarModalEditarCaso()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-actualizar-caso">Actualizar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/supabase-adapter.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/crm-storage.js"></script>
+<script src="js/crm.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mobile.js"></script>
+
+<script>
+// ── Estado ────────────────────────────────────────────────────────────────────
+var _caso          = null;
+var _contacto      = null;
+var _interacciones = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function initCRMCaso() {
+  var params = new URLSearchParams(window.location.search);
+  var casoId = params.get('id');
+  if (!casoId) {
+    document.getElementById('contenido-caso').innerHTML =
+      '<p style="color:var(--error)">No se especificó un caso.</p>';
+    return;
+  }
+
+  try {
+    var data = await crm_loadAll();
+    _caso          = data.casos.find(function(c) { return c.id === casoId; });
+    _interacciones = data.interacciones.filter(function(i) { return i.caso_id === casoId; });
+
+    if (!_caso) {
+      document.getElementById('contenido-caso').innerHTML =
+        '<p style="color:var(--error)">Caso no encontrado.</p> <a href="crm-contactos.html" class="btn btn-sm">← Contactos</a>';
+      return;
+    }
+
+    _contacto = data.contactos.find(function(c) { return c.id === _caso.contacto_id; });
+
+    renderCasoCompleto();
+    bindFormInteraccion();
+    bindFormEditarCaso();
+    bindProximaAccion();
+    bindCambioEstado();
+  } catch (err) {
+    document.getElementById('contenido-caso').innerHTML =
+      '<p style="color:var(--error)">Error: ' + crm_esc(err.message) + '</p>';
+  }
+}
+
+// ── Render principal ──────────────────────────────────────────────────────────
+function renderCasoCompleto() {
+  var contactoLink = _contacto
+    ? '<a href="crm-contacto.html?id=' + crm_esc(_contacto.id) + '" class="crm-caso-breadcrumb">← ' + crm_esc(_contacto.nombre) + '</a>'
+    : '<a href="crm-contactos.html" class="crm-caso-breadcrumb">← Contactos</a>';
+
+  var valorStr = _caso.valor_estimado
+    ? 'ARS ' + Number(_caso.valor_estimado).toLocaleString('es-AR', { minimumFractionDigits: 0 })
+    : '—';
+
+  var html =
+    '<div class="page-header">' +
+      contactoLink +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-top:.5rem;">' +
+        '<div>' +
+          '<h2>' + crm_esc(_caso.producto_interes || '(sin producto)') + '</h2>' +
+        '</div>' +
+        '<div style="display:flex;gap:.5rem;">' +
+          '<button class="btn btn-sm" onclick="abrirModalEditarCaso()">Editar caso</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="abrirModalInteraccion()">+ Registrar interacción</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Header card con metadata
+    '<div class="crm-caso-header-card">' +
+      '<div class="crm-meta-grid">' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Estado</span>' +
+          '<div style="display:flex;align-items:center;gap:.5rem;margin-top:.2rem;">' +
+            '<select class="crm-select-inline" id="select-estado-inline" onchange="cambiarEstado(this.value)">' +
+              opcionesEstado(_caso.estado) +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Primer contacto</span>' +
+          '<span class="crm-meta-valor">' + crm_formatFecha(_caso.fecha_primer_contacto) + '</span>' +
+        '</div>' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Última actividad</span>' +
+          '<span class="crm-meta-valor">' + crm_formatAntiguedad(_caso.fecha_ultima_actividad) + '</span>' +
+        '</div>' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Valor estimado</span>' +
+          '<span class="crm-meta-valor" style="font-family:var(--font-mono)">' + valorStr + '</span>' +
+        '</div>' +
+      '</div>' +
+
+      // Próxima acción editable inline
+      '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-light);">' +
+        '<span class="crm-meta-label">Próxima acción</span>' +
+        '<div class="crm-proxima-accion-form" id="forma-proxima">' +
+          '<input type="text" id="prox-accion-texto" placeholder="Qué hay que hacer…"' +
+                 ' value="' + crm_esc(_caso.proxima_accion || '') + '" style="flex:1;min-width:200px;" />' +
+          '<input type="date" id="prox-accion-fecha" value="' + crm_esc(_caso.fecha_proxima_accion || '') + '" style="width:155px;" />' +
+          '<button class="btn btn-sm" id="btn-guardar-prox" onclick="guardarProximaAccion()">Guardar</button>' +
+        '</div>' +
+        '<p id="prox-accion-feedback" style="font-size:.78rem;color:var(--success);display:none;margin-top:.35rem;">✓ Guardado</p>' +
+      '</div>' +
+    '</div>' +
+
+    // Interacciones
+    '<div class="card">' +
+      '<div class="tabla-header" style="margin-bottom:1rem;">' +
+        '<h3>Historial de interacciones</h3>' +
+        '<span id="contador-inters" class="badge">' + _interacciones.length + ' registro' + (_interacciones.length !== 1 ? 's' : '') + '</span>' +
+        '<button class="btn btn-primary btn-sm" onclick="abrirModalInteraccion()">+ Nueva</button>' +
+      '</div>' +
+      '<div id="timeline-interacciones">' + renderTimeline() + '</div>' +
+    '</div>';
+
+  document.getElementById('contenido-caso').innerHTML = html;
+}
+
+function opcionesEstado(estadoActual) {
+  var estados = ['nuevo','en_conversacion','propuesta_enviada','convertido','sin_respuesta'];
+  return estados.map(function(e) {
+    var sel = e === estadoActual ? ' selected' : '';
+    return '<option value="' + e + '"' + sel + '>' + crm_esc(CRM_ESTADO_LABELS[e]) + '</option>';
+  }).join('');
+}
+
+function renderTimeline() {
+  if (_interacciones.length === 0) {
+    return '<p class="tabla-vacia">Sin interacciones registradas todavía.</p>';
+  }
+
+  return '<div class="crm-timeline">' +
+    _interacciones.map(function(inter) {
+      var proximoHTML = inter.proximo_paso
+        ? '<div class="crm-timeline-proximo">' + crm_esc(inter.proximo_paso) + '</div>'
+        : '';
+      return '<div class="crm-timeline-item">' +
+        '<div class="crm-timeline-fecha">' +
+          '<span class="crm-timeline-fecha-str">' + crm_formatFecha(inter.fecha) + '</span>' +
+          crm_badgeCanal(inter.canal) +
+        '</div>' +
+        '<div class="crm-timeline-body">' +
+          '<div class="crm-timeline-resumen">' + crm_esc(inter.resumen) + '</div>' +
+          proximoHTML +
+        '</div>' +
+      '</div>';
+    }).join('') +
+  '</div>';
+}
+
+// ── Cambio de estado inline ───────────────────────────────────────────────────
+function bindCambioEstado() {
+  // El select ya tiene onchange, solo necesitamos que funcione después del re-render
+}
+
+async function cambiarEstado(nuevoEstado) {
+  if (nuevoEstado === _caso.estado) return;
+  try {
+    var actualizado = await crm_saveCaso(Object.assign({}, _caso, { estado: nuevoEstado }));
+    _caso = actualizado;
+  } catch (err) {
+    alert('Error al cambiar estado: ' + err.message);
+    document.getElementById('select-estado-inline').value = _caso.estado;
+  }
+}
+
+// ── Próxima acción inline ─────────────────────────────────────────────────────
+function bindProximaAccion() {
+  // Nada que bindear: usa onclick directamente
+}
+
+async function guardarProximaAccion() {
+  var texto = document.getElementById('prox-accion-texto').value.trim();
+  var fecha = document.getElementById('prox-accion-fecha').value || null;
+  var btn   = document.getElementById('btn-guardar-prox');
+  btn.disabled = true;
+
+  try {
+    var patch = Object.assign({}, _caso, {
+      proxima_accion:       texto,
+      fecha_proxima_accion: fecha
+    });
+    _caso = await crm_saveCaso(patch);
+
+    var fb = document.getElementById('prox-accion-feedback');
+    fb.style.display = 'block';
+    setTimeout(function() { fb.style.display = 'none'; }, 2000);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Modal interacción ─────────────────────────────────────────────────────────
+function abrirModalInteraccion() {
+  document.getElementById('int-fecha').value       = _crm_hoyStr();
+  document.getElementById('int-resumen').value     = '';
+  document.getElementById('int-proximo-paso').value = '';
+  document.getElementById('int-fecha-proxima').value = '';
+  document.getElementById('fila-fecha-proxima').style.display = 'none';
+  document.getElementById('int-form-error').style.display     = 'none';
+  document.getElementById('modal-interaccion').style.display  = 'flex';
+  setTimeout(function() { document.getElementById('int-resumen').focus(); }, 50);
+}
+
+function cerrarModalInteraccion() {
+  document.getElementById('modal-interaccion').style.display = 'none';
+}
+
+function bindFormInteraccion() {
+  document.getElementById('int-proximo-paso').addEventListener('input', function() {
+    document.getElementById('fila-fecha-proxima').style.display = this.value.trim() ? 'block' : 'none';
+    if (!this.value.trim()) document.getElementById('int-fecha-proxima').value = '';
+  });
+
+  document.getElementById('form-interaccion').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('int-form-error');
+    errEl.style.display = 'none';
+
+    var fechaStr  = document.getElementById('int-fecha').value;
+    var resumen   = document.getElementById('int-resumen').value.trim();
+    var proxPaso  = document.getElementById('int-proximo-paso').value.trim();
+    var fechaProx = document.getElementById('int-fecha-proxima').value || null;
+
+    if (!resumen) {
+      errEl.textContent = 'El resumen es obligatorio.';
+      errEl.style.display = 'flex';
+      return;
+    }
+
+    var btn = document.getElementById('btn-guardar-int');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    try {
+      var nueva = await crm_saveInteraccion({
+        caso_id:      _caso.id,
+        fecha:        new Date(fechaStr + 'T12:00:00').toISOString(),
+        canal:        document.getElementById('int-canal').value,
+        resumen:      resumen,
+        proximo_paso: proxPaso
+      });
+
+      await crm_actualizarUltimaActividad(
+        _caso.id,
+        proxPaso || null,
+        proxPaso && fechaProx ? fechaProx : null
+      );
+
+      // Actualizar estado local del caso
+      if (proxPaso) {
+        _caso.proxima_accion = proxPaso;
+        if (fechaProx) _caso.fecha_proxima_accion = fechaProx;
+      }
+      _caso.fecha_ultima_actividad = new Date().toISOString();
+
+      _interacciones.unshift(nueva);
+      cerrarModalInteraccion();
+
+      // Actualizar timeline y contador
+      document.getElementById('timeline-interacciones').innerHTML = renderTimeline();
+      document.getElementById('contador-inters').textContent =
+        _interacciones.length + ' registro' + (_interacciones.length !== 1 ? 's' : '');
+
+      // Actualizar campos de próxima acción si cambiaron
+      if (proxPaso) {
+        document.getElementById('prox-accion-texto').value = proxPaso;
+        if (fechaProx) document.getElementById('prox-accion-fecha').value = fechaProx;
+      }
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err.message;
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar interacción';
+    }
+  });
+}
+
+// ── Modal editar caso ─────────────────────────────────────────────────────────
+function abrirModalEditarCaso() {
+  var selectProd = document.getElementById('edit-producto');
+  crm_poblarSelectProductos(selectProd, _caso.producto_interes);
+  toggleEditOtro();
+
+  // Si el valor quedó en __otro__, poner el texto actual
+  if (selectProd.value === '__otro__') {
+    document.getElementById('edit-producto-otro').value = _caso.producto_interes || '';
+    document.getElementById('edit-producto-otro').style.display = 'block';
+  }
+
+  document.getElementById('edit-estado').value = _caso.estado;
+  document.getElementById('edit-valor').value  = _caso.valor_estimado || '';
+  document.getElementById('edit-caso-error').style.display = 'none';
+  document.getElementById('modal-editar-caso').style.display = 'flex';
+}
+
+function cerrarModalEditarCaso() {
+  document.getElementById('modal-editar-caso').style.display = 'none';
+}
+
+function toggleEditOtro() {
+  var sel   = document.getElementById('edit-producto');
+  var input = document.getElementById('edit-producto-otro');
+  input.style.display = sel.value === '__otro__' ? 'block' : 'none';
+  if (sel.value !== '__otro__') input.value = '';
+}
+
+function getProductoInteresEdit() {
+  var sel = document.getElementById('edit-producto');
+  if (sel.value === '__otro__') return document.getElementById('edit-producto-otro').value.trim();
+  return sel.value;
+}
+
+function bindFormEditarCaso() {
+  document.getElementById('form-editar-caso').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('edit-caso-error');
+    errEl.style.display = 'none';
+
+    var producto = getProductoInteresEdit();
+    if (!producto) { errEl.textContent = 'Seleccioná o indicá el producto.'; errEl.style.display='flex'; return; }
+
+    var btn = document.getElementById('btn-actualizar-caso');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    try {
+      var valorStr = document.getElementById('edit-valor').value;
+      var patch = Object.assign({}, _caso, {
+        producto_interes: producto,
+        estado:           document.getElementById('edit-estado').value,
+        valor_estimado:   valorStr ? parseFloat(valorStr) : null
+      });
+      _caso = await crm_saveCaso(patch);
+      cerrarModalEditarCaso();
+      renderCasoCompleto();
+      bindFormInteraccion();
+      bindFormEditarCaso();
+      bindProximaAccion();
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err.message;
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Actualizar';
+    }
+  });
+}
+
+// ── Dólar widget ──────────────────────────────────────────────────────────────
+function renderDolarWidget(registro) {
+  if (!registro) return;
+  var ventaEl  = document.getElementById('dolar-valor-venta');
+  var compraEl = document.getElementById('dolar-valor-compra');
+  var fechaEl  = document.getElementById('dolar-fecha');
+  var fuenteEl = document.getElementById('dolar-fuente');
+  if (ventaEl)  ventaEl.textContent  = '$ ' + Number(registro.venta  || registro.valor || 0).toLocaleString('es-AR');
+  if (compraEl) compraEl.textContent = '$ ' + Number(registro.compra || registro.valor || 0).toLocaleString('es-AR');
+  if (registro.fuente === 'api') {
+    fuenteEl.textContent = '● EN VIVO'; fuenteEl.className = 'dolar-fuente dolar-live';
+    fechaEl.textContent  = '';
+  } else {
+    fuenteEl.textContent = '● CACHÉ'; fuenteEl.className = 'dolar-fuente dolar-cached';
+    fechaEl.textContent  = registro.fecha ? formatearAntiguedad(registro.fecha) + ' — puede estar desactualizado' : '';
+  }
+}
+
+function handleImport(event) {
+  var file = event.target.files[0]; if (!file) return;
+  importData(file)
+    .then(function() { alert('Datos importados correctamente.'); location.reload(); })
+    .catch(function(err) { alert('Error al importar: ' + err.message); });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var cache = getCacheDolar();
+  renderDolarWidget(cache);
+  fetchDolarBlue().then(renderDolarWidget);
+});
+</script>
+</body>
+</html>

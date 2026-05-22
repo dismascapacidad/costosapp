@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/crm.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+      <div class="nav-sep"></div>
+      <a href="crm.html">CRM</a>
+      <a href="crm-contactos.html" style="padding-left:1.5rem;font-size:0.82rem;">Contactos</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">DÓLAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">—</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <h2>CRM — Seguimiento comercial</h2>
+          <p>Qué tenés que hacer hoy.</p>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <a href="crm-contactos.html" class="btn btn-sm">Ver todos los contactos</a>
+          <a href="crm-contactos.html?nuevo=1" class="btn btn-primary btn-sm">+ Nuevo contacto</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen rápido -->
+    <div class="crm-resumen-chips" id="crm-chips">
+      <div class="crm-chip">
+        <span class="crm-chip-valor" id="chip-contactos">—</span>
+        <span class="crm-chip-label">Contactos</span>
+      </div>
+      <div class="crm-chip">
+        <span class="crm-chip-valor" id="chip-casos-activos">—</span>
+        <span class="crm-chip-label">Casos activos</span>
+      </div>
+      <div class="crm-chip">
+        <span class="crm-chip-valor" id="chip-convertidos">—</span>
+        <span class="crm-chip-label">Convertidos</span>
+      </div>
+    </div>
+
+    <!-- Sección: Vencidos -->
+    <div class="crm-seccion crm-seccion-vencida">
+      <div class="crm-seccion-header">
+        <h3>Seguimientos vencidos</h3>
+        <span class="crm-badge-count crm-count-vencida" id="count-vencidos">0</span>
+      </div>
+      <div id="lista-vencidos" class="crm-lista">
+        <p class="crm-lista-vacia">Cargando…</p>
+      </div>
+    </div>
+
+    <!-- Sección: Hoy -->
+    <div class="crm-seccion crm-seccion-hoy" style="margin-top:1.25rem;">
+      <div class="crm-seccion-header">
+        <h3>Para hoy</h3>
+        <span class="crm-badge-count crm-count-hoy" id="count-hoy">0</span>
+      </div>
+      <div id="lista-hoy" class="crm-lista">
+        <p class="crm-lista-vacia">Cargando…</p>
+      </div>
+    </div>
+
+    <!-- Sección: Sin actividad -->
+    <div class="crm-seccion crm-seccion-inactiva" style="margin-top:1.25rem;">
+      <div class="crm-seccion-header">
+        <h3>Sin actividad en 7 días</h3>
+        <span class="crm-badge-count crm-count-inactiva" id="count-inactivos">0</span>
+      </div>
+      <div id="lista-inactivos" class="crm-lista">
+        <p class="crm-lista-vacia">Cargando…</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Registrar interacción rápida -->
+<div class="modal-overlay" id="modal-interaccion" style="display:none"
+     onclick="if(event.target===this)cerrarModalInteraccion()">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="crm-modal-header">
+      <h3>Registrar interacción</h3>
+      <button class="btn btn-sm" onclick="cerrarModalInteraccion()">✕</button>
+    </div>
+    <div class="crm-info-box" id="int-caso-info"></div>
+    <form id="form-interaccion" novalidate>
+      <input type="hidden" id="int-caso-id" />
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="int-fecha">Fecha *</label>
+          <input type="date" id="int-fecha" />
+        </div>
+        <div class="form-group">
+          <label for="int-canal">Canal *</label>
+          <select id="int-canal">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="email">Email</option>
+            <option value="telefono">Teléfono</option>
+            <option value="presencial">Presencial</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="int-resumen">Resumen *</label>
+        <textarea id="int-resumen" rows="3" placeholder="¿De qué se habló?"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="int-proximo-paso">Próximo paso acordado</label>
+        <input type="text" id="int-proximo-paso" placeholder="Qué se acordó hacer a continuación…" />
+      </div>
+      <div class="crm-form-fila" id="fila-fecha-proxima" style="display:none;">
+        <div class="form-group">
+          <label for="int-fecha-proxima">Fecha para ese paso</label>
+          <input type="date" id="int-fecha-proxima" />
+        </div>
+        <div></div>
+      </div>
+      <div id="int-form-error" class="form-error" style="display:none"></div>
+      <div class="form-actions" style="margin-top:1rem;">
+        <button type="button" class="btn" onclick="cerrarModalInteraccion()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-int">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/supabase-adapter.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/crm-storage.js"></script>
+<script src="js/crm.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mobile.js"></script>
+
+<script>
+// ── Estado del módulo ─────────────────────────────────────────────────────────
+var _crmData = { contactos: [], casos: [], interacciones: [] };
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function initCRM() {
+  mostrarCargando();
+  try {
+    _crmData = await crm_loadAll();
+    renderDashboard();
+  } catch (err) {
+    console.error('[crm] Error cargando datos:', err);
+    mostrarError('No se pudieron cargar los datos del CRM: ' + err.message);
+  }
+}
+
+// ── Render principal ──────────────────────────────────────────────────────────
+function renderDashboard() {
+  var vencidos  = crm_getSeguimientosVencidos(_crmData.casos);
+  var hoy       = crm_getSeguimientosHoy(_crmData.casos);
+  var inactivos = crm_getCasosInactivos(_crmData.casos, _crmData.interacciones);
+
+  // Chips de resumen
+  var casosActivos = _crmData.casos.filter(function(c) {
+    return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1;
+  }).length;
+  var convertidos = _crmData.casos.filter(function(c) { return c.estado === 'convertido'; }).length;
+
+  document.getElementById('chip-contactos').textContent    = _crmData.contactos.length;
+  document.getElementById('chip-casos-activos').textContent = casosActivos;
+  document.getElementById('chip-convertidos').textContent  = convertidos;
+
+  // Contadores
+  document.getElementById('count-vencidos').textContent  = vencidos.length;
+  document.getElementById('count-hoy').textContent       = hoy.length;
+  document.getElementById('count-inactivos').textContent = inactivos.length;
+
+  // Listas
+  renderListaCasos('lista-vencidos', vencidos, 'vencida');
+  renderListaCasos('lista-hoy',      hoy,      'hoy');
+  renderListaCasos('lista-inactivos', inactivos, 'inactiva');
+}
+
+function renderListaCasos(contenedorId, casos, tipo) {
+  var el = document.getElementById(contenedorId);
+  if (casos.length === 0) {
+    el.innerHTML = '<p class="crm-lista-vacia">Sin casos en esta sección.</p>';
+    return;
+  }
+
+  el.innerHTML = casos.map(function(caso) {
+    var contacto = _crmData.contactos.find(function(c) { return c.id === caso.contacto_id; });
+    var nombre   = contacto ? crm_esc(contacto.nombre) : '(contacto eliminado)';
+
+    var infoFecha = '';
+    if (tipo === 'vencida') {
+      var dias = crm_diasRetraso(caso.fecha_proxima_accion);
+      infoFecha = '<span class="crm-caso-fecha-vencida">Venció hace ' + dias + (dias === 1 ? ' día' : ' días') + '</span>';
+    } else if (tipo === 'hoy') {
+      infoFecha = '<span class="crm-caso-fecha-hoy">Para hoy</span>';
+    } else {
+      infoFecha = '<span class="crm-caso-fecha-inactiva">Última actividad: ' + crm_formatAntiguedad(caso.fecha_ultima_actividad) + '</span>';
+    }
+
+    var productoLabel = crm_esc(caso.producto_interes || '—');
+    var proximaLabel  = caso.proxima_accion
+      ? '<span class="crm-caso-accion"><strong>Acción:</strong> ' + crm_esc(caso.proxima_accion) + '</span>'
+      : '';
+
+    return '<div class="crm-caso-card">' +
+      '<div class="crm-caso-info">' +
+        '<div class="crm-caso-titulo">' +
+          '<span class="crm-caso-nombre">' + nombre + '</span>' +
+          crm_badgeEstado(caso.estado) +
+        '</div>' +
+        '<span class="crm-caso-producto">' + productoLabel + '</span>' +
+        proximaLabel +
+        infoFecha +
+      '</div>' +
+      '<div class="crm-caso-acciones">' +
+        '<a href="crm-caso.html?id=' + crm_esc(caso.id) + '" class="btn btn-sm">Ver caso</a>' +
+        '<button class="btn btn-primary btn-sm" onclick="abrirInteraccionRapida(\'' + crm_esc(caso.id) + '\')">+ Interacción</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Modal interacción rápida ──────────────────────────────────────────────────
+function abrirInteraccionRapida(casoId) {
+  var caso     = _crmData.casos.find(function(c) { return c.id === casoId; });
+  var contacto = caso ? _crmData.contactos.find(function(c) { return c.id === caso.contacto_id; }) : null;
+
+  document.getElementById('int-caso-id').value   = casoId;
+  document.getElementById('int-fecha').value      = _crm_hoyStr();
+  document.getElementById('int-resumen').value    = '';
+  document.getElementById('int-proximo-paso').value = '';
+  document.getElementById('int-fecha-proxima').value = '';
+  document.getElementById('fila-fecha-proxima').style.display = 'none';
+  document.getElementById('int-form-error').style.display     = 'none';
+
+  var infoText = '';
+  if (contacto) infoText += '<strong>' + crm_esc(contacto.nombre) + '</strong>';
+  if (caso && caso.producto_interes) infoText += ' — ' + crm_esc(caso.producto_interes);
+  document.getElementById('int-caso-info').innerHTML = infoText;
+
+  document.getElementById('modal-interaccion').style.display = 'flex';
+  setTimeout(function() { document.getElementById('int-resumen').focus(); }, 50);
+}
+
+function cerrarModalInteraccion() {
+  document.getElementById('modal-interaccion').style.display = 'none';
+}
+
+// Mostrar campo de fecha cuando se llena "próximo paso"
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('int-proximo-paso').addEventListener('input', function() {
+    var fila = document.getElementById('fila-fecha-proxima');
+    fila.style.display = this.value.trim() ? 'grid' : 'none';
+    if (!this.value.trim()) document.getElementById('int-fecha-proxima').value = '';
+  });
+
+  document.getElementById('form-interaccion').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('int-form-error');
+    errEl.style.display = 'none';
+
+    var casoId    = document.getElementById('int-caso-id').value;
+    var fechaStr  = document.getElementById('int-fecha').value;
+    var resumen   = document.getElementById('int-resumen').value.trim();
+    var proxPaso  = document.getElementById('int-proximo-paso').value.trim();
+    var fechaProx = document.getElementById('int-fecha-proxima').value || null;
+
+    if (!resumen) {
+      errEl.textContent = 'El resumen es obligatorio.';
+      errEl.style.display = 'flex';
+      return;
+    }
+
+    var btn = document.getElementById('btn-guardar-int');
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+
+    try {
+      var fechaISO = new Date(fechaStr + 'T12:00:00').toISOString();
+      await crm_saveInteraccion({
+        caso_id:      casoId,
+        fecha:        fechaISO,
+        canal:        document.getElementById('int-canal').value,
+        resumen:      resumen,
+        proximo_paso: proxPaso
+      });
+      await crm_actualizarUltimaActividad(
+        casoId,
+        proxPaso || null,
+        proxPaso && fechaProx ? fechaProx : null
+      );
+      cerrarModalInteraccion();
+      _crmData = await crm_loadAll();
+      renderDashboard();
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err.message;
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar';
+    }
+  });
+});
+
+// ── Dólar widget ──────────────────────────────────────────────────────────────
+function renderDolarWidget(registro) {
+  if (!registro) return;
+  var ventaEl  = document.getElementById('dolar-valor-venta');
+  var compraEl = document.getElementById('dolar-valor-compra');
+  var fechaEl  = document.getElementById('dolar-fecha');
+  var fuenteEl = document.getElementById('dolar-fuente');
+  if (ventaEl)  ventaEl.textContent  = '$ ' + Number(registro.venta  || registro.valor || 0).toLocaleString('es-AR');
+  if (compraEl) compraEl.textContent = '$ ' + Number(registro.compra || registro.valor || 0).toLocaleString('es-AR');
+  if (registro.fuente === 'api') {
+    fuenteEl.textContent = '● EN VIVO'; fuenteEl.className = 'dolar-fuente dolar-live';
+    fechaEl.textContent  = '';
+  } else {
+    fuenteEl.textContent = '● CACHÉ'; fuenteEl.className = 'dolar-fuente dolar-cached';
+    fechaEl.textContent  = registro.fecha ? formatearAntiguedad(registro.fecha) + ' — puede estar desactualizado' : '';
+  }
+}
+
+function handleImport(event) {
+  var file = event.target.files[0]; if (!file) return;
+  importData(file)
+    .then(function() { alert('Datos importados correctamente.'); location.reload(); })
+    .catch(function(err) { alert('Error al importar: ' + err.message); });
+}
+
+function mostrarCargando() {
+  ['lista-vencidos','lista-hoy','lista-inactivos'].forEach(function(id) {
+    document.getElementById(id).innerHTML = '<p class="crm-lista-vacia">Cargando…</p>';
+  });
+}
+
+function mostrarError(msg) {
+  ['lista-vencidos','lista-hoy','lista-inactivos'].forEach(function(id) {
+    document.getElementById(id).innerHTML = '<p class="crm-lista-vacia" style="color:var(--error)">' + crm_esc(msg) + '</p>';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var cache = getCacheDolar();
+  renderDolarWidget(cache);
+  fetchDolarBlue().then(renderDolarWidget);
+});
+</script>
+</body>
+</html>

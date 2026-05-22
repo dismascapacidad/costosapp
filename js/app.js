@@ -42,6 +42,10 @@ async function initApp() {
   if (page === 'estadisticas'    && typeof initEstadisticas    === 'function') initEstadisticas();
   if (page === 'importar-ventas' && typeof initImportarVentas  === 'function') initImportarVentas();
   if (page === 'simulador'       && typeof initSimulador       === 'function') initSimulador();
+  if (page === 'crm'           && typeof initCRM           === 'function') initCRM();
+  if (page === 'crm-contactos' && typeof initCRMContactos  === 'function') initCRMContactos();
+  if (page === 'crm-contacto'  && typeof initCRMContacto   === 'function') initCRMContacto();
+  if (page === 'crm-caso'      && typeof initCRMCaso       === 'function') initCRMCaso();
 
   console.log('[app] Iniciado. Versión datos:', window.AppData.version, '| Página:', page);
 }
@@ -61,6 +65,10 @@ function getCurrentPage() {
   if (path.indexOf('estadisticas') !== -1)    return 'estadisticas';
   if (path.indexOf('importar-ventas') !== -1) return 'importar-ventas';
   if (path.indexOf('simulador') !== -1)       return 'simulador';
+  if (path.indexOf('crm-caso') !== -1)        return 'crm-caso';
+  if (path.indexOf('crm-contactos') !== -1)   return 'crm-contactos';
+  if (path.indexOf('crm-contacto') !== -1)    return 'crm-contacto';
+  if (path.indexOf('crm') !== -1)             return 'crm';
   return 'index';
 }
 

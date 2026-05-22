@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contactos CRM – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/crm.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+      <div class="nav-sep"></div>
+      <a href="crm.html">CRM</a>
+      <a href="crm-contactos.html" style="padding-left:1.5rem;font-size:0.82rem;">Contactos</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">DÓLAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">—</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <h2>Contactos CRM</h2>
+          <p>Registro de prospectos y seguimiento comercial.</p>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalContacto()">+ Nuevo contacto</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+        <div class="form-group" style="flex:1;min-width:200px;margin:0;">
+          <label>Buscar</label>
+          <input type="text" id="filtro-texto" placeholder="Nombre, teléfono o email…"
+                 oninput="renderContactosList()" />
+        </div>
+        <div class="form-group" style="min-width:160px;margin:0;">
+          <label>Tipo de contacto</label>
+          <select id="filtro-tipo" onchange="renderContactosList()">
+            <option value="todos">Todos los tipos</option>
+            <option value="profesional">Profesional</option>
+            <option value="institucion">Institución</option>
+            <option value="aliado">Aliado / Revendedor</option>
+            <option value="familia">Familia / Usuario</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width:160px;margin:0;">
+          <label>Estado del caso</label>
+          <select id="filtro-estado" onchange="renderContactosList()">
+            <option value="todos">Todos los estados</option>
+            <option value="nuevo">Nuevo</option>
+            <option value="en_conversacion">En conversación</option>
+            <option value="propuesta_enviada">Propuesta enviada</option>
+            <option value="convertido">Convertido</option>
+            <option value="sin_respuesta">Sin respuesta</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="card">
+      <div class="tabla-header">
+        <h3>Contactos</h3>
+        <span id="contador-contactos" class="badge"></span>
+      </div>
+      <div id="lista-contactos-wrapper">
+        <p class="tabla-vacia">Cargando…</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal nuevo / editar contacto -->
+<div class="modal-overlay" id="modal-contacto" style="display:none"
+     onclick="if(event.target===this)cerrarModalContacto()">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="crm-modal-header">
+      <h3 id="modal-contacto-titulo">Nuevo contacto</h3>
+      <button class="btn btn-sm" onclick="cerrarModalContacto()">✕</button>
+    </div>
+    <form id="form-contacto" novalidate>
+      <input type="hidden" id="campo-id" />
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="campo-nombre">Nombre *</label>
+          <input type="text" id="campo-nombre" placeholder="Nombre completo o razón social" />
+        </div>
+        <div class="form-group">
+          <label for="campo-tipo">Tipo *</label>
+          <select id="campo-tipo">
+            <option value="profesional">Profesional (terapeuta, fonoaudiólogo…)</option>
+            <option value="institucion">Institución (centro, escuela…)</option>
+            <option value="aliado">Aliado / Revendedor potencial</option>
+            <option value="familia">Familia / Usuario final</option>
+          </select>
+        </div>
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="campo-telefono">Teléfono *</label>
+          <input type="tel" id="campo-telefono" placeholder="+54 9 11 1234-5678" />
+        </div>
+        <div class="form-group">
+          <label for="campo-email">Email</label>
+          <input type="email" id="campo-email" placeholder="contacto@ejemplo.com" />
+        </div>
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="campo-origen">Origen del contacto *</label>
+          <select id="campo-origen">
+            <option value="landing_epe">Landing EpE</option>
+            <option value="tienda">Tienda virtual</option>
+            <option value="referido">Referido</option>
+            <option value="red_social">Red social</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+      <div class="form-group">
+        <label for="campo-notas">Notas generales</label>
+        <textarea id="campo-notas" rows="3" placeholder="Contexto general del contacto…"></textarea>
+      </div>
+      <div id="contacto-form-error" class="form-error" style="display:none"></div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="cerrarModalContacto()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-contacto">Guardar contacto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal confirmación eliminar -->
+<div class="modal-overlay" id="modal-eliminar" style="display:none"
+     onclick="if(event.target===this)document.getElementById('modal-eliminar').style.display='none'">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="crm-modal-header">
+      <h3>Eliminar contacto</h3>
+      <button class="btn btn-sm" onclick="document.getElementById('modal-eliminar').style.display='none'">✕</button>
+    </div>
+    <p style="margin-bottom:1.25rem;color:var(--text-2);font-size:0.875rem;">
+      ¿Eliminar a <strong id="eliminar-nombre"></strong>?
+      Esto borrará también todos sus casos e interacciones. Esta acción no se puede deshacer.
+    </p>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-eliminar').style.display='none'">Cancelar</button>
+      <button class="btn" style="background:rgba(239,68,68,0.15);color:#f87171;border-color:rgba(239,68,68,0.3);"
+              id="btn-confirmar-eliminar">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/supabase-adapter.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/crm-storage.js"></script>
+<script src="js/crm.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mobile.js"></script>
+
+<script>
+// ── Estado ────────────────────────────────────────────────────────────────────
+var _contactos = [];
+var _casos     = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function initCRMContactos() {
+  try {
+    var data = await crm_loadAll();
+    _contactos = data.contactos;
+    _casos     = data.casos;
+    renderContactosList();
+
+    // Si viene ?nuevo=1 en la URL, abrir modal automáticamente
+    if (window.location.search.indexOf('nuevo=1') !== -1) {
+      abrirModalContacto();
+    }
+  } catch (err) {
+    document.getElementById('lista-contactos-wrapper').innerHTML =
+      '<p class="tabla-vacia" style="color:var(--error)">Error cargando datos: ' + crm_esc(err.message) + '</p>';
+  }
+  bindFormContacto();
+}
+
+// ── Render lista ──────────────────────────────────────────────────────────────
+function renderContactosList() {
+  var filtros = {
+    texto:      document.getElementById('filtro-texto').value,
+    tipo:       document.getElementById('filtro-tipo').value,
+    estadoCaso: document.getElementById('filtro-estado').value
+  };
+
+  var filtrados = crm_filtrarContactos(_contactos, _casos, filtros);
+
+  document.getElementById('contador-contactos').textContent =
+    filtrados.length + (filtrados.length === 1 ? ' contacto' : ' contactos');
+
+  var wrapper = document.getElementById('lista-contactos-wrapper');
+
+  if (filtrados.length === 0) {
+    wrapper.innerHTML = _contactos.length === 0
+      ? '<div class="estado-vacio"><span class="estado-vacio-icono">👥</span><p>No hay contactos registrados todavía.<br><a href="#" onclick="event.preventDefault();abrirModalContacto()" style="color:var(--accent-text)">Agregar el primero</a></p></div>'
+      : '<p class="tabla-vacia">Sin contactos para ese filtro.</p>';
+    return;
+  }
+
+  var filas = filtrados.map(function(c) {
+    var casoRel     = crm_getCasoRelevante(c.id, _casos);
+    var activos     = crm_countCasosActivos(c.id, _casos);
+    var estadoHtml  = casoRel ? crm_badgeEstado(casoRel.estado) : '<span class="crm-badge crm-estado-sin_respuesta">Sin casos</span>';
+    var ultimaAct   = casoRel ? crm_formatAntiguedad(casoRel.fecha_ultima_actividad) : '—';
+
+    return '<tr onclick="window.location=\'crm-contacto.html?id=' + crm_esc(c.id) + '\'" style="cursor:pointer;">' +
+      '<td><strong>' + crm_esc(c.nombre) + '</strong></td>' +
+      '<td>' + crm_badgeTipo(c.tipo) + '</td>' +
+      '<td>' + crm_esc(c.telefono || '—') + '</td>' +
+      '<td>' + crm_esc(CRM_ORIGEN_LABELS[c.origen] || c.origen) + '</td>' +
+      '<td style="text-align:center;font-family:var(--font-mono)">' + activos + '</td>' +
+      '<td>' + estadoHtml + '</td>' +
+      '<td style="color:var(--text-3);font-size:0.8rem;">' + ultimaAct + '</td>' +
+      '<td class="td-acciones" onclick="event.stopPropagation()">' +
+        '<button class="btn btn-sm" onclick="editarContacto(\'' + crm_esc(c.id) + '\')">Editar</button> ' +
+        '<button class="btn btn-sm" style="color:#f87171;" onclick="confirmarEliminar(\'' + crm_esc(c.id) + '\',\'' + crm_esc(c.nombre) + '\')">Eliminar</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  wrapper.innerHTML =
+    '<div style="overflow-x:auto;">' +
+    '<table class="tabla" style="width:100%;">' +
+      '<thead><tr>' +
+        '<th>Nombre</th><th>Tipo</th><th>Teléfono</th><th>Origen</th>' +
+        '<th style="text-align:center;">Casos activos</th><th>Estado</th><th>Últ. actividad</th><th>Acciones</th>' +
+      '</tr></thead>' +
+      '<tbody>' + filas + '</tbody>' +
+    '</table></div>';
+}
+
+// ── Modal contacto ────────────────────────────────────────────────────────────
+function abrirModalContacto() {
+  limpiarFormContacto();
+  document.getElementById('modal-contacto').style.display = 'flex';
+  document.getElementById('campo-nombre').focus();
+}
+
+function cerrarModalContacto() {
+  document.getElementById('modal-contacto').style.display = 'none';
+  limpiarFormContacto();
+}
+
+function limpiarFormContacto() {
+  document.getElementById('form-contacto').reset();
+  document.getElementById('campo-id').value = '';
+  document.getElementById('modal-contacto-titulo').textContent = 'Nuevo contacto';
+  document.getElementById('btn-guardar-contacto').textContent  = 'Guardar contacto';
+  document.getElementById('contacto-form-error').style.display = 'none';
+}
+
+function editarContacto(id) {
+  var c = _contactos.find(function(x) { return x.id === id; });
+  if (!c) return;
+  document.getElementById('campo-id').value       = c.id;
+  document.getElementById('campo-nombre').value   = c.nombre;
+  document.getElementById('campo-tipo').value     = c.tipo;
+  document.getElementById('campo-telefono').value = c.telefono;
+  document.getElementById('campo-email').value    = c.email || '';
+  document.getElementById('campo-origen').value   = c.origen;
+  document.getElementById('campo-notas').value    = c.notas || '';
+  document.getElementById('modal-contacto-titulo').textContent = 'Editar contacto';
+  document.getElementById('btn-guardar-contacto').textContent  = 'Actualizar contacto';
+  document.getElementById('modal-contacto').style.display = 'flex';
+}
+
+function bindFormContacto() {
+  document.getElementById('form-contacto').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('contacto-form-error');
+    errEl.style.display = 'none';
+
+    var nombre   = document.getElementById('campo-nombre').value.trim();
+    var telefono = document.getElementById('campo-telefono').value.trim();
+    if (!nombre)   { errEl.textContent = 'El nombre es obligatorio.'; errEl.style.display='flex'; return; }
+    if (!telefono) { errEl.textContent = 'El teléfono es obligatorio.'; errEl.style.display='flex'; return; }
+
+    var btn = document.getElementById('btn-guardar-contacto');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    try {
+      var contacto = {
+        id:       document.getElementById('campo-id').value || undefined,
+        nombre:   nombre,
+        tipo:     document.getElementById('campo-tipo').value,
+        telefono: telefono,
+        email:    document.getElementById('campo-email').value.trim() || null,
+        origen:   document.getElementById('campo-origen').value,
+        notas:    document.getElementById('campo-notas').value.trim()
+      };
+      var guardado = await crm_saveContacto(contacto);
+
+      if (contacto.id) {
+        var idx = _contactos.findIndex(function(x) { return x.id === contacto.id; });
+        if (idx !== -1) _contactos[idx] = guardado;
+      } else {
+        _contactos.push(guardado);
+      }
+
+      cerrarModalContacto();
+      renderContactosList();
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err.message;
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = document.getElementById('campo-id').value ? 'Actualizar contacto' : 'Guardar contacto';
+    }
+  });
+}
+
+// ── Eliminar ──────────────────────────────────────────────────────────────────
+var _eliminarId = null;
+
+function confirmarEliminar(id, nombre) {
+  _eliminarId = id;
+  document.getElementById('eliminar-nombre').textContent = nombre;
+  document.getElementById('modal-eliminar').style.display = 'flex';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('btn-confirmar-eliminar').addEventListener('click', async function() {
+    if (!_eliminarId) return;
+    this.disabled = true;
+    try {
+      await crm_deleteContacto(_eliminarId);
+      _contactos = _contactos.filter(function(c) { return c.id !== _eliminarId; });
+      _casos     = _casos.filter(function(c) { return c.contacto_id !== _eliminarId; });
+      document.getElementById('modal-eliminar').style.display = 'none';
+      _eliminarId = null;
+      renderContactosList();
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
+      this.disabled = false;
+    }
+  });
+
+  var cache = getCacheDolar();
+  renderDolarWidget(cache);
+  fetchDolarBlue().then(renderDolarWidget);
+});
+
+// ── Dólar widget ──────────────────────────────────────────────────────────────
+function renderDolarWidget(registro) {
+  if (!registro) return;
+  var ventaEl  = document.getElementById('dolar-valor-venta');
+  var compraEl = document.getElementById('dolar-valor-compra');
+  var fechaEl  = document.getElementById('dolar-fecha');
+  var fuenteEl = document.getElementById('dolar-fuente');
+  if (ventaEl)  ventaEl.textContent  = '$ ' + Number(registro.venta  || registro.valor || 0).toLocaleString('es-AR');
+  if (compraEl) compraEl.textContent = '$ ' + Number(registro.compra || registro.valor || 0).toLocaleString('es-AR');
+  if (registro.fuente === 'api') {
+    fuenteEl.textContent = '● EN VIVO'; fuenteEl.className = 'dolar-fuente dolar-live';
+    fechaEl.textContent  = '';
+  } else {
+    fuenteEl.textContent = '● CACHÉ'; fuenteEl.className = 'dolar-fuente dolar-cached';
+    fechaEl.textContent  = registro.fecha ? formatearAntiguedad(registro.fecha) + ' — puede estar desactualizado' : '';
+  }
+}
+
+function handleImport(event) {
+  var file = event.target.files[0]; if (!file) return;
+  importData(file)
+    .then(function() { alert('Datos importados correctamente.'); location.reload(); })
+    .catch(function(err) { alert('Error al importar: ' + err.message); });
+}
+</script>
+</body>
+</html>

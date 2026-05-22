@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contacto CRM – CostosApp</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/crm.css" />
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>CostosApp</h1>
+      <span>gestión de producción</span>
+    </div>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="insumos.html">Insumos</a>
+      <a href="productos.html">Productos</a>
+      <a href="presupuestos.html">Presupuestos</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="stock.html">Stock</a>
+      <a href="produccion.html">Producción</a>
+      <a href="importar-ventas.html">Importar ventas</a>
+      <a href="estadisticas.html">Estadísticas</a>
+      <a href="simulador.html">Simulador</a>
+      <div class="nav-sep"></div>
+      <a href="crm.html">CRM</a>
+      <a href="crm-contactos.html" style="padding-left:1.5rem;font-size:0.82rem;">Contactos</a>
+    </nav>
+    <div class="dolar-widget" id="dolar-widget">
+      <div class="dolar-label">DÓLAR BLUE <span class="dolar-fuente" id="dolar-fuente"></span></div>
+      <div class="dolar-doble">
+        <div class="dolar-col">
+          <span class="dolar-col-label">Compra</span>
+          <span class="dolar-col-valor" id="dolar-valor-compra">—</span>
+        </div>
+        <div class="dolar-col">
+          <span class="dolar-col-label">Venta</span>
+          <span class="dolar-col-valor" id="dolar-valor-venta">—</span>
+        </div>
+      </div>
+      <div class="dolar-fecha" id="dolar-fecha"></div>
+    </div>
+    <div class="storage-toolbar">
+      <button class="btn" onclick="exportData()">↓ Exportar datos</button>
+      <label class="btn">↑ Importar datos
+        <input type="file" accept=".json" style="display:none" onchange="handleImport(event)" />
+      </label>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div id="contenido-contacto">
+      <p style="color:var(--text-3)">Cargando…</p>
+    </div>
+  </main>
+</div>
+
+<!-- Modal editar contacto -->
+<div class="modal-overlay" id="modal-editar" style="display:none"
+     onclick="if(event.target===this)cerrarModalEditar()">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="crm-modal-header">
+      <h3>Editar contacto</h3>
+      <button class="btn btn-sm" onclick="cerrarModalEditar()">✕</button>
+    </div>
+    <form id="form-editar" novalidate>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="edit-nombre">Nombre *</label>
+          <input type="text" id="edit-nombre" />
+        </div>
+        <div class="form-group">
+          <label for="edit-tipo">Tipo *</label>
+          <select id="edit-tipo">
+            <option value="profesional">Profesional</option>
+            <option value="institucion">Institución</option>
+            <option value="aliado">Aliado / Revendedor</option>
+            <option value="familia">Familia / Usuario final</option>
+          </select>
+        </div>
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="edit-telefono">Teléfono *</label>
+          <input type="tel" id="edit-telefono" />
+        </div>
+        <div class="form-group">
+          <label for="edit-email">Email</label>
+          <input type="email" id="edit-email" />
+        </div>
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="edit-origen">Origen</label>
+          <select id="edit-origen">
+            <option value="landing_epe">Landing EpE</option>
+            <option value="tienda">Tienda virtual</option>
+            <option value="referido">Referido</option>
+            <option value="red_social">Red social</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+      <div class="form-group">
+        <label for="edit-notas">Notas generales</label>
+        <textarea id="edit-notas" rows="3"></textarea>
+      </div>
+      <div id="editar-form-error" class="form-error" style="display:none"></div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="cerrarModalEditar()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-actualizar">Actualizar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal nuevo caso -->
+<div class="modal-overlay" id="modal-caso" style="display:none"
+     onclick="if(event.target===this)cerrarModalCaso()">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="crm-modal-header">
+      <h3>Nuevo caso</h3>
+      <button class="btn btn-sm" onclick="cerrarModalCaso()">✕</button>
+    </div>
+    <form id="form-caso" novalidate>
+      <div class="form-group">
+        <label for="caso-producto">Producto / interés *</label>
+        <select id="caso-producto" onchange="toggleCasoOtro()"></select>
+        <input type="text" id="caso-producto-otro" class="crm-campo-otro"
+               placeholder="Describir el producto o interés…" style="display:none;" />
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="caso-estado">Estado inicial</label>
+          <select id="caso-estado">
+            <option value="nuevo">Nuevo</option>
+            <option value="en_conversacion">En conversación</option>
+            <option value="propuesta_enviada">Propuesta enviada</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="caso-fecha-primer">Primer contacto</label>
+          <input type="date" id="caso-fecha-primer" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="caso-proxima-accion">Próxima acción</label>
+        <input type="text" id="caso-proxima-accion" placeholder="Qué hay que hacer…" />
+      </div>
+      <div class="crm-form-fila">
+        <div class="form-group">
+          <label for="caso-fecha-proxima">Fecha de esa acción</label>
+          <input type="date" id="caso-fecha-proxima" />
+        </div>
+        <div class="form-group">
+          <label for="caso-valor">Valor estimado (ARS, opcional)</label>
+          <input type="number" id="caso-valor" placeholder="0" min="0" step="1" />
+        </div>
+      </div>
+      <div id="caso-form-error" class="form-error" style="display:none"></div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="cerrarModalCaso()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-caso">Crear caso</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/supabase-adapter.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/dolar.js"></script>
+<script src="js/sku.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/insumos.js"></script>
+<script src="js/productos.js"></script>
+<script src="js/presupuestos.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/produccion.js"></script>
+<script src="js/precios-masivos.js"></script>
+<script src="js/exportar.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/crm-storage.js"></script>
+<script src="js/crm.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mobile.js"></script>
+
+<script>
+// ── Estado ────────────────────────────────────────────────────────────────────
+var _contacto    = null;
+var _casosDeCont = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function initCRMContacto() {
+  var params      = new URLSearchParams(window.location.search);
+  var contactoId  = params.get('id');
+  if (!contactoId) {
+    document.getElementById('contenido-contacto').innerHTML =
+      '<p style="color:var(--error)">No se especificó un contacto.</p>';
+    return;
+  }
+
+  try {
+    var data = await crm_loadAll();
+    _contacto    = data.contactos.find(function(c) { return c.id === contactoId; });
+    _casosDeCont = data.casos.filter(function(c) { return c.contacto_id === contactoId; });
+
+    if (!_contacto) {
+      document.getElementById('contenido-contacto').innerHTML =
+        '<p style="color:var(--error)">Contacto no encontrado.</p> <a href="crm-contactos.html" class="btn btn-sm">← Volver</a>';
+      return;
+    }
+
+    renderContactoDetalle();
+    bindFormEditar();
+    bindFormCaso();
+    crm_poblarSelectProductos(document.getElementById('caso-producto'));
+    document.getElementById('caso-fecha-primer').value = _crm_hoyStr();
+  } catch (err) {
+    document.getElementById('contenido-contacto').innerHTML =
+      '<p style="color:var(--error)">Error: ' + crm_esc(err.message) + '</p>';
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderContactoDetalle() {
+  var c         = _contacto;
+  var casosHTML = renderCasosList();
+
+  var clienteLink = c.cliente_id
+    ? '<a href="clientes.html" style="color:var(--accent-text);font-size:0.8rem;">Ver cliente vinculado →</a>'
+    : '';
+
+  var notasHTML = c.notas
+    ? '<div class="card" style="margin-top:1.25rem;"><h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:.75rem;">Notas</h3><p style="font-size:.875rem;color:var(--text-2);white-space:pre-wrap;">' + crm_esc(c.notas) + '</p></div>'
+    : '';
+
+  document.getElementById('contenido-contacto').innerHTML =
+    '<div class="page-header">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">' +
+        '<div>' +
+          '<p style="font-size:.8rem;color:var(--text-3);margin-bottom:.25rem;"><a href="crm-contactos.html" style="color:var(--accent-text);">← Contactos</a></p>' +
+          '<h2>' + crm_esc(c.nombre) + '</h2>' +
+          '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">' +
+            crm_badgeTipo(c.tipo) +
+            '<span class="crm-badge" style="background:var(--surface-3);color:var(--text-2);border-color:var(--border-light);">' + crm_esc(CRM_ORIGEN_LABELS[c.origen] || c.origen) + '</span>' +
+            clienteLink +
+          '</div>' +
+        '</div>' +
+        '<button class="btn btn-sm" onclick="abrirModalEditar()">Editar contacto</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="crm-contacto-datos">' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Teléfono</span>' +
+          '<span class="crm-meta-valor">' + crm_esc(c.telefono || '—') + '</span>' +
+        '</div>' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Email</span>' +
+          '<span class="crm-meta-valor">' + crm_esc(c.email || '—') + '</span>' +
+        '</div>' +
+        '<div class="crm-meta-item">' +
+          '<span class="crm-meta-label">Contacto desde</span>' +
+          '<span class="crm-meta-valor">' + crm_formatFecha(c.created_at) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    notasHTML +
+
+    '<div class="card" style="margin-top:1.25rem;">' +
+      '<div class="tabla-header" style="margin-bottom:1rem;">' +
+        '<h3>Casos</h3>' +
+        '<button class="btn btn-primary btn-sm" onclick="abrirModalCaso()">+ Nuevo caso</button>' +
+      '</div>' +
+      '<div id="casos-lista">' + casosHTML + '</div>' +
+    '</div>';
+}
+
+function renderCasosList() {
+  if (_casosDeCont.length === 0) {
+    return '<p class="tabla-vacia">Sin casos registrados. <a href="#" onclick="event.preventDefault();abrirModalCaso()" style="color:var(--accent-text)">Crear el primero</a></p>';
+  }
+
+  return '<div class="crm-casos-lista">' +
+    _casosDeCont.map(function(caso) {
+      var proximaStr = '';
+      if (caso.proxima_accion) {
+        proximaStr = '<span style="color:var(--accent-text);font-size:.75rem;">' +
+          crm_esc(caso.proxima_accion) +
+          (caso.fecha_proxima_accion ? ' · ' + crm_formatFecha(caso.fecha_proxima_accion) : '') +
+          '</span>';
+      }
+      return '<a href="crm-caso.html?id=' + crm_esc(caso.id) + '" class="crm-caso-row">' +
+        '<div class="crm-caso-row-info">' +
+          '<div class="crm-caso-row-titulo">' + crm_esc(caso.producto_interes || '(sin producto)') + '</div>' +
+          '<div class="crm-caso-row-meta">Últ. actividad: ' + crm_formatAntiguedad(caso.fecha_ultima_actividad) +
+            ' · Creado: ' + crm_formatFecha(caso.fecha_primer_contacto) + '</div>' +
+          (proximaStr ? '<div style="margin-top:.2rem;">' + proximaStr + '</div>' : '') +
+        '</div>' +
+        crm_badgeEstado(caso.estado) +
+        '<span style="color:var(--text-3);font-size:.8rem;">→</span>' +
+      '</a>';
+    }).join('') +
+  '</div>';
+}
+
+// ── Modal editar contacto ─────────────────────────────────────────────────────
+function abrirModalEditar() {
+  var c = _contacto;
+  document.getElementById('edit-nombre').value   = c.nombre;
+  document.getElementById('edit-tipo').value     = c.tipo;
+  document.getElementById('edit-telefono').value = c.telefono;
+  document.getElementById('edit-email').value    = c.email || '';
+  document.getElementById('edit-origen').value   = c.origen;
+  document.getElementById('edit-notas').value    = c.notas || '';
+  document.getElementById('editar-form-error').style.display = 'none';
+  document.getElementById('modal-editar').style.display = 'flex';
+}
+
+function cerrarModalEditar() {
+  document.getElementById('modal-editar').style.display = 'none';
+}
+
+function bindFormEditar() {
+  document.getElementById('form-editar').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('editar-form-error');
+    errEl.style.display = 'none';
+
+    var nombre   = document.getElementById('edit-nombre').value.trim();
+    var telefono = document.getElementById('edit-telefono').value.trim();
+    if (!nombre)   { errEl.textContent = 'El nombre es obligatorio.'; errEl.style.display='flex'; return; }
+    if (!telefono) { errEl.textContent = 'El teléfono es obligatorio.'; errEl.style.display='flex'; return; }
+
+    var btn = document.getElementById('btn-actualizar');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    try {
+      var patch = {
+        id:       _contacto.id,
+        nombre:   nombre,
+        tipo:     document.getElementById('edit-tipo').value,
+        telefono: telefono,
+        email:    document.getElementById('edit-email').value.trim() || null,
+        origen:   document.getElementById('edit-origen').value,
+        notas:    document.getElementById('edit-notas').value.trim()
+      };
+      _contacto = await crm_saveContacto(patch);
+      cerrarModalEditar();
+      renderContactoDetalle();
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err.message;
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Actualizar';
+    }
+  });
+}
+
+// ── Modal nuevo caso ──────────────────────────────────────────────────────────
+function abrirModalCaso() {
+  document.getElementById('form-caso').reset();
+  document.getElementById('caso-producto-otro').style.display = 'none';
+  document.getElementById('caso-form-error').style.display    = 'none';
+  document.getElementById('caso-fecha-primer').value = _crm_hoyStr();
+  crm_poblarSelectProductos(document.getElementById('caso-producto'));
+  document.getElementById('modal-caso').style.display = 'flex';
+}
+
+function cerrarModalCaso() {
+  document.getElementById('modal-caso').style.display = 'none';
+}
+
+function toggleCasoOtro() {
+  var sel   = document.getElementById('caso-producto');
+  var input = document.getElementById('caso-producto-otro');
+  input.style.display = sel.value === '__otro__' ? 'block' : 'none';
+  if (sel.value !== '__otro__') input.value = '';
+}
+
+function getProductoInteresCaso() {
+  var sel = document.getElementById('caso-producto');
+  if (sel.value === '__otro__') return document.getElementById('caso-producto-otro').value.trim();
+  return sel.value;
+}
+
+function bindFormCaso() {
+  document.getElementById('form-caso').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('caso-form-error');
+    errEl.style.display = 'none';
+
+    var producto = getProductoInteresCaso();
+    if (!producto) { errEl.textContent = 'Seleccioná o indicá el producto / interés.'; errEl.style.display='flex'; return; }
+
+    var btn = document.getElementById('btn-guardar-caso');
+    btn.disabled = true; btn.textContent = 'Creando…';
+
+    try {
+      var valorStr = document.getElementById('caso-valor').value;
+      var caso = {
+        contacto_id:           _contacto.id,
+        producto_interes:      producto,
+        estado:                document.getElementById('caso-estado').value,
+        fecha_primer_contacto: document.getElementById('caso-fecha-primer').value || _crm_hoyStr(),
+        fecha_ultima_actividad: new Date().toISOString(),
+        proxima_accion:        document.getElementById('caso-proxima-accion').value.trim(),
+        fecha_proxima_accion:  document.getElementById('caso-fecha-proxima').value || null,
+        valor_estimado:        valorStr ? parseFloat(valorStr) : null
+      };
+
+      var guardado = await crm_saveCaso(caso);
+      _casosDeCont.unshift(guardado);
+      cerrarModalCaso();
+      document.getElementById('casos-lista').innerHTML = renderCasosList();
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err.message;
+      errEl.style.display = 'flex';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Crear caso';
+    }
+  });
+}
+
+// ── Dólar widget ──────────────────────────────────────────────────────────────
+function renderDolarWidget(registro) {
+  if (!registro) return;
+  var ventaEl  = document.getElementById('dolar-valor-venta');
+  var compraEl = document.getElementById('dolar-valor-compra');
+  var fechaEl  = document.getElementById('dolar-fecha');
+  var fuenteEl = document.getElementById('dolar-fuente');
+  if (ventaEl)  ventaEl.textContent  = '$ ' + Number(registro.venta  || registro.valor || 0).toLocaleString('es-AR');
+  if (compraEl) compraEl.textContent = '$ ' + Number(registro.compra || registro.valor || 0).toLocaleString('es-AR');
+  if (registro.fuente === 'api') {
+    fuenteEl.textContent = '● EN VIVO'; fuenteEl.className = 'dolar-fuente dolar-live';
+    fechaEl.textContent  = '';
+  } else {
+    fuenteEl.textContent = '● CACHÉ'; fuenteEl.className = 'dolar-fuente dolar-cached';
+    fechaEl.textContent  = registro.fecha ? formatearAntiguedad(registro.fecha) + ' — puede estar desactualizado' : '';
+  }
+}
+
+function handleImport(event) {
+  var file = event.target.files[0]; if (!file) return;
+  importData(file)
+    .then(function() { alert('Datos importados correctamente.'); location.reload(); })
+    .catch(function(err) { alert('Error al importar: ' + err.message); });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var cache = getCacheDolar();
+  renderDolarWidget(cache);
+  fetchDolarBlue().then(renderDolarWidget);
+});
+</script>
+</body>
+</html>

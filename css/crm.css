@@ -1,0 +1,580 @@
+/*
+ * crm.css — Módulo CRM
+ * Estilos específicos del CRM, complementarios a styles.css.
+ */
+
+/* ── Separador de navegación ─────────────────────────────────────────────────── */
+.nav-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0.6rem;
+}
+
+/* ── Badges de estado ────────────────────────────────────────────────────────── */
+.crm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border: 1px solid;
+  line-height: 1.4;
+}
+
+/* Estados de caso */
+.crm-estado-nuevo {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+.crm-estado-en_conversacion {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.28);
+}
+.crm-estado-propuesta_enviada {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+.crm-estado-convertido {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.28);
+}
+.crm-estado-sin_respuesta {
+  background: rgba(107, 114, 128, 0.10);
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+}
+
+/* Tipos de contacto */
+.crm-tipo-profesional {
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  border-color: rgba(139, 92, 246, 0.28);
+}
+.crm-tipo-institucion {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.28);
+}
+.crm-tipo-aliado {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+.crm-tipo-familia {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.28);
+}
+
+/* Canal */
+.crm-badge-canal {
+  background: var(--surface-3);
+  color: var(--text-2);
+  border-color: var(--border-light);
+  font-weight: 500;
+}
+
+/* ── Secciones del dashboard ──────────────────────────────────────────────────── */
+.crm-seccion {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.crm-seccion-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.crm-seccion-header h3 {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.crm-badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.4rem;
+  border-radius: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.crm-count-vencida {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.crm-count-hoy {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.crm-count-inactiva {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* Borde lateral por sección */
+.crm-seccion-vencida { border-left: 3px solid #ef4444; }
+.crm-seccion-hoy     { border-left: 3px solid #f59e0b; }
+.crm-seccion-inactiva { border-left: 3px solid #475569; }
+
+/* ── Cards de caso en el dashboard ───────────────────────────────────────────── */
+.crm-lista {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.crm-lista-vacia {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-3);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.crm-caso-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  transition: border-color 0.12s;
+}
+
+.crm-caso-card:hover {
+  border-color: var(--accent-dim);
+}
+
+.crm-caso-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.crm-caso-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.crm-caso-nombre {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-caso-producto {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-caso-accion {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-caso-accion strong {
+  color: var(--text-1);
+}
+
+.crm-caso-fecha-vencida {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: #f87171;
+}
+
+.crm-caso-fecha-hoy {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: #fbbf24;
+}
+
+.crm-caso-fecha-inactiva {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+}
+
+.crm-caso-acciones {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── Timeline de interacciones ────────────────────────────────────────────────── */
+.crm-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.crm-timeline-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
+}
+
+.crm-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.crm-timeline-fecha {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  padding-top: 0.1rem;
+}
+
+.crm-timeline-fecha-str {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+
+.crm-timeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.crm-timeline-resumen {
+  font-size: 0.875rem;
+  color: var(--text-1);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.crm-timeline-proximo {
+  font-size: 0.8rem;
+  color: var(--accent-text);
+  padding: 0.4rem 0.6rem;
+  background: var(--accent-glow);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent);
+}
+
+.crm-timeline-proximo::before {
+  content: 'Próximo: ';
+  opacity: 0.7;
+}
+
+/* ── Formularios CRM ──────────────────────────────────────────────────────────── */
+.crm-form-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .crm-form-fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+.crm-campo-otro {
+  margin-top: 0.5rem;
+}
+
+/* ── Encabezado de caso (crm-caso.html) ───────────────────────────────────────── */
+.crm-caso-header-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.crm-caso-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.crm-caso-header-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.crm-caso-breadcrumb {
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+
+.crm-caso-breadcrumb a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.crm-caso-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.crm-caso-header-nombre {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.crm-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.crm-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.crm-meta-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.crm-meta-valor {
+  font-size: 0.875rem;
+  color: var(--text-1);
+}
+
+/* Próxima acción inline editable */
+.crm-proxima-accion-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.crm-proxima-accion-form input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+}
+
+.crm-proxima-accion-form input[type="date"] {
+  width: 155px;
+}
+
+/* ── Encabezado de contacto ───────────────────────────────────────────────────── */
+.crm-contacto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.crm-contacto-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* ── Estado select inline ─────────────────────────────────────────────────────── */
+.crm-select-inline {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-size: 0.85rem;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
+.crm-select-inline:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+}
+
+/* ── Tabla de casos en detalle de contacto ────────────────────────────────────── */
+.crm-casos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.crm-caso-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s;
+  flex-wrap: wrap;
+}
+
+.crm-caso-row:hover {
+  border-color: var(--accent-dim);
+}
+
+.crm-caso-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.crm-caso-row-titulo {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-caso-row-meta {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  margin-top: 0.2rem;
+}
+
+/* ── Resumen CRM en dashboard ─────────────────────────────────────────────────── */
+.crm-resumen-chips {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.crm-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 100px;
+}
+
+.crm-chip-valor {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.crm-chip-label {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Modal header CRM ─────────────────────────────────────────────────────────── */
+.crm-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* ── Interacción rápida info box ─────────────────────────────────────────────── */
+.crm-info-box {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--text-2);
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-light);
+}
+
+.crm-info-box strong {
+  color: var(--text-1);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .crm-caso-card {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-caso-acciones {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .crm-timeline-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .crm-meta-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 500px) {
+  .crm-meta-grid {
+    grid-template-columns: 1fr;
+  }
+  .crm-resumen-chips {
+    flex-direction: column;
+  }
+}
