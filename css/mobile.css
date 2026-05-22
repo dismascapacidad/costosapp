@@ -90,6 +90,12 @@
 
 @media (max-width: 700px) {
 
+  /* ── Tipografía global reducida en mobile ─────────────────── */
+
+  html, body {
+    font-size: 9px;
+  }
+
   /* ── Sidebar como drawer lateral ─────────────────────────── */
 
   .sidebar {
