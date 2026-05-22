@@ -312,7 +312,7 @@ function handleAgregarLinea() { ocultarErrorLineas(); var insumoId = document.ge
 
 function abrirModalCostos(id) {
   var p = getProductoPorId(id); if (!p) return;
-  var r; try { r = calcularResumen(p, window.AppData.insumos); } catch(e) { r = null; }
+  var r; try { r = calcularResumen(p, window.AppData.insumos, window.AppData.productos); } catch(e) { r = null; }
   document.getElementById('modal-costos-titulo').textContent = p.nombre;
 
   var recetaHTML = '';
