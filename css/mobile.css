@@ -1,20 +1,26 @@
 /**
- * mobile.css
- * Estilos responsive para CostosApp
- * Incluye: navegación mobile, sidebar overlay, y ajustes por módulo
+ * mobile.css — CostosApp
+ * Diseño responsive. Breakpoint principal: ≤700px | secundario: ≤480px.
+ *
+ * Estándares aplicados:
+ * • WCAG 2.5.5  — área táctil mínima 44×44px en todos los controles
+ * • iOS WebKit  — font-size ≥ 16px en inputs evita zoom automático en focus
+ * • touch-action: manipulation — elimina delay de 300ms en tap
+ * • Z-index coherente: sidebar(100) < overlay modal(500) < hamburger(490)
+ * • Drawer desde abajo para modales (patrón nativo iOS/Android)
  */
 
-/* ==========================================================================
-   NAVEGACIÓN MOBILE
-   ========================================================================== */
+/* ============================================================
+   HAMBURGER BUTTON
+   ============================================================ */
 
-/* Botón hamburger */
 .hamburger-btn {
-  display: none; /* Se muestra via JS en mobile */
+  display: none; /* JS lo muestra en mobile */
   position: fixed;
   top: 1rem;
   left: 1rem;
-  z-index: 1001;
+  /* CRÍTICO: z-index MENOR que modal overlay (500) para no tapar modales */
+  z-index: 490;
   width: 44px;
   height: 44px;
   align-items: center;
@@ -25,31 +31,25 @@
   color: var(--accent-text, #fbbf24);
   font-size: 1.5rem;
   cursor: pointer;
-  transition: all 0.2s;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .hamburger-btn:hover,
-.hamburger-btn:active {
-  background: var(--surface-2, #1e2128);
-  border-color: var(--accent, #f59e0b);
-}
+.hamburger-btn:active { background: var(--surface-2, #1e2128); border-color: var(--accent, #f59e0b); }
+.hamburger-btn.open   { background: var(--accent, #f59e0b); color: var(--bg, #0f1013); }
 
-.hamburger-btn.open {
-  background: var(--accent, #f59e0b);
-  color: var(--bg, #0f1013);
-}
+/* ============================================================
+   SIDEBAR OVERLAY (fondo oscuro al abrir drawer)
+   ============================================================ */
 
-/* Overlay oscuro */
 .sidebar-overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  z-index: 99;
+  z-index: 98;
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -59,13 +59,16 @@
   opacity: 1;
 }
 
-/* Botón cerrar dentro del sidebar */
+/* ============================================================
+   BOTÓN CERRAR DENTRO DEL SIDEBAR
+   ============================================================ */
+
 .sidebar-close {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: none;
   align-items: center;
   justify-content: center;
@@ -73,97 +76,81 @@
   border: 1px solid var(--border, #2a2e38);
   border-radius: var(--radius-sm, 5px);
   color: var(--text-2, #8b90a0);
-  font-size: 1rem;
+  font-size: 1.1rem;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.sidebar-close:hover {
-  background: var(--surface-2, #1e2128);
-  color: var(--text-1, #e8eaf0);
-}
+.sidebar-close:hover { background: var(--surface-2); color: var(--text-1); }
 
-/* ==========================================================================
-   MOBILE (≤700px)
-   ========================================================================== */
+/* ============================================================
+   MOBILE — ≤700px
+   ============================================================ */
 
 @media (max-width: 700px) {
-  /* Sidebar como drawer lateral */
+
+  /* ── Sidebar como drawer lateral ─────────────────────────── */
+
   .sidebar {
-    display: flex !important; /* Overridear el display:none de styles.css */
     position: fixed;
     top: 0;
-    left: -280px; /* Oculto a la izquierda */
+    left: -280px;
     width: 280px;
     height: 100vh;
     z-index: 100;
     transition: left 0.3s ease;
     overflow-y: auto;
+    /* Ya tiene display:flex de styles.css */
   }
 
-  .sidebar.open {
-    left: 0;
-  }
+  .sidebar.open { left: 0; }
+  .sidebar-close { display: flex; }
+  .hamburger-btn { display: flex; }
 
-  .sidebar-close {
-    display: flex;
-  }
+  /* ── Layout principal ─────────────────────────────────────── */
 
-  /* Main content sin margen */
   .main-content {
     margin-left: 0 !important;
-    padding-top: 70px; /* Espacio para el hamburger */
+    padding: 70px 1rem 3rem;
   }
 
-  /* Page header ajustado */
+  /* ── Page header ─────────────────────────────────────────── */
+
   .page-header {
     margin-bottom: 1rem;
+    padding-bottom: 0.875rem;
   }
 
-  .page-header h2 {
-    font-size: 1.25rem;
-  }
+  .page-header h2 { font-size: 1rem; }
+  .page-header p  { font-size: 0.8rem; }
 
-  /* Cards más compactas */
+  /* ── Cards ───────────────────────────────────────────────── */
+
   .card {
-    margin-bottom: 1rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
   }
 
-  .card-header {
-    padding: 0.75rem 1rem;
+  /* ── Botones — WCAG 2.5.5: 44×44px mínimo ───────────────── */
+
+  .btn {
+    min-height: 44px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .card-body {
-    padding: 0.875rem;
-  }
-
-  /* Tabla header wrapping */
-  .tabla-header {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .tabla-header h3 {
-    font-size: 0.95rem;
-    flex: 1 1 100%;
-  }
-
-  /* Tablas más compactas */
-  .tabla {
+  /* btn-sm también sube a 44px — no hay justificación para menor área táctil */
+  .btn-sm {
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
     font-size: 0.78rem;
+    touch-action: manipulation;
   }
 
-  .tabla th,
-  .tabla td {
-    padding: 0.4rem 0.5rem;
-  }
-
-  /* SKU tags */
-  .sku-tag {
-    font-size: 0.65rem;
-    padding: 0.15rem 0.3rem;
-  }
-
-  /* Botones ··· de acción en filas de tabla — área táctil mínima */
+  /* Botones de acción en filas de tabla (⋮) */
   .btn-menu,
   .btn-menu-acciones,
   .btn-menu-presup {
@@ -173,52 +160,167 @@
     align-items: center;
     justify-content: center;
     padding: 0;
+    touch-action: manipulation;
   }
 
-  /* Word-break en celdas para evitar overflow en textos largos */
-  .tabla td {
-    overflow-wrap: break-word;
+  /* ── Inputs/selects — iOS: font-size ≥ 16px evita zoom ─── */
+  /*
+   * IMPORTANTE: En iOS, cualquier input con font-size < 16px
+   * activa zoom automático al recibir focus. Esto rompe el layout.
+   * El !important es necesario para superar las reglas inline
+   * y las de módulos específicos.
+   */
+
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 
-  /* Botones — mínimo táctil 44px (WCAG 2.5.5) */
-  .btn {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.78rem;
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px !important;
     min-height: 44px;
-    display: inline-flex;
-    align-items: center;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .buscador-input,
+  .producto-search-input,
+  .cantidad-inline {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  /* ── Form grid — 1 columna forzada ─────────────────────── */
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Form actions — botones apilados full-width ──────────── */
+
+  .form-actions,
+  .modal-form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-actions .btn,
+  .modal-form-actions .btn {
+    width: 100%;
     justify-content: center;
   }
 
-  .btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
-    min-height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
+  /* ── Nav links — 44px táctil ────────────────────────────── */
 
-  /* Checkboxes y radios — área táctil mínima */
-  input[type="checkbox"],
-  input[type="radio"] {
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    cursor: pointer;
-  }
-
-  /* Modales — reducir padding del overlay para ganar espacio en pantalla */
-  .modal-overlay-producto {
+  nav a {
+    min-height: 44px;
     padding: 0.75rem;
   }
 
-  .modal-producto-content {
-    max-width: 95vw;
-    max-height: 92vh;
+  /* ── Tabla header — wrapping natural ────────────────────── */
+
+  .tabla-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
   }
 
-  /* Storage toolbar en sidebar */
+  .tabla-header h3 {
+    flex: 1 1 100%;
+    font-size: 0.875rem;
+    margin-bottom: 0;
+  }
+
+  .tabla-header .buscador-wrapper {
+    flex: 1 1 100%;
+    order: 10; /* buscador al final */
+  }
+
+  .tabla-header .buscador-input {
+    width: 100%;
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  /* ── Tablas — scroll horizontal obligatorio ─────────────── */
+  /*
+   * Las tablas usan table-layout:fixed con anchos en px.
+   * En mobile hacemos scroll horizontal en lugar de romper el layout.
+   */
+
+  #tabla-wrapper,
+  #tabla-clientes-wrapper,
+  #tabla-presupuestos-wrapper,
+  #tabla-productos-wrapper,
+  .presup-tabla-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla {
+    font-size: 0.78rem;
+  }
+
+  .tabla th,
+  .tabla td {
+    padding: 0.4rem 0.5rem;
+  }
+
+  /* ── Modales — drawer desde abajo (patrón iOS/Android) ─── */
+  /*
+   * align-items: flex-end + border-radius solo en parte superior
+   * es el patrón estándar de "bottom sheet" en mobile.
+   * Mucho más cómodo que un modal centrado verticalmente.
+   */
+
+  .modal-overlay-producto {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-producto-content {
+    max-width: 100vw !important;
+    width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: var(--radius) var(--radius) 0 0 !important;
+    margin-bottom: 0;
+  }
+
+  .modal-producto-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .modal-producto-body {
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal box estándar (exportar, detalle presupuesto) */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-width: 100% !important;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 1.25rem 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Storage toolbar ─────────────────────────────────────── */
+
   .storage-toolbar {
     padding: 0.75rem;
   }
@@ -226,218 +328,215 @@
   .storage-toolbar .btn {
     font-size: 0.75rem;
     padding: 0.5rem;
+    min-height: 44px;
   }
 
-  /* Dolar widget más compacto */
+  /* ── Dolar widget ─────────────────────────────────────────── */
+
   .dolar-widget {
-    padding: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    margin: 0.25rem 0.5rem;
   }
+
+  /* ── Checkboxes y radios ─────────────────────────────────── */
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  /* ── SKU tags ─────────────────────────────────────────────── */
+
+  .sku-tag {
+    font-size: 0.62rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  /* ── Word-break en celdas para textos largos ─────────────── */
+
+  .tabla td { overflow-wrap: break-word; }
+
 }
 
-/* ==========================================================================
-   MÓDULO: INDEX (Inicio)
-   ========================================================================== */
+/* ============================================================
+   MÓDULO: INSUMOS — ≤700px
+   Dejar solo: Nombre, Costo unitario, Acciones
+   ============================================================ */
 
 @media (max-width: 700px) {
-  /* Resumen cards en grid */
-  #resumen-estado .card-body {
-    padding: 0.75rem;
-  }
-
-  /* Alertas de stock */
-  #bloque-alertas .alert-item,
-  #bloque-ordenes .orden-item {
-    padding: 0.75rem;
-    font-size: 0.8rem;
-  }
-}
-
-/* ==========================================================================
-   MÓDULO: ESTADÍSTICAS
-   ========================================================================== */
-
-@media (max-width: 700px) {
-  /* Stats Summary - 2 columnas */
-  .stats-summary {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-
-  .stat-card {
-    padding: 0.875rem;
-  }
-
-  .stat-value {
-    font-size: 1.25rem;
-  }
-
-  .stat-value-sm {
-    font-size: 0.8rem;
-    line-height: 1.3;
-    word-break: break-word;
-  }
-
-  /* Chart */
-  .chart-container {
-    height: 250px;
-  }
-
-  /* Tabla de Rentabilidad */
-  #tabla-rentabilidad-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .tabla-rentabilidad {
-    min-width: 500px;
-    font-size: 0.75rem;
-  }
-
-  /* Ocultar columnas menos importantes */
-  .tabla-rentabilidad .col-categoria,
-  .tabla-rentabilidad .col-indicador {
-    display: none;
-  }
-
-  /* Legend */
-  .legend-items {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .legend-item {
-    font-size: 0.75rem;
-  }
-
-  /* ABC */
-  .abc-resumen {
-    grid-template-columns: 1fr;
-  }
-
-  .abc-clase-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .recomendaciones-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Tabla ABC */
-  .tabla-abc {
-    font-size: 0.75rem;
-  }
-
-  /* Ocultar % Ingresos y % Acumulado */
-  .tabla-abc th:nth-child(6),
-  .tabla-abc td:nth-child(6),
-  .tabla-abc th:nth-child(7),
-  .tabla-abc td:nth-child(7) {
-    display: none;
-  }
-}
-
-/* Mobile extra pequeño */
-@media (max-width: 480px) {
-  .stats-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .chart-container {
-    height: 200px;
-  }
-
-  .abc-clase-stats {
-    grid-template-columns: 1fr;
-  }
-
-  /* Ocultar más columnas */
-  .tabla-abc th:nth-child(4),
-  .tabla-abc td:nth-child(4) {
-    display: none;
-  }
-}
-
-/* ==========================================================================
-   MÓDULO: INSUMOS
-   ========================================================================== */
-
-@media (max-width: 700px) {
-  /* Ocultar columnas: proveedor, stock mínimo */
-  .tabla-insumos th:nth-child(5),
+  .tabla-insumos th:nth-child(2),  /* Categoría */
+  .tabla-insumos td:nth-child(2),
+  .tabla-insumos th:nth-child(3),  /* Unidad */
+  .tabla-insumos td:nth-child(3),
+  .tabla-insumos th:nth-child(4),  /* Precio compra */
+  .tabla-insumos td:nth-child(4),
+  .tabla-insumos th:nth-child(5),  /* Cantidad */
   .tabla-insumos td:nth-child(5),
-  .tabla-insumos th:nth-child(7),
+  .tabla-insumos th:nth-child(7),  /* Proveedor */
   .tabla-insumos td:nth-child(7) {
     display: none;
   }
 }
 
-/* ==========================================================================
-   MÓDULO: PRODUCTOS
-   ========================================================================== */
+/* ============================================================
+   MÓDULO: PRODUCTOS — ≤700px
+   Dejar solo: SKU, Nombre, P.Consumidor, Acciones
+   ============================================================ */
 
 @media (max-width: 700px) {
-  /* Ocultar: categoría, costo hora, markup */
-  .tabla-productos th:nth-child(3),
-  .tabla-productos td:nth-child(3) {
+  .tabla-productos th:nth-child(3),  /* Categoría */
+  .tabla-productos td:nth-child(3),
+  .tabla-productos th:nth-child(4),  /* Costo */
+  .tabla-productos td:nth-child(4),
+  .tabla-productos th:nth-child(5),  /* Margen */
+  .tabla-productos td:nth-child(5),
+  .tabla-productos th:nth-child(6),  /* Markup */
+  .tabla-productos td:nth-child(6),
+  .tabla-productos th:nth-child(8),  /* P. Distribuidor */
+  .tabla-productos td:nth-child(8) {
     display: none;
   }
 
-  /* Detalles de producto más compactos */
-  .producto-detalle {
-    padding: 0.75rem;
-  }
-
-  .producto-insumos-lista {
-    font-size: 0.75rem;
-  }
+  .producto-detalle { padding: 0.75rem; }
 }
 
-/* ==========================================================================
-   MÓDULO: PRESUPUESTOS
-   ========================================================================== */
+/* ============================================================
+   MÓDULO: PRESUPUESTOS — ≤700px
+   ============================================================ */
 
 @media (max-width: 700px) {
+
+  /* Historial: dejar solo N°, Cliente, Total, Acciones */
+  .tabla-presupuestos th:nth-child(3),  /* Fecha */
+  .tabla-presupuestos td:nth-child(3),
+  .tabla-presupuestos th:nth-child(4),  /* Vence */
+  .tabla-presupuestos td:nth-child(4),
+  .tabla-presupuestos th:nth-child(5),  /* Tipo */
+  .tabla-presupuestos td:nth-child(5),
+  .tabla-presupuestos th:nth-child(6),  /* Ítems */
+  .tabla-presupuestos td:nth-child(6) {
+    display: none;
+  }
+
+  /* Layout del formulario: una columna */
   .presup-layout {
     grid-template-columns: 1fr;
   }
 
-  .totales-presup {
-    margin-top: 1rem;
+  /* Panel de totales: quitar sticky (no tiene sentido apilado) */
+  #panel-totales {
+    position: static !important;
+    top: auto !important;
   }
 
+  /* Tipo cliente */
   .tipo-cliente-selector {
     flex-direction: column;
   }
 
   .tipo-btn {
     padding: 0.75rem;
+    min-height: 44px;
   }
-}
 
-/* ==========================================================================
-   MÓDULO: STOCK
-   ========================================================================== */
+  /* Fila agregar producto al presupuesto */
+  .linea-agregar-presup {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
 
-@media (max-width: 700px) {
-  .stock-grid {
+  .linea-agregar-presup .producto-search-wrap {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .linea-agregar-presup .campo-cantidad {
+    flex: 1;
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  .linea-agregar-presup .btn-agregar {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  /* Modal detalle presupuesto */
+  .modal-presup-detalle {
+    max-width: 100vw;
+    max-height: 90vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .detalle-grid {
     grid-template-columns: 1fr;
   }
 
-  /* Ocultar columna de stock mínimo en tabla */
-  .tabla-stock th:nth-child(4),
-  .tabla-stock td:nth-child(4) {
+}
+
+/* ============================================================
+   MÓDULO: CLIENTES — ≤700px
+   Dejar solo: Nombre, Tipo, Acciones
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .tabla-clientes th:nth-child(2),  /* Email */
+  .tabla-clientes td:nth-child(2),
+  .tabla-clientes th:nth-child(3),  /* Teléfono */
+  .tabla-clientes td:nth-child(3),
+  .tabla-clientes th:nth-child(5),  /* Segmento */
+  .tabla-clientes td:nth-child(5),
+  .tabla-clientes th:nth-child(6),  /* Compras */
+  .tabla-clientes td:nth-child(6),
+  .tabla-clientes th:nth-child(7),  /* Facturación */
+  .tabla-clientes td:nth-child(7) {
     display: none;
+  }
+
+  .cliente-card { padding: 0.875rem; }
+
+  /* Resumen de stats en 2 columnas */
+  .clientes-resumen {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem;
+  }
+
+  /* Filtros de segmento: chips que hacen wrap */
+  .segmentos-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .segmento-filtro {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.65rem;
+    min-height: 36px; /* los filtros pueden ser un poco más chicos */
+    border-radius: 99px;
   }
 }
 
-/* ==========================================================================
-   MÓDULO: PRODUCCIÓN
-   ========================================================================== */
+/* ============================================================
+   MÓDULO: STOCK — ≤700px
+   ============================================================ */
 
 @media (max-width: 700px) {
-  .orden-card {
-    padding: 0.875rem;
-  }
+  .stock-grid { grid-template-columns: 1fr; }
+
+  .tabla-stock th:nth-child(4),
+  .tabla-stock td:nth-child(4) { display: none; }
+}
+
+/* ============================================================
+   MÓDULO: PRODUCCIÓN — ≤700px
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .orden-card { padding: 0.875rem; }
 
   .orden-header {
     flex-direction: column;
@@ -450,55 +549,72 @@
     justify-content: flex-start;
   }
 
-  .orden-lineas {
+  .orden-lineas { font-size: 0.8rem; }
+}
+
+/* ============================================================
+   MÓDULO: ESTADÍSTICAS — ≤700px
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .stats-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card   { padding: 0.875rem; }
+  .stat-value  { font-size: 1.25rem; }
+
+  .stat-value-sm {
     font-size: 0.8rem;
+    line-height: 1.3;
+    word-break: break-word;
   }
+
+  .chart-container { height: 250px; }
+
+  #tabla-rentabilidad-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla-rentabilidad {
+    min-width: 480px;
+    font-size: 0.75rem;
+  }
+
+  .tabla-rentabilidad .col-categoria,
+  .tabla-rentabilidad .col-indicador { display: none; }
+
+  .legend-items    { flex-direction: column; gap: 0.5rem; }
+  .legend-item     { font-size: 0.75rem; }
+  .abc-resumen     { grid-template-columns: 1fr; }
+  .abc-clase-stats { grid-template-columns: repeat(2, 1fr); }
+  .recomendaciones-grid { grid-template-columns: 1fr; }
+  .tabla-abc       { font-size: 0.75rem; }
+
+  .tabla-abc th:nth-child(6),
+  .tabla-abc td:nth-child(6),
+  .tabla-abc th:nth-child(7),
+  .tabla-abc td:nth-child(7) { display: none; }
 }
 
-/* ==========================================================================
-   MÓDULO: CLIENTES
-   ========================================================================== */
+/* ============================================================
+   MÓDULO: SIMULADOR — ≤700px
+   ============================================================ */
 
 @media (max-width: 700px) {
-  /* Ocultar teléfono y dirección */
-  .tabla-clientes th:nth-child(3),
-  .tabla-clientes td:nth-child(3),
-  .tabla-clientes th:nth-child(4),
-  .tabla-clientes td:nth-child(4) {
-    display: none;
-  }
-
-  .cliente-card {
-    padding: 0.875rem;
-  }
+  .simulador-grid        { grid-template-columns: 1fr; }
+  .simulador-resultados  { font-size: 0.85rem; }
 }
 
-/* ==========================================================================
-   MÓDULO: SIMULADOR
-   ========================================================================== */
+/* ============================================================
+   MÓDULO: IMPORTAR VENTAS — ≤700px
+   ============================================================ */
 
 @media (max-width: 700px) {
-  .simulador-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .simulador-resultados {
-    font-size: 0.85rem;
-  }
-}
-
-/* ==========================================================================
-   MÓDULO: IMPORTAR VENTAS
-   ========================================================================== */
-
-@media (max-width: 700px) {
-  .importador-pasos {
-    flex-direction: column;
-  }
-
-  .paso-item {
-    padding: 0.75rem;
-  }
+  .importador-pasos { flex-direction: column; }
+  .paso-item        { padding: 0.75rem; }
 
   .mapeo-item {
     flex-direction: column;
@@ -506,36 +622,43 @@
     gap: 0.5rem;
   }
 
-  .mapeo-select {
-    width: 100%;
-  }
+  .mapeo-select { width: 100%; }
 }
 
-/* ==========================================================================
-   UTILIDADES MOBILE
-   ========================================================================== */
+/* ============================================================
+   TELÉFONOS PEQUEÑOS — ≤480px
+   ============================================================ */
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 65px 0.75rem 2.5rem;
+  }
+
+  .stats-summary       { grid-template-columns: 1fr; }
+  .abc-clase-stats     { grid-template-columns: 1fr; }
+  .chart-container     { height: 200px; }
+  .clientes-resumen    { grid-template-columns: 1fr 1fr !important; }
+
+  .tabla-abc th:nth-child(4),
+  .tabla-abc td:nth-child(4) { display: none; }
+}
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
 
 @media (max-width: 700px) {
-  .hide-mobile {
-    display: none !important;
-  }
+  .hide-mobile { display: none !important; }
 }
 
 @media (max-width: 480px) {
-  .hide-mobile-sm {
-    display: none !important;
-  }
+  .hide-mobile-sm { display: none !important; }
 }
 
-/* Clase para debug */
-.debug-mobile::before {
+/* Debug — descomentar para ver el breakpoint activo */
+/* .debug-mobile::before {
   content: "MOBILE";
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  background: red;
-  color: white;
-  padding: 2px 6px;
-  font-size: 10px;
-  z-index: 9999;
-}
+  position: fixed; bottom: 0; right: 0;
+  background: red; color: white;
+  padding: 2px 6px; font-size: 10px; z-index: 9999;
+} */
