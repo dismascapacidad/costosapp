@@ -294,6 +294,23 @@
   margin-bottom: 0.25rem;
 }
 
+.mapeo-sku {
+  display: inline-block;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  background: rgba(245,158,11,0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 3px;
+  padding: 0.05rem 0.35rem;
+}
+
+.mapeo-sku-ausente {
+  background: rgba(239,68,68,0.08);
+  color: #f87171;
+  border-color: rgba(239,68,68,0.2);
+}
+
 .mapeo-stats {
   font-size: 0.75rem;
   color: var(--text-2, #94a3b8);

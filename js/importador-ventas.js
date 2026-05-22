@@ -149,109 +149,144 @@ function handleFileSelect(event) {
 // =============================================================================
 
 /**
- * Procesa el Excel de TiendaNegocio
+ * Procesa el Excel de TiendaNegocio.
+ *
+ * ESTRUCTURA DEL ARCHIVO:
+ * TiendaNegocio genera UNA FILA POR PRODUCTO dentro de la misma orden.
+ * La primera fila de cada orden tiene todos los datos (fecha, total, método de pago, etc.).
+ * Las filas siguientes de la misma orden solo tienen: # de venta + nombre/precio/cantidad/SKU del producto.
+ * El campo "Fecha" vacío es el indicador de que es una fila de continuación.
  */
 function procesarExcelTiendaNegocio(arrayBuffer) {
   console.log('[importador] Procesando Excel de TiendaNegocio...');
-  
-  // Parsear Excel con SheetJS
+
   var workbook = XLSX.read(arrayBuffer, { type: 'array' });
   var sheetName = workbook.SheetNames[0];
   var worksheet = workbook.Sheets[sheetName];
-  
-  // Convertir a JSON
-  var data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-  
+
+  // defval: '' → celdas vacías devuelven '' en vez de undefined
+  var data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
   if (data.length < 2) {
     alert('El archivo está vacío o no tiene datos.');
     return;
   }
-  
-  // Primera fila es el header
+
   var header = data[0].map(function(h) { return String(h || '').trim(); });
-  
-  // Buscar índices de columnas
-  var indices = {
-    orden: buscarColumna(header, ['# de venta', 'numero de venta', 'nro venta', 'venta']),
-    fecha: buscarColumna(header, ['fecha']),
-    estado: buscarColumna(header, ['estado de la venta', 'estado']),
-    producto: buscarColumna(header, ['nombre del producto', 'producto']),
-    precio: buscarColumna(header, ['precio del producto', 'precio']),
-    cantidad: buscarColumna(header, ['cantidad del producto', 'cantidad']),
-    sku: buscarColumna(header, ['sku']),
-    total: buscarColumna(header, ['total'])
+
+  var idx = {
+    orden:      buscarColumna(header, ['# de venta', 'numero de venta', 'nro venta']),
+    fecha:      buscarColumna(header, ['fecha']),
+    estado:     buscarColumna(header, ['estado de la venta', 'estado']),
+    total:      buscarColumna(header, ['total']),
+    metodoPago: buscarColumna(header, ['metodo de pago', 'metodo']),
+    producto:   buscarColumna(header, ['nombre del producto']),
+    precio:     buscarColumna(header, ['precio del producto']),
+    cantidad:   buscarColumna(header, ['cantidad del producto']),
+    sku:        buscarColumna(header, ['sku'])
   };
-  
-  console.log('[importador] Índices encontrados:', indices);
-  
-  // Validar columnas mínimas
-  if (indices.orden === -1 || indices.fecha === -1 || indices.producto === -1) {
-    alert('El archivo no parece ser un Excel válido de TiendaNegocio. Faltan columnas: ' +
-      (indices.orden === -1 ? '"# de venta" ' : '') +
-      (indices.fecha === -1 ? '"Fecha" ' : '') +
-      (indices.producto === -1 ? '"Nombre del producto" ' : ''));
+
+  console.log('[importador] Índices encontrados:', idx);
+
+  if (idx.orden === -1 || idx.producto === -1) {
+    alert('El archivo no parece ser un Excel válido de TiendaNegocio.\n' +
+      (idx.orden   === -1 ? 'Falta columna "# de venta"\n' : '') +
+      (idx.producto === -1 ? 'Falta columna "Nombre del producto"\n' : ''));
     return;
   }
-  
-  // Procesar filas
-  var ventas = [];
+
+  // ── Agrupar filas por orden ──────────────────────────────────────────────────
+  // La primera fila de cada orden tiene la fecha → es la fila principal.
+  // Las filas de continuación tienen la fecha vacía → heredan datos de la orden.
+
+  var ordenesMap = {};   // ordenId → { fecha, estado, totalOrden, metodoPago, lineas[] }
+  var ordenActualId = null;
+
   for (var i = 1; i < data.length; i++) {
     var fila = data[i];
-    if (!fila || fila.length === 0) continue;
-    
-    var numeroOrden = fila[indices.orden];
-    var fecha = fila[indices.fecha];
-    var producto = fila[indices.producto];
-    var precio = indices.precio !== -1 ? fila[indices.precio] : 0;
-    var cantidad = indices.cantidad !== -1 ? fila[indices.cantidad] : 1;
-    var sku = indices.sku !== -1 ? fila[indices.sku] : '';
-    var estado = indices.estado !== -1 ? fila[indices.estado] : '';
-    
-    // Validar datos mínimos
-    if (!numeroOrden || !producto) continue;
-    if (String(producto).trim() === '') continue;
-    
-    // Parsear valores numéricos
-    var precioNum = parseFloat(String(precio).replace(',', '.')) || 0;
-    var cantidadNum = parseFloat(String(cantidad).replace(',', '.')) || 1;
-    
-    ventas.push({
-      numeroOrden: String(numeroOrden),
-      fecha: parsearFechaTiendaNegocio(fecha),
-      producto: String(producto).trim(),
-      sku: sku ? String(sku).trim() : '',
-      precioUnitario: precioNum,
-      cantidad: cantidadNum,
-      total: precioNum * cantidadNum,
-      estado: String(estado || '').trim()
+    var ordenId = String(fila[idx.orden] || '').trim();
+    if (!ordenId) continue;
+
+    var tieneDate = idx.fecha !== -1 && String(fila[idx.fecha] || '').trim() !== '';
+
+    if (tieneDate || !ordenesMap[ordenId]) {
+      // Fila principal de la orden (o primera vez que aparece el ID)
+      ordenesMap[ordenId] = {
+        numeroOrden: ordenId,
+        fecha:       parsearFechaTiendaNegocio(idx.fecha !== -1 ? fila[idx.fecha] : ''),
+        estado:      idx.estado     !== -1 ? String(fila[idx.estado]     || '').trim() : '',
+        totalOrden:  idx.total      !== -1 ? (parseFloat(String(fila[idx.total] || '0').replace(',', '.')) || 0) : 0,
+        metodoPago:  idx.metodoPago !== -1 ? String(fila[idx.metodoPago] || '').trim() : '',
+        lineas: []
+      };
+    }
+    ordenActualId = ordenId;
+
+    // Agregar línea de producto (presente en fila principal Y en filas de continuación)
+    var nombreProd = idx.producto !== -1 ? String(fila[idx.producto] || '').trim() : '';
+    var skuProd    = idx.sku      !== -1 ? String(fila[idx.sku]      || '').trim() : '';
+    var precioProd = idx.precio   !== -1 ? (parseFloat(String(fila[idx.precio]   || '0').replace(',', '.')) || 0) : 0;
+    var cantidadProd = idx.cantidad !== -1 ? (parseFloat(String(fila[idx.cantidad] || '1').replace(',', '.')) || 1) : 1;
+
+    if (!nombreProd) continue;
+
+    ordenesMap[ordenId].lineas.push({
+      nombre:   nombreProd,
+      sku:      skuProd,
+      precio:   precioProd,
+      cantidad: cantidadProd
     });
   }
-  
+
+  // ── Aplanar a array de ventas (una entrada por línea de producto) ────────────
+  var ventas = [];
+  Object.values(ordenesMap).forEach(function(orden) {
+    orden.lineas.forEach(function(linea) {
+      ventas.push({
+        numeroOrden:   orden.numeroOrden,
+        fecha:         orden.fecha,
+        estado:        orden.estado,
+        metodoPago:    orden.metodoPago,
+        totalOrden:    orden.totalOrden,
+        producto:      linea.nombre,
+        sku:           linea.sku,
+        precioUnitario: linea.precio,
+        cantidad:      linea.cantidad,
+        total:         linea.precio * linea.cantidad
+      });
+    });
+  });
+
   if (ventas.length === 0) {
     alert('No se encontraron ventas válidas en el archivo.');
     return;
   }
-  
+
   _estadoImportador.ventasCrudas = ventas;
-  console.log('[importador] Ventas parseadas:', ventas.length);
-  
-  // Cargar mapeo guardado de TiendaNegocio
+  console.log('[importador] Ventas parseadas:', ventas.length, '| Órdenes:', Object.keys(ordenesMap).length);
+
   _estadoImportador.mapeoGuardado = _estadoImportador.mapeoTiendaNegocio || {};
-  
+
   analizarVentas();
   mostrarAnalisis();
 }
 
 /**
- * Busca una columna por múltiples nombres posibles
+ * Busca una columna por múltiples nombres posibles.
+ * Normaliza acentos para que "Método de pago" matchee con "metodo de pago".
  */
 function buscarColumna(header, nombres) {
+  function norm(s) {
+    return s.toLowerCase()
+      .replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e')
+      .replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o')
+      .replace(/[úùüû]/g, 'u').replace(/ñ/g, 'n');
+  }
   for (var i = 0; i < header.length; i++) {
-    var h = header[i].toLowerCase().trim();
+    var h = norm(String(header[i] || '')).trim();
     for (var j = 0; j < nombres.length; j++) {
-      if (h === nombres[j].toLowerCase() || h.indexOf(nombres[j].toLowerCase()) >= 0) {
-        return i;
-      }
+      var n = norm(nombres[j]);
+      if (h === n || h.indexOf(n) >= 0) return i;
     }
   }
   return -1;
@@ -528,28 +563,42 @@ function irAlMapeo() {
   document.getElementById('paso-2-analisis').style.display = 'none';
   document.getElementById('paso-3-mapeo').style.display = 'block';
 
-  // Actualizar nombre de plataforma
   var nombrePlataforma = _estadoImportador.plataforma === 'tiendanube' ? 'TiendaNube' : 'TiendaNegocio';
   document.getElementById('nombre-plataforma').textContent = nombrePlataforma;
 
-  // Inicializar mapeo con los guardados
+  // Inicializar mapeo vacío
   _estadoImportador.mapeo = {};
-  
-  // Aplicar mapeos guardados
+
+  // 1. Aplicar mapeos guardados (por nombre de producto de la plataforma)
   if (_estadoImportador.mapeoGuardado) {
     _estadoImportador.productosUnicos.forEach(function(p) {
       if (_estadoImportador.mapeoGuardado[p.nombre]) {
-        // Verificar que el producto mapeado aún existe
         var productoId = _estadoImportador.mapeoGuardado[p.nombre].productoId;
-        var existe = window.AppData.productos.find(function(prod) {
-          return prod.id === productoId;
-        });
+        var existe = window.AppData.productos.find(function(prod) { return prod.id === productoId; });
         if (existe) {
           _estadoImportador.mapeo[p.nombre] = _estadoImportador.mapeoGuardado[p.nombre];
         }
       }
     });
   }
+
+  // 2. Auto-mapear por SKU los que aún no tienen mapeo (sin alert)
+  _estadoImportador.productosUnicos.forEach(function(p) {
+    if (_estadoImportador.mapeo[p.nombre]) return; // ya mapeado
+    if (!p.sku) return; // sin SKU → requiere mapeo manual
+
+    var porSku = window.AppData.productos.find(function(prod) {
+      return prod.sku && prod.sku.toLowerCase() === p.sku.toLowerCase();
+    });
+    if (porSku) {
+      _estadoImportador.mapeo[p.nombre] = {
+        productoId:  porSku.id,
+        sku:         porSku.sku || '',
+        nombre:      porSku.nombre,
+        fechaMapeo:  new Date().toISOString().split('T')[0]
+      };
+    }
+  });
 
   renderizarMapeo();
 }
@@ -564,23 +613,26 @@ function renderizarMapeo() {
   _estadoImportador.productosUnicos.forEach(function(p) {
     var mapeado = _estadoImportador.mapeo[p.nombre];
     var selectId = 'select-' + hashString(p.nombre);
+    var skuTag = p.sku
+      ? '<span class="mapeo-sku">SKU: ' + escapar(p.sku) + '</span>'
+      : '<span class="mapeo-sku mapeo-sku-ausente">Sin SKU</span>';
 
     html += '<div class="mapeo-item' + (mapeado ? ' mapeado' : '') + '" data-nombre="' + escapar(p.nombre) + '">';
     html += '<div class="mapeo-origen">';
     html += '<div class="mapeo-nombre">' + escapar(p.nombre) + '</div>';
-    html += '<div class="mapeo-meta">' + p.unidadesVendidas + ' uds · ARS ' + formatNum(p.totalVendido) + '</div>';
+    html += '<div class="mapeo-meta">' + skuTag + ' · ' + p.unidadesVendidas + ' uds · ARS ' + formatNum(p.totalVendido) + '</div>';
     html += '</div>';
     html += '<div class="mapeo-flecha">→</div>';
     html += '<div class="mapeo-destino">';
     html += '<select id="' + selectId + '" class="mapeo-select" onchange="mapearProducto(\'' + escaparJS(p.nombre) + '\', this.value)">';
     html += '<option value="">-- Seleccionar producto --</option>';
-    
+
     productosApp.forEach(function(prod) {
       var selected = mapeado && mapeado.productoId === prod.id ? ' selected' : '';
-      html += '<option value="' + prod.id + '"' + selected + '>' + 
+      html += '<option value="' + prod.id + '"' + selected + '>' +
         (prod.sku ? '[' + prod.sku + '] ' : '') + escapar(prod.nombre) + '</option>';
     });
-    
+
     html += '</select>';
     html += '<button class="btn btn-sm" onclick="buscarCoincidencia(\'' + escaparJS(p.nombre) + '\', \'' + selectId + '\')" title="Buscar automático">🔍</button>';
     html += '</div>';
@@ -785,6 +837,7 @@ function prepararVentasParaImportar() {
       cantidad: v.cantidad,
       precioUnitario: v.precioUnitario,
       total: v.total,
+      metodoPago: v.metodoPago || '',
       fuente: _estadoImportador.plataforma,
       productoOriginal: v.producto
     });
@@ -844,6 +897,7 @@ function ejecutarImportacion() {
       cantidad: v.cantidad,
       precioUnitario: v.precioUnitario,
       total: v.total,
+      metodoPago: v.metodoPago || '',
       fuente: v.fuente,
       importadoEn: new Date().toISOString()
     });

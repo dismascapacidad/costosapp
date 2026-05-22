@@ -1302,7 +1302,7 @@ nav a.active::before {
 /* ── Mobile (< 700px) ──────────────────────────────────────────────────── */
 @media (max-width: 700px) {
   :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
+  /* .sidebar NO se oculta aquí — mobile.css lo convierte en drawer lateral */
   .main-content {
     margin-left: 0;
     padding: 1.25rem 1rem 3rem;
