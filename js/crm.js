@@ -71,6 +71,32 @@ function crm_getSeguimientosHoy(casos) {
 }
 
 /**
+ * Casos activos con fecha_proxima_accion entre mañana y los próximos N días.
+ * @param {Array}  casos
+ * @param {number} [dias=15]
+ * @returns {Array}
+ */
+function crm_getSeguimientosProximos(casos, dias) {
+  dias = dias || 15;
+  var hoy = _crm_hoyStr();
+
+  var d = new Date();
+  d.setDate(d.getDate() + dias);
+  var mes    = String(d.getMonth() + 1).padStart(2, '0');
+  var dia    = String(d.getDate()).padStart(2, '0');
+  var limite = d.getFullYear() + '-' + mes + '-' + dia;
+
+  return casos.filter(function(c) {
+    return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1 &&
+           c.fecha_proxima_accion &&
+           c.fecha_proxima_accion > hoy &&
+           c.fecha_proxima_accion <= limite;
+  }).sort(function(a, b) {
+    return a.fecha_proxima_accion < b.fecha_proxima_accion ? -1 : 1;
+  });
+}
+
+/**
  * Casos activos sin interacciones en los últimos N días
  * (excluyendo los que ya aparecen en vencidos o hoy).
  * @param {Array}  casos

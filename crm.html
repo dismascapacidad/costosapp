@@ -115,6 +115,17 @@
         <p class="crm-lista-vacia">Cargando…</p>
       </div>
     </div>
+
+    <!-- Sección: Próximos 15 días -->
+    <div class="crm-seccion crm-seccion-proxima" style="margin-top:1.25rem;">
+      <div class="crm-seccion-header">
+        <h3>Próximos 15 días</h3>
+        <span class="crm-badge-count crm-count-proxima" id="count-proximos">0</span>
+      </div>
+      <div id="lista-proximos" class="crm-lista">
+        <p class="crm-lista-vacia">Cargando…</p>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -223,14 +234,18 @@ function renderDashboard() {
   document.getElementById('chip-convertidos').textContent  = convertidos;
 
   // Contadores
+  var proximos  = crm_getSeguimientosProximos(_crmData.casos);
+
   document.getElementById('count-vencidos').textContent  = vencidos.length;
   document.getElementById('count-hoy').textContent       = hoy.length;
   document.getElementById('count-inactivos').textContent = inactivos.length;
+  document.getElementById('count-proximos').textContent  = proximos.length;
 
   // Listas
-  renderListaCasos('lista-vencidos', vencidos, 'vencida');
-  renderListaCasos('lista-hoy',      hoy,      'hoy');
+  renderListaCasos('lista-vencidos',  vencidos,  'vencida');
+  renderListaCasos('lista-hoy',       hoy,       'hoy');
   renderListaCasos('lista-inactivos', inactivos, 'inactiva');
+  renderListaCasos('lista-proximos',  proximos,  'proxima');
 }
 
 function renderListaCasos(contenedorId, casos, tipo) {
@@ -250,6 +265,10 @@ function renderListaCasos(contenedorId, casos, tipo) {
       infoFecha = '<span class="crm-caso-fecha-vencida">Venció hace ' + dias + (dias === 1 ? ' día' : ' días') + '</span>';
     } else if (tipo === 'hoy') {
       infoFecha = '<span class="crm-caso-fecha-hoy">Para hoy</span>';
+    } else if (tipo === 'proxima') {
+      var diasRestantes = Math.ceil((new Date(caso.fecha_proxima_accion + 'T00:00:00') - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+      var labelDias = diasRestantes === 1 ? 'mañana' : 'en ' + diasRestantes + ' días';
+      infoFecha = '<span class="crm-caso-fecha-proxima">· ' + crm_formatFecha(caso.fecha_proxima_accion) + ' (' + labelDias + ')</span>';
     } else {
       infoFecha = '<span class="crm-caso-fecha-inactiva">Última actividad: ' + crm_formatAntiguedad(caso.fecha_ultima_actividad) + '</span>';
     }
@@ -385,13 +404,13 @@ function handleImport(event) {
 }
 
 function mostrarCargando() {
-  ['lista-vencidos','lista-hoy','lista-inactivos'].forEach(function(id) {
+  ['lista-vencidos','lista-hoy','lista-inactivos','lista-proximos'].forEach(function(id) {
     document.getElementById(id).innerHTML = '<p class="crm-lista-vacia">Cargando…</p>';
   });
 }
 
 function mostrarError(msg) {
-  ['lista-vencidos','lista-hoy','lista-inactivos'].forEach(function(id) {
+  ['lista-vencidos','lista-hoy','lista-inactivos','lista-proximos'].forEach(function(id) {
     document.getElementById(id).innerHTML = '<p class="crm-lista-vacia" style="color:var(--error)">' + crm_esc(msg) + '</p>';
   });
 }

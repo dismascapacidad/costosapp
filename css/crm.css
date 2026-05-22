@@ -136,11 +136,17 @@
   color: #94a3b8;
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
+.crm-count-proxima {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
 
 /* Borde lateral por sección */
-.crm-seccion-vencida { border-left: 3px solid #ef4444; }
-.crm-seccion-hoy     { border-left: 3px solid #f59e0b; }
+.crm-seccion-vencida  { border-left: 3px solid #ef4444; }
+.crm-seccion-hoy      { border-left: 3px solid #f59e0b; }
 .crm-seccion-inactiva { border-left: 3px solid #475569; }
+.crm-seccion-proxima  { border-left: 3px solid #34d399; }
 
 /* ── Cards de caso en el dashboard ───────────────────────────────────────────── */
 .crm-lista {
@@ -233,6 +239,12 @@
   font-size: 0.75rem;
   font-family: var(--font-mono);
   color: var(--text-3);
+}
+
+.crm-caso-fecha-proxima {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: #34d399;
 }
 
 .crm-caso-acciones {
