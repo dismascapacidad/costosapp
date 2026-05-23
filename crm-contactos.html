@@ -213,15 +213,17 @@
 
 <script>
 // ── Estado ────────────────────────────────────────────────────────────────────
-var _contactos = [];
-var _casos     = [];
+var _contactos    = [];
+var _casos        = [];
+var _casoContactos = [];
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function initCRMContactos() {
   try {
     var data = await crm_loadAll();
-    _contactos = data.contactos;
-    _casos     = data.casos;
+    _contactos     = data.contactos;
+    _casos         = data.casos;
+    _casoContactos = data.casoContactos || [];
     renderContactosList();
 
     // Si viene ?nuevo=1 en la URL, abrir modal automáticamente
@@ -243,7 +245,7 @@ function renderContactosList() {
     estadoCaso: document.getElementById('filtro-estado').value
   };
 
-  var filtrados = crm_filtrarContactos(_contactos, _casos, filtros);
+  var filtrados = crm_filtrarContactos(_contactos, _casos, filtros, _casoContactos);
 
   document.getElementById('contador-contactos').textContent =
     filtrados.length + (filtrados.length === 1 ? ' contacto' : ' contactos');
@@ -258,8 +260,8 @@ function renderContactosList() {
   }
 
   var filas = filtrados.map(function(c) {
-    var casoRel     = crm_getCasoRelevante(c.id, _casos);
-    var activos     = crm_countCasosActivos(c.id, _casos);
+    var casoRel     = crm_getCasoRelevante(c.id, _casos, _casoContactos);
+    var activos     = crm_countCasosActivos(c.id, _casos, _casoContactos);
     var estadoHtml  = casoRel ? crm_badgeEstado(casoRel.estado) : '<span class="crm-badge crm-estado-sin_respuesta">Sin casos</span>';
     var ultimaAct   = casoRel ? crm_formatAntiguedad(casoRel.fecha_ultima_actividad) : '—';
 

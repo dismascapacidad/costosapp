@@ -50,6 +50,7 @@ function crm_getSeguimientosVencidos(casos) {
   var hoy = _crm_hoyStr();
   return casos.filter(function(c) {
     return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1 &&
+           !c.accion_completada &&
            c.fecha_proxima_accion &&
            c.fecha_proxima_accion < hoy;
   }).sort(function(a, b) {
@@ -58,7 +59,7 @@ function crm_getSeguimientosVencidos(casos) {
 }
 
 /**
- * Casos activos con fecha_proxima_accion igual a hoy.
+ * Casos activos con fecha_proxima_accion igual a hoy, sin acción completada.
  * @param {Array} casos
  * @returns {Array}
  */
@@ -66,12 +67,14 @@ function crm_getSeguimientosHoy(casos) {
   var hoy = _crm_hoyStr();
   return casos.filter(function(c) {
     return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1 &&
+           !c.accion_completada &&
            c.fecha_proxima_accion === hoy;
   });
 }
 
 /**
- * Casos activos con fecha_proxima_accion entre mañana y los próximos N días.
+ * Casos activos con fecha_proxima_accion entre mañana y los próximos N días,
+ * sin acción completada.
  * @param {Array}  casos
  * @param {number} [dias=15]
  * @returns {Array}
@@ -88,6 +91,7 @@ function crm_getSeguimientosProximos(casos, dias) {
 
   return casos.filter(function(c) {
     return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1 &&
+           !c.accion_completada &&
            c.fecha_proxima_accion &&
            c.fecha_proxima_accion > hoy &&
            c.fecha_proxima_accion <= limite;
@@ -133,19 +137,57 @@ function crm_getCasosInactivos(casos, interacciones, dias) {
   });
 }
 
+// ── Helpers de tabla de unión (múltiples contactos por caso) ──────────────────
+
+/**
+ * Devuelve todos los contactos vinculados a un caso (via junction table).
+ * Si casoContactos está vacío/no disponible, cae en contacto_id del caso.
+ * @param {string} casoId
+ * @param {Array}  casoContactos  filas de caso_contactos_crm
+ * @param {Array}  contactos      todos los contactos
+ * @returns {Array}
+ */
+function crm_getContactosDeCaso(casoId, casoContactos, contactos) {
+  if (!casoContactos || casoContactos.length === 0) return [];
+  var ids = casoContactos
+    .filter(function(r) { return r.caso_id === casoId; })
+    .map(function(r) { return r.contacto_id; });
+  return contactos.filter(function(c) { return ids.indexOf(c.id) !== -1; });
+}
+
+/**
+ * Devuelve todos los casos vinculados a un contacto (via junction table).
+ * Si casoContactos está vacío/no disponible, cae en contacto_id del caso.
+ * @param {string} contactoId
+ * @param {Array}  casoContactos  filas de caso_contactos_crm
+ * @param {Array}  casos
+ * @returns {Array}
+ */
+function crm_getCasosDeContacto(contactoId, casoContactos, casos) {
+  if (!casoContactos || casoContactos.length === 0) {
+    // Fallback: campo directo en caso
+    return casos.filter(function(c) { return c.contacto_id === contactoId; });
+  }
+  var ids = casoContactos
+    .filter(function(r) { return r.contacto_id === contactoId; })
+    .map(function(r) { return r.caso_id; });
+  return casos.filter(function(c) { return ids.indexOf(c.id) !== -1; });
+}
+
 // ── Filtros de lista de contactos ─────────────────────────────────────────────
 
 /**
  * Filtra contactos según tipo, estado del caso activo y texto.
  * @param {Array}  contactos
  * @param {Array}  casos
- * @param {Object} filtros  { tipo, estadoCaso, texto }
+ * @param {Object} filtros        { tipo, estadoCaso, texto }
+ * @param {Array}  [casoContactos]  filas de caso_contactos_crm (opcional)
  * @returns {Array}
  */
-function crm_filtrarContactos(contactos, casos, filtros) {
-  var texto     = ((filtros && filtros.texto)     || '').toLowerCase().trim();
-  var tipo      = (filtros && filtros.tipo)      || 'todos';
-  var estadoCaso = (filtros && filtros.estadoCaso) || 'todos';
+function crm_filtrarContactos(contactos, casos, filtros, casoContactos) {
+  var texto      = ((filtros && filtros.texto)      || '').toLowerCase().trim();
+  var tipo       = (filtros  && filtros.tipo)       || 'todos';
+  var estadoCaso = (filtros  && filtros.estadoCaso) || 'todos';
 
   return contactos.filter(function(contacto) {
     if (tipo !== 'todos' && contacto.tipo !== tipo) return false;
@@ -157,7 +199,7 @@ function crm_filtrarContactos(contactos, casos, filtros) {
     )) return false;
 
     if (estadoCaso !== 'todos') {
-      var casosDelContacto = casos.filter(function(c) { return c.contacto_id === contacto.id; });
+      var casosDelContacto = crm_getCasosDeContacto(contacto.id, casoContactos, casos);
       var tieneEstado = casosDelContacto.some(function(c) { return c.estado === estadoCaso; });
       if (!tieneEstado) return false;
     }
@@ -171,10 +213,11 @@ function crm_filtrarContactos(contactos, casos, filtros) {
  * Prioriza: activos > por última actividad.
  * @param {string} contactoId
  * @param {Array}  casos
+ * @param {Array}  [casoContactos]  filas de caso_contactos_crm (opcional)
  * @returns {Object|null}
  */
-function crm_getCasoRelevante(contactoId, casos) {
-  var delContacto = casos.filter(function(c) { return c.contacto_id === contactoId; });
+function crm_getCasoRelevante(contactoId, casos, casoContactos) {
+  var delContacto = crm_getCasosDeContacto(contactoId, casoContactos, casos);
   if (delContacto.length === 0) return null;
 
   var activos = delContacto.filter(function(c) {
@@ -191,12 +234,12 @@ function crm_getCasoRelevante(contactoId, casos) {
  * Cuenta cuántos casos activos tiene un contacto.
  * @param {string} contactoId
  * @param {Array}  casos
+ * @param {Array}  [casoContactos]  filas de caso_contactos_crm (opcional)
  * @returns {number}
  */
-function crm_countCasosActivos(contactoId, casos) {
-  return casos.filter(function(c) {
-    return c.contacto_id === contactoId &&
-           CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1;
+function crm_countCasosActivos(contactoId, casos, casoContactos) {
+  return crm_getCasosDeContacto(contactoId, casoContactos, casos).filter(function(c) {
+    return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1;
   }).length;
 }
 

@@ -195,23 +195,26 @@
 
 <script>
 // ── Estado ────────────────────────────────────────────────────────────────────
-var _contacto    = null;
-var _casosDeCont = [];
+var _contacto      = null;
+var _casosDeCont   = [];
+var _casoContactos = [];
+var _contactoId    = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function initCRMContacto() {
-  var params      = new URLSearchParams(window.location.search);
-  var contactoId  = params.get('id');
-  if (!contactoId) {
+  var params     = new URLSearchParams(window.location.search);
+  _contactoId    = params.get('id');
+  if (!_contactoId) {
     document.getElementById('contenido-contacto').innerHTML =
       '<p style="color:var(--error)">No se especificó un contacto.</p>';
     return;
   }
 
   try {
-    var data = await crm_loadAll();
-    _contacto    = data.contactos.find(function(c) { return c.id === contactoId; });
-    _casosDeCont = data.casos.filter(function(c) { return c.contacto_id === contactoId; });
+    var data      = await crm_loadAll();
+    _casoContactos = data.casoContactos || [];
+    _contacto     = data.contactos.find(function(c) { return c.id === _contactoId; });
+    _casosDeCont  = crm_getCasosDeContacto(_contactoId, _casoContactos, data.casos);
 
     if (!_contacto) {
       document.getElementById('contenido-contacto').innerHTML =
@@ -421,6 +424,8 @@ function bindFormCaso() {
       };
 
       var guardado = await crm_saveCaso(caso);
+      // Registrar en la junction table (múltiples contactos por caso)
+      try { await crm_addContactoACaso(guardado.id, _contacto.id); } catch(_e) {}
       _casosDeCont.unshift(guardado);
       cerrarModalCaso();
       document.getElementById('casos-lista').innerHTML = renderCasosList();

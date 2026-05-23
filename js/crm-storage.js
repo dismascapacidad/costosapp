@@ -7,14 +7,16 @@
  * Campos en snake_case (como vienen de Supabase, sin conversión).
  *
  * FUNCIONES PÚBLICAS:
- *   crm_loadAll()                        → { contactos, casos, interacciones }
- *   crm_saveContacto(contacto)           → contacto guardado
- *   crm_deleteContacto(id)               → void
- *   crm_saveCaso(caso)                   → caso guardado
- *   crm_deleteCaso(id)                   → void
- *   crm_saveInteraccion(interaccion)     → interaccion guardada
- *   crm_deleteInteraccion(id)            → void
- *   crm_actualizarUltimaActividad(casoId, proxAccion, fechaProxAccion) → void
+ *   crm_loadAll()                                    → { contactos, casos, interacciones, casoContactos }
+ *   crm_saveContacto(contacto)                       → contacto guardado
+ *   crm_deleteContacto(id)                           → void
+ *   crm_saveCaso(caso)                               → caso guardado
+ *   crm_deleteCaso(id)                               → void
+ *   crm_saveInteraccion(interaccion)                 → interaccion guardada
+ *   crm_deleteInteraccion(id)                        → void
+ *   crm_actualizarUltimaActividad(casoId, ...)       → void
+ *   crm_addContactoACaso(casoId, contactoId)         → void
+ *   crm_removeContactoDeCaso(casoId, contactoId)     → void
  */
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -53,17 +55,23 @@ async function crm_loadAll() {
     sb.from('interacciones_crm')
       .select('*')
       .eq('user_id', uid)
-      .order('fecha', { ascending: false })
+      .order('fecha', { ascending: false }),
+    sb.from('caso_contactos_crm')
+      .select('*')
+      .eq('user_id', uid)
   ]);
 
   if (resultados[0].error) throw resultados[0].error;
   if (resultados[1].error) throw resultados[1].error;
   if (resultados[2].error) throw resultados[2].error;
+  // caso_contactos_crm puede no existir si aún no se ejecutó la migración v2 — degradar silenciosamente
+  var casoContactos = resultados[3].error ? [] : (resultados[3].data || []);
 
   return {
     contactos:     resultados[0].data || [],
     casos:         resultados[1].data || [],
-    interacciones: resultados[2].data || []
+    interacciones: resultados[2].data || [],
+    casoContactos: casoContactos
   };
 }
 
@@ -207,6 +215,8 @@ async function crm_actualizarUltimaActividad(casoId, proxAccion, fechaProxAccion
 
   if (proxAccion !== null && proxAccion !== undefined) {
     patch.proxima_accion = proxAccion;
+    // Al asignar una nueva acción, marcarla como pendiente
+    patch.accion_completada = false;
   }
   if (fechaProxAccion !== null && fechaProxAccion !== undefined) {
     patch.fecha_proxima_accion = fechaProxAccion || null;
@@ -218,4 +228,72 @@ async function crm_actualizarUltimaActividad(casoId, proxAccion, fechaProxAccion
     .eq('user_id', uid);
 
   if (resultado.error) console.warn('[crm-storage] actualizarUltimaActividad:', resultado.error.message);
+}
+
+// ── Contactos por caso (tabla de unión) ───────────────────────────────────────
+
+/**
+ * Agrega un contacto a un caso (tabla de unión caso_contactos_crm).
+ * Si ya existe la relación, no hace nada.
+ * @param {string} casoId
+ * @param {string} contactoId
+ */
+async function crm_addContactoACaso(casoId, contactoId) {
+  var sb  = _crm_sb();
+  var uid = await _crm_uid();
+
+  var resultado = await sb.from('caso_contactos_crm')
+    .upsert({ user_id: uid, caso_id: casoId, contacto_id: contactoId },
+             { onConflict: 'caso_id,contacto_id', ignoreDuplicates: true })
+    .select()
+    .single();
+
+  if (resultado.error && resultado.error.code !== '23505') throw resultado.error;
+  return resultado.data;
+}
+
+/**
+ * Quita un contacto de un caso.
+ * Valida que no sea el último contacto (requiere al menos uno).
+ * @param {string} casoId
+ * @param {string} contactoId
+ */
+async function crm_removeContactoDeCaso(casoId, contactoId) {
+  var sb  = _crm_sb();
+  var uid = await _crm_uid();
+
+  // Verificar que queden más contactos
+  var countRes = await sb.from('caso_contactos_crm')
+    .select('id', { count: 'exact', head: true })
+    .eq('caso_id', casoId)
+    .eq('user_id', uid);
+
+  if ((countRes.count || 0) <= 1) {
+    throw new Error('El caso debe tener al menos un contacto.');
+  }
+
+  var resultado = await sb.from('caso_contactos_crm')
+    .delete()
+    .eq('caso_id', casoId)
+    .eq('contacto_id', contactoId)
+    .eq('user_id', uid);
+
+  if (resultado.error) throw resultado.error;
+
+  // Si era el contacto principal del caso, actualizar contacto_id al primero disponible
+  var casoRes = await sb.from('casos_crm').select('contacto_id').eq('id', casoId).single();
+  if (!casoRes.error && casoRes.data && casoRes.data.contacto_id === contactoId) {
+    var restantes = await sb.from('caso_contactos_crm')
+      .select('contacto_id')
+      .eq('caso_id', casoId)
+      .eq('user_id', uid)
+      .limit(1)
+      .single();
+    if (!restantes.error && restantes.data) {
+      await sb.from('casos_crm')
+        .update({ contacto_id: restantes.data.contacto_id, updated_at: new Date().toISOString() })
+        .eq('id', casoId)
+        .eq('user_id', uid);
+    }
+  }
 }

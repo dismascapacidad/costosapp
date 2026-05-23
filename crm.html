@@ -203,7 +203,7 @@
 
 <script>
 // ── Estado del módulo ─────────────────────────────────────────────────────────
-var _crmData = { contactos: [], casos: [], interacciones: [] };
+var _crmData = { contactos: [], casos: [], interacciones: [], casoContactos: [] };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function initCRM() {
@@ -222,6 +222,7 @@ function renderDashboard() {
   var vencidos  = crm_getSeguimientosVencidos(_crmData.casos);
   var hoy       = crm_getSeguimientosHoy(_crmData.casos);
   var inactivos = crm_getCasosInactivos(_crmData.casos, _crmData.interacciones);
+  var proximos  = crm_getSeguimientosProximos(_crmData.casos);
 
   // Chips de resumen
   var casosActivos = _crmData.casos.filter(function(c) {
@@ -229,23 +230,29 @@ function renderDashboard() {
   }).length;
   var convertidos = _crmData.casos.filter(function(c) { return c.estado === 'convertido'; }).length;
 
-  document.getElementById('chip-contactos').textContent    = _crmData.contactos.length;
+  document.getElementById('chip-contactos').textContent     = _crmData.contactos.length;
   document.getElementById('chip-casos-activos').textContent = casosActivos;
-  document.getElementById('chip-convertidos').textContent  = convertidos;
+  document.getElementById('chip-convertidos').textContent   = convertidos;
 
-  // Contadores
-  var proximos  = crm_getSeguimientosProximos(_crmData.casos);
-
-  document.getElementById('count-vencidos').textContent  = vencidos.length;
   document.getElementById('count-hoy').textContent       = hoy.length;
-  document.getElementById('count-inactivos').textContent = inactivos.length;
   document.getElementById('count-proximos').textContent  = proximos.length;
+  document.getElementById('count-vencidos').textContent  = vencidos.length;
+  document.getElementById('count-inactivos').textContent = inactivos.length;
 
-  // Listas
-  renderListaCasos('lista-vencidos',  vencidos,  'vencida');
   renderListaCasos('lista-hoy',       hoy,       'hoy');
-  renderListaCasos('lista-inactivos', inactivos, 'inactiva');
   renderListaCasos('lista-proximos',  proximos,  'proxima');
+  renderListaCasos('lista-vencidos',  vencidos,  'vencida');
+  renderListaCasos('lista-inactivos', inactivos, 'inactiva');
+}
+
+function _nombresCaso(caso) {
+  var contactos = crm_getContactosDeCaso(caso.id, _crmData.casoContactos, _crmData.contactos);
+  if (contactos.length === 0) {
+    // fallback campo directo
+    var c = _crmData.contactos.find(function(x) { return x.id === caso.contacto_id; });
+    return c ? crm_esc(c.nombre) : '(contacto eliminado)';
+  }
+  return contactos.map(function(c) { return crm_esc(c.nombre); }).join(', ');
 }
 
 function renderListaCasos(contenedorId, casos, tipo) {
@@ -256,8 +263,7 @@ function renderListaCasos(contenedorId, casos, tipo) {
   }
 
   el.innerHTML = casos.map(function(caso) {
-    var contacto = _crmData.contactos.find(function(c) { return c.id === caso.contacto_id; });
-    var nombre   = contacto ? crm_esc(contacto.nombre) : '(contacto eliminado)';
+    var nombres = _nombresCaso(caso);
 
     var infoFecha = '';
     if (tipo === 'vencida') {
@@ -274,14 +280,17 @@ function renderListaCasos(contenedorId, casos, tipo) {
     }
 
     var productoLabel = crm_esc(caso.producto_interes || '—');
-    var proximaLabel  = caso.proxima_accion
-      ? '<span class="crm-caso-accion"><strong>Acción:</strong> ' + crm_esc(caso.proxima_accion) + '</span>'
-      : '';
+    var proximaLabel  = '';
+    var btnMarcar     = '';
+    if (caso.proxima_accion && tipo !== 'inactiva') {
+      proximaLabel = '<span class="crm-caso-accion"><strong>Acción:</strong> ' + crm_esc(caso.proxima_accion) + '</span>';
+      btnMarcar = '<button class="btn btn-sm crm-btn-done" onclick="marcarAccionHecha(\'' + crm_esc(caso.id) + '\')" title="Marcar acción como realizada">✓ Hecha</button>';
+    }
 
     return '<div class="crm-caso-card">' +
       '<div class="crm-caso-info">' +
         '<div class="crm-caso-titulo">' +
-          '<span class="crm-caso-nombre">' + nombre + '</span>' +
+          '<span class="crm-caso-nombre">' + nombres + '</span>' +
           crm_badgeEstado(caso.estado) +
         '</div>' +
         '<span class="crm-caso-producto">' + productoLabel + '</span>' +
@@ -289,6 +298,7 @@ function renderListaCasos(contenedorId, casos, tipo) {
         infoFecha +
       '</div>' +
       '<div class="crm-caso-acciones">' +
+        btnMarcar +
         '<a href="crm-caso.html?id=' + crm_esc(caso.id) + '" class="btn btn-sm">Ver caso</a>' +
         '<button class="btn btn-primary btn-sm" onclick="abrirInteraccionRapida(\'' + crm_esc(caso.id) + '\')">+ Interacción</button>' +
       '</div>' +
@@ -296,21 +306,38 @@ function renderListaCasos(contenedorId, casos, tipo) {
   }).join('');
 }
 
+// ── Marcar acción como hecha ──────────────────────────────────────────────────
+async function marcarAccionHecha(casoId) {
+  var caso = _crmData.casos.find(function(c) { return c.id === casoId; });
+  if (!caso) return;
+  try {
+    await crm_saveCaso(Object.assign({}, caso, { accion_completada: true }));
+    _crmData = await crm_loadAll();
+    renderDashboard();
+  } catch (err) {
+    alert('Error al marcar la acción: ' + err.message);
+  }
+}
+
 // ── Modal interacción rápida ──────────────────────────────────────────────────
 function abrirInteraccionRapida(casoId) {
-  var caso     = _crmData.casos.find(function(c) { return c.id === casoId; });
-  var contacto = caso ? _crmData.contactos.find(function(c) { return c.id === caso.contacto_id; }) : null;
+  var caso      = _crmData.casos.find(function(c) { return c.id === casoId; });
+  var contactos = caso ? crm_getContactosDeCaso(caso.id, _crmData.casoContactos, _crmData.contactos) : [];
+  // fallback
+  if (contactos.length === 0 && caso) {
+    var c = _crmData.contactos.find(function(x) { return x.id === caso.contacto_id; });
+    if (c) contactos = [c];
+  }
 
-  document.getElementById('int-caso-id').value   = casoId;
-  document.getElementById('int-fecha').value      = _crm_hoyStr();
-  document.getElementById('int-resumen').value    = '';
-  document.getElementById('int-proximo-paso').value = '';
+  document.getElementById('int-caso-id').value      = casoId;
+  document.getElementById('int-fecha').value         = _crm_hoyStr();
+  document.getElementById('int-resumen').value       = '';
+  document.getElementById('int-proximo-paso').value  = '';
   document.getElementById('int-fecha-proxima').value = '';
   document.getElementById('fila-fecha-proxima').style.display = 'none';
   document.getElementById('int-form-error').style.display     = 'none';
 
-  var infoText = '';
-  if (contacto) infoText += '<strong>' + crm_esc(contacto.nombre) + '</strong>';
+  var infoText = contactos.map(function(c) { return '<strong>' + crm_esc(c.nombre) + '</strong>'; }).join(', ');
   if (caso && caso.producto_interes) infoText += ' — ' + crm_esc(caso.producto_interes);
   document.getElementById('int-caso-info').innerHTML = infoText;
 

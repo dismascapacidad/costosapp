@@ -148,6 +148,23 @@
   </div>
 </div>
 
+<!-- Modal agregar contacto al caso -->
+<div class="modal-overlay" id="modal-agregar-contacto" style="display:none"
+     onclick="if(event.target===this)document.getElementById('modal-agregar-contacto').style.display='none'">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="crm-modal-header">
+      <h3>Agregar contacto al caso</h3>
+      <button class="btn btn-sm" onclick="document.getElementById('modal-agregar-contacto').style.display='none'">✕</button>
+    </div>
+    <div class="form-group">
+      <label for="buscar-contacto-add">Buscar contacto</label>
+      <input type="text" id="buscar-contacto-add" placeholder="Nombre, teléfono o email…" oninput="filtrarContactosAdd()" />
+    </div>
+    <div id="lista-contactos-add" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:.35rem;"></div>
+    <div id="add-contacto-error" style="color:#f87171;font-size:.82rem;margin-top:.5rem;display:none;"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/auth.js"></script>
@@ -171,9 +188,12 @@
 
 <script>
 // ── Estado ────────────────────────────────────────────────────────────────────
-var _caso          = null;
-var _contacto      = null;
-var _interacciones = [];
+var _caso            = null;
+var _contacto        = null;   // contacto principal (para breadcrumb)
+var _contactosCaso   = [];     // todos los contactos vinculados al caso
+var _todosContactos  = [];     // todos los contactos del usuario
+var _casoContactos   = [];     // filas de caso_contactos_crm
+var _interacciones   = [];
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function initCRMCaso() {
@@ -186,9 +206,11 @@ async function initCRMCaso() {
   }
 
   try {
-    var data = await crm_loadAll();
-    _caso          = data.casos.find(function(c) { return c.id === casoId; });
+    var data      = await crm_loadAll();
+    _caso         = data.casos.find(function(c) { return c.id === casoId; });
     _interacciones = data.interacciones.filter(function(i) { return i.caso_id === casoId; });
+    _casoContactos = data.casoContactos || [];
+    _todosContactos = data.contactos;
 
     if (!_caso) {
       document.getElementById('contenido-caso').innerHTML =
@@ -196,13 +218,17 @@ async function initCRMCaso() {
       return;
     }
 
-    _contacto = data.contactos.find(function(c) { return c.id === _caso.contacto_id; });
+    _contactosCaso = crm_getContactosDeCaso(casoId, _casoContactos, _todosContactos);
+    // Fallback si junction no tiene datos aún
+    if (_contactosCaso.length === 0 && _caso.contacto_id) {
+      var c = _todosContactos.find(function(x) { return x.id === _caso.contacto_id; });
+      if (c) _contactosCaso = [c];
+    }
+    _contacto = _todosContactos.find(function(c) { return c.id === _caso.contacto_id; });
 
     renderCasoCompleto();
     bindFormInteraccion();
     bindFormEditarCaso();
-    bindProximaAccion();
-    bindCambioEstado();
   } catch (err) {
     document.getElementById('contenido-caso').innerHTML =
       '<p style="color:var(--error)">Error: ' + crm_esc(err.message) + '</p>';
@@ -211,13 +237,32 @@ async function initCRMCaso() {
 
 // ── Render principal ──────────────────────────────────────────────────────────
 function renderCasoCompleto() {
-  var contactoLink = _contacto
-    ? '<a href="crm-contacto.html?id=' + crm_esc(_contacto.id) + '" class="crm-caso-breadcrumb">← ' + crm_esc(_contacto.nombre) + '</a>'
-    : '<a href="crm-contactos.html" class="crm-caso-breadcrumb">← Contactos</a>';
+  // Breadcrumb: si hay un solo contacto, enlaza a él; si hay varios, enlaza a lista
+  var contactoLink;
+  if (_contactosCaso.length === 1) {
+    contactoLink = '<a href="crm-contacto.html?id=' + crm_esc(_contactosCaso[0].id) + '" class="crm-caso-breadcrumb">← ' + crm_esc(_contactosCaso[0].nombre) + '</a>';
+  } else if (_contactosCaso.length > 1) {
+    contactoLink = '<a href="crm-contactos.html" class="crm-caso-breadcrumb">← Contactos (' + _contactosCaso.length + ')</a>';
+  } else {
+    contactoLink = '<a href="crm-contactos.html" class="crm-caso-breadcrumb">← Contactos</a>';
+  }
 
   var valorStr = _caso.valor_estimado
     ? 'ARS ' + Number(_caso.valor_estimado).toLocaleString('es-AR', { minimumFractionDigits: 0 })
     : '—';
+
+  // Próxima acción + "Marcar como hecha"
+  var accionCompletadaHtml = '';
+  if (_caso.accion_completada) {
+    accionCompletadaHtml = '<span style="font-size:.78rem;color:#34d399;margin-left:.5rem;">✓ Acción marcada como hecha</span>';
+  }
+
+  var btnMarcarHecha = (_caso.proxima_accion && !_caso.accion_completada)
+    ? '<button class="btn btn-sm crm-btn-done" id="btn-marcar-hecha" onclick="marcarAccionHecha()">✓ Marcar como hecha</button>'
+    : '';
+
+  // Sección de contactos
+  var contactosHtml = renderSeccionContactos();
 
   var html =
     '<div class="page-header">' +
@@ -260,7 +305,11 @@ function renderCasoCompleto() {
 
       // Próxima acción editable inline
       '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-light);">' +
-        '<span class="crm-meta-label">Próxima acción</span>' +
+        '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;">' +
+          '<span class="crm-meta-label">Próxima acción</span>' +
+          btnMarcarHecha +
+          accionCompletadaHtml +
+        '</div>' +
         '<div class="crm-proxima-accion-form" id="forma-proxima">' +
           '<input type="text" id="prox-accion-texto" placeholder="Qué hay que hacer…"' +
                  ' value="' + crm_esc(_caso.proxima_accion || '') + '" style="flex:1;min-width:200px;" />' +
@@ -269,6 +318,15 @@ function renderCasoCompleto() {
         '</div>' +
         '<p id="prox-accion-feedback" style="font-size:.78rem;color:var(--success);display:none;margin-top:.35rem;">✓ Guardado</p>' +
       '</div>' +
+    '</div>' +
+
+    // Contactos vinculados
+    '<div class="card" style="margin-bottom:1.25rem;">' +
+      '<div class="tabla-header" style="margin-bottom:.75rem;">' +
+        '<h3>Contactos vinculados</h3>' +
+        '<button class="btn btn-sm" onclick="abrirModalAgregarContacto()">+ Agregar</button>' +
+      '</div>' +
+      '<div id="seccion-contactos">' + contactosHtml + '</div>' +
     '</div>' +
 
     // Interacciones
@@ -282,6 +340,30 @@ function renderCasoCompleto() {
     '</div>';
 
   document.getElementById('contenido-caso').innerHTML = html;
+}
+
+function renderSeccionContactos() {
+  if (_contactosCaso.length === 0) {
+    return '<p class="tabla-vacia">Sin contactos vinculados.</p>';
+  }
+  return '<div class="crm-contactos-lista">' +
+    _contactosCaso.map(function(c) {
+      var esPrincipal = c.id === _caso.contacto_id;
+      var btnQuitar = _contactosCaso.length > 1
+        ? '<button class="btn btn-sm" style="color:#f87171;border-color:rgba(239,68,68,.3);" onclick="quitarContactoDeCaso(\'' + crm_esc(c.id) + '\')">Quitar</button>'
+        : '';
+      return '<div class="crm-contacto-row">' +
+        '<div class="crm-contacto-row-info">' +
+          '<div class="crm-contacto-row-nombre">' +
+            '<a href="crm-contacto.html?id=' + crm_esc(c.id) + '" style="color:inherit;text-decoration:none;">' + crm_esc(c.nombre) + '</a>' +
+            (esPrincipal ? ' <span class="crm-tag-principal">Principal</span>' : '') +
+          '</div>' +
+          '<div class="crm-contacto-row-meta">' + crm_esc(CRM_TIPO_LABELS[c.tipo] || c.tipo) + (c.telefono ? ' · ' + crm_esc(c.telefono) : '') + '</div>' +
+        '</div>' +
+        btnQuitar +
+      '</div>';
+    }).join('') +
+  '</div>';
 }
 
 function opcionesEstado(estadoActual) {
@@ -317,10 +399,6 @@ function renderTimeline() {
 }
 
 // ── Cambio de estado inline ───────────────────────────────────────────────────
-function bindCambioEstado() {
-  // El select ya tiene onchange, solo necesitamos que funcione después del re-render
-}
-
 async function cambiarEstado(nuevoEstado) {
   if (nuevoEstado === _caso.estado) return;
   try {
@@ -328,15 +406,97 @@ async function cambiarEstado(nuevoEstado) {
     _caso = actualizado;
   } catch (err) {
     alert('Error al cambiar estado: ' + err.message);
-    document.getElementById('select-estado-inline').value = _caso.estado;
+    var sel = document.getElementById('select-estado-inline');
+    if (sel) sel.value = _caso.estado;
+  }
+}
+
+// ── Marcar acción como hecha ──────────────────────────────────────────────────
+async function marcarAccionHecha() {
+  var btn = document.getElementById('btn-marcar-hecha');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    _caso = await crm_saveCaso(Object.assign({}, _caso, { accion_completada: true }));
+    renderCasoCompleto();
+    bindFormInteraccion();
+    bindFormEditarCaso();
+  } catch (err) {
+    alert('Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Marcar como hecha'; }
+  }
+}
+
+// ── Gestión de contactos vinculados ───────────────────────────────────────────
+function abrirModalAgregarContacto() {
+  document.getElementById('buscar-contacto-add').value = '';
+  document.getElementById('add-contacto-error').style.display = 'none';
+  filtrarContactosAdd();
+  document.getElementById('modal-agregar-contacto').style.display = 'flex';
+  setTimeout(function() { document.getElementById('buscar-contacto-add').focus(); }, 50);
+}
+
+function filtrarContactosAdd() {
+  var texto = document.getElementById('buscar-contacto-add').value.toLowerCase().trim();
+  var idsYaVinculados = _contactosCaso.map(function(c) { return c.id; });
+
+  var disponibles = _todosContactos.filter(function(c) {
+    if (idsYaVinculados.indexOf(c.id) !== -1) return false;
+    if (!texto) return true;
+    return c.nombre.toLowerCase().indexOf(texto) !== -1 ||
+           (c.telefono || '').toLowerCase().indexOf(texto) !== -1 ||
+           (c.email    || '').toLowerCase().indexOf(texto) !== -1;
+  });
+
+  var lista = document.getElementById('lista-contactos-add');
+  if (disponibles.length === 0) {
+    lista.innerHTML = '<p style="color:var(--text-3);font-size:.82rem;text-align:center;padding:.75rem;">Sin contactos disponibles</p>';
+    return;
+  }
+  lista.innerHTML = disponibles.map(function(c) {
+    return '<button class="crm-contacto-row" style="width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:.55rem .9rem;cursor:pointer;" onclick="agregarContactoACaso(\'' + crm_esc(c.id) + '\')">' +
+      '<div class="crm-contacto-row-nombre">' + crm_esc(c.nombre) + ' ' + crm_badgeTipo(c.tipo) + '</div>' +
+      '<div class="crm-contacto-row-meta">' + crm_esc(c.telefono || '—') + '</div>' +
+    '</button>';
+  }).join('');
+}
+
+async function agregarContactoACaso(contactoId) {
+  var errEl = document.getElementById('add-contacto-error');
+  errEl.style.display = 'none';
+  try {
+    await crm_addContactoACaso(_caso.id, contactoId);
+    var c = _todosContactos.find(function(x) { return x.id === contactoId; });
+    if (c) _contactosCaso.push(c);
+    // Actualizar junction local
+    _casoContactos.push({ caso_id: _caso.id, contacto_id: contactoId });
+    document.getElementById('modal-agregar-contacto').style.display = 'none';
+    document.getElementById('seccion-contactos').innerHTML = renderSeccionContactos();
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function quitarContactoDeCaso(contactoId) {
+  if (!confirm('¿Quitar este contacto del caso?')) return;
+  try {
+    await crm_removeContactoDeCaso(_caso.id, contactoId);
+    _contactosCaso = _contactosCaso.filter(function(c) { return c.id !== contactoId; });
+    _casoContactos = _casoContactos.filter(function(r) {
+      return !(r.caso_id === _caso.id && r.contacto_id === contactoId);
+    });
+    // Si se quitó el principal, actualizar referencia local
+    if (_caso.contacto_id === contactoId && _contactosCaso.length > 0) {
+      _caso.contacto_id = _contactosCaso[0].id;
+      _contacto = _contactosCaso[0];
+    }
+    document.getElementById('seccion-contactos').innerHTML = renderSeccionContactos();
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
 // ── Próxima acción inline ─────────────────────────────────────────────────────
-function bindProximaAccion() {
-  // Nada que bindear: usa onclick directamente
-}
-
 async function guardarProximaAccion() {
   var texto = document.getElementById('prox-accion-texto').value.trim();
   var fecha = document.getElementById('prox-accion-fecha').value || null;
@@ -346,9 +506,21 @@ async function guardarProximaAccion() {
   try {
     var patch = Object.assign({}, _caso, {
       proxima_accion:       texto,
-      fecha_proxima_accion: fecha
+      fecha_proxima_accion: fecha,
+      accion_completada:    false  // Al editar la acción, se reabre como pendiente
     });
     _caso = await crm_saveCaso(patch);
+
+    // Re-render solo la sección de próxima acción (refresco liviano)
+    var btnMarcarHecha = (texto && !_caso.accion_completada)
+      ? '<button class="btn btn-sm crm-btn-done" id="btn-marcar-hecha" onclick="marcarAccionHecha()">✓ Marcar como hecha</button>'
+      : '';
+    var accionCompletadaHtml = _caso.accion_completada
+      ? '<span style="font-size:.78rem;color:#34d399;margin-left:.5rem;">✓ Acción marcada como hecha</span>'
+      : '';
+
+    var labelDiv = document.querySelector('#forma-proxima').previousElementSibling;
+    if (labelDiv) labelDiv.innerHTML = '<span class="crm-meta-label">Próxima acción</span> ' + btnMarcarHecha + accionCompletadaHtml;
 
     var fb = document.getElementById('prox-accion-feedback');
     fb.style.display = 'block';
@@ -504,7 +676,6 @@ function bindFormEditarCaso() {
       renderCasoCompleto();
       bindFormInteraccion();
       bindFormEditarCaso();
-      bindProximaAccion();
     } catch (err) {
       errEl.textContent = 'Error: ' + err.message;
       errEl.style.display = 'flex';
