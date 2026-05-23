@@ -178,6 +178,7 @@ function agregarProducto(producto) {
 function eliminarProducto(id) {
   window.AppData.productos = window.AppData.productos.filter(p => p.id !== id);
   saveData(window.AppData);
+  if (typeof eliminarEnSupabase === 'function') eliminarEnSupabase('productos', id);
 }
 
 function actualizarProducto(id, cambios) {

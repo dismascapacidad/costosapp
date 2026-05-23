@@ -152,6 +152,7 @@ function agregarPresupuesto(presupuesto) {
 function eliminarPresupuesto(id) {
   window.AppData.presupuestos = (window.AppData.presupuestos || []).filter(function(p) { return p.id !== id; });
   saveData(window.AppData);
+  if (typeof eliminarEnSupabase === 'function') eliminarEnSupabase('presupuestos', id);
 }
 
 function getPresupuestos() {

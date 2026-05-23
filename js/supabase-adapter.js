@@ -326,7 +326,12 @@ function _convertirVentaDesdeDB(row) {
 
 /**
  * Guarda el AppData completo en Supabase.
- * Estrategia: borrar todo y reinsertar (simple y confiable para un solo usuario).
+ *
+ * Estrategia: SOLO UPSERT, nunca DELETE masivo.
+ * - Cada registro se inserta si no existe, o se actualiza si ya existe (por legacy_id).
+ * - Los registros eliminados por el usuario se borran individualmente en el momento
+ *   en que el usuario los elimina (ver eliminarInsumo, eliminarProducto, etc.).
+ * - Este guardado en bulk nunca puede borrar datos accidentalmente.
  *
  * @param {Object} data - AppData completo
  * @returns {Promise<boolean>} true si guardó sin errores
@@ -337,57 +342,7 @@ async function guardarDatosEnSupabase(data) {
   if (!sb || !userId) return false;
 
   try {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PROTECCIÓN ANTI-BORRADO DESTRUCTIVO
-    // Verificar que no estemos por borrar más datos de los que vamos a insertar
-    // ═══════════════════════════════════════════════════════════════════════════
-    var conteoSupabase = await Promise.all([
-      sb.from('insumos').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-      sb.from('productos').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-    ]);
-
-    // Si las queries de conteo fallaron, abortar por seguridad (no arriesgar un DELETE)
-    if (conteoSupabase[0].error || conteoSupabase[1].error) {
-      console.error('[supabase-adapter] ⛔ Error al contar registros en Supabase, abortando guardado para proteger datos.',
-        conteoSupabase[0].error || conteoSupabase[1].error);
-      return false;
-    }
-
-    var insumosEnSupabase  = conteoSupabase[0].count != null ? conteoSupabase[0].count : -1;
-    var productosEnSupabase = conteoSupabase[1].count != null ? conteoSupabase[1].count : -1;
-    var insumosAGuardar    = (data.insumos   || []).length;
-    var productosAGuardar  = (data.productos || []).length;
-
-    // Si el conteo devolvió -1 (null/undefined inesperado), abortar
-    if (insumosEnSupabase < 0 || productosEnSupabase < 0) {
-      console.error('[supabase-adapter] ⛔ Conteo de Supabase devolvió null. Abortando guardado.');
-      return false;
-    }
-
-    // Si Supabase tiene datos y vamos a guardar vacío → BLOQUEAR
-    if (insumosEnSupabase > 0 && insumosAGuardar === 0) {
-      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + insumosEnSupabase + ' insumos, no se permite guardar 0.');
-      return false;
-    }
-    if (productosEnSupabase > 0 && productosAGuardar === 0) {
-      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + productosEnSupabase + ' productos, no se permite guardar 0.');
-      return false;
-    }
-    
-    // Si vamos a guardar significativamente menos datos → ADVERTIR y BLOQUEAR
-    if (insumosEnSupabase > 10 && insumosAGuardar < insumosEnSupabase * 0.5) {
-      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + insumosEnSupabase + ' insumos, se intentó guardar solo ' + insumosAGuardar + '. Esto parece un error.');
-      return false;
-    }
-    if (productosEnSupabase > 10 && productosAGuardar < productosEnSupabase * 0.5) {
-      console.error('[supabase-adapter] ⛔ BLOQUEADO: Supabase tiene ' + productosEnSupabase + ' productos, se intentó guardar solo ' + productosAGuardar + '. Esto parece un error.');
-      return false;
-    }
-    
-    console.log('[supabase-adapter] ✓ Validación OK. Supabase: ' + insumosEnSupabase + ' insumos, ' + productosEnSupabase + ' productos. A guardar: ' + insumosAGuardar + ' insumos, ' + productosAGuardar + ' productos.');
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    // Config: upsert (insertar o actualizar)
+    // Config: upsert por user_id
     await sb.from('config').upsert({
       user_id:                    userId,
       version:                    data.version || 1,
@@ -397,11 +352,7 @@ async function guardarDatosEnSupabase(data) {
       margen_global_distribuidor: data.config ? data.config.margenGlobalDistribuidor : 20
     }, { onConflict: 'user_id' });
 
-    // Para las demás tablas: borrar existentes e insertar nuevas
-    // Esto es más simple que hacer diff y es seguro para un solo usuario
-
-    // ── Insumos: UPSERT primero, luego borrar huérfanos ──────────────────────
-    // (evita la ventana de riesgo del DELETE+INSERT donde un error borra todo)
+    // ── Insumos ───────────────────────────────────────────────────────────────
     if (data.insumos && data.insumos.length > 0) {
       var insumosRows = data.insumos.map(function(i) {
         var costoUnit = i.precioUnitario || i.costoUnitario || 0;
@@ -421,24 +372,11 @@ async function guardarDatosEnSupabase(data) {
           fecha_actualizacion:  i.fechaActualizacion || new Date().toISOString()
         };
       });
-      // 1. Upsert (insert or update) los registros actuales
-      var upsertInsumosResult = await sb.from('insumos').upsert(insumosRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
-      if (upsertInsumosResult.error) {
-        // El constraint unique no existe: fallback seguro — guardar lo nuevo SIN borrar primero
-        console.warn('[supabase-adapter] upsert insumos falló (' + upsertInsumosResult.error.message + '), usando insert con delete previo.');
-        await sb.from('insumos').delete().eq('user_id', userId);
-        await sb.from('insumos').insert(insumosRows);
-      } else {
-        // 2. Borrar solo los que ya no están en la lista (huérfanos)
-        var insumoIds = data.insumos.map(function(i) { return i.id; });
-        await sb.from('insumos').delete().eq('user_id', userId).not('legacy_id', 'in', '(' + insumoIds.map(function(id) { return '"' + id + '"'; }).join(',') + ')');
-      }
-    } else {
-      // Lista vacía: solo borrar si la protección superior ya lo permitió
-      await sb.from('insumos').delete().eq('user_id', userId);
+      var r = await sb.from('insumos').upsert(insumosRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r.error) console.warn('[supabase-adapter] upsert insumos:', r.error.message);
     }
 
-    // ── Productos: UPSERT primero, luego borrar huérfanos ────────────────────
+    // ── Productos ─────────────────────────────────────────────────────────────
     if (data.productos && data.productos.length > 0) {
       var productosRows = data.productos.map(function(p) {
         return {
@@ -463,24 +401,11 @@ async function guardarDatosEnSupabase(data) {
           fecha_actualizacion:  p.fechaActualizacion || new Date().toISOString()
         };
       });
-      // 1. Upsert los registros actuales
-      var upsertProductosResult = await sb.from('productos').upsert(productosRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
-      if (upsertProductosResult.error) {
-        // Fallback seguro si el constraint no existe
-        console.warn('[supabase-adapter] upsert productos falló (' + upsertProductosResult.error.message + '), usando insert con delete previo.');
-        await sb.from('productos').delete().eq('user_id', userId);
-        await sb.from('productos').insert(productosRows);
-      } else {
-        // 2. Borrar solo los que ya no están en la lista (huérfanos)
-        var productoIds = data.productos.map(function(p) { return p.id; });
-        await sb.from('productos').delete().eq('user_id', userId).not('legacy_id', 'in', '(' + productoIds.map(function(id) { return '"' + id + '"'; }).join(',') + ')');
-      }
-    } else {
-      await sb.from('productos').delete().eq('user_id', userId);
+      var r2 = await sb.from('productos').upsert(productosRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r2.error) console.warn('[supabase-adapter] upsert productos:', r2.error.message);
     }
 
-    // Presupuestos
-    await sb.from('presupuestos').delete().eq('user_id', userId);
+    // ── Presupuestos ──────────────────────────────────────────────────────────
     if (data.presupuestos && data.presupuestos.length > 0) {
       var presupRows = data.presupuestos.map(function(p) {
         return {
@@ -501,11 +426,11 @@ async function guardarDatosEnSupabase(data) {
           fecha_vencimiento:  p.fechaVencimiento
         };
       });
-      await sb.from('presupuestos').insert(presupRows);
+      var r3 = await sb.from('presupuestos').upsert(presupRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r3.error) console.warn('[supabase-adapter] upsert presupuestos:', r3.error.message);
     }
 
-    // Órdenes de producción
-    await sb.from('ordenes_produccion').delete().eq('user_id', userId);
+    // ── Órdenes de producción ─────────────────────────────────────────────────
     if (data.ordenesProduccion && data.ordenesProduccion.length > 0) {
       var ordenesRows = data.ordenesProduccion.map(function(o) {
         return {
@@ -524,11 +449,11 @@ async function guardarDatosEnSupabase(data) {
           fecha_finalizada: o.fechaFinalizada || null
         };
       });
-      await sb.from('ordenes_produccion').insert(ordenesRows);
+      var r4 = await sb.from('ordenes_produccion').upsert(ordenesRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r4.error) console.warn('[supabase-adapter] upsert ordenes_produccion:', r4.error.message);
     }
 
-    // Movimientos de stock
-    await sb.from('movimientos_stock').delete().eq('user_id', userId);
+    // ── Movimientos de stock ──────────────────────────────────────────────────
     if (data.movimientosStock && data.movimientosStock.length > 0) {
       var movRows = data.movimientosStock.map(function(m) {
         return {
@@ -543,11 +468,11 @@ async function guardarDatosEnSupabase(data) {
           fecha:     m.fecha
         };
       });
-      await sb.from('movimientos_stock').insert(movRows);
+      var r5 = await sb.from('movimientos_stock').upsert(movRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r5.error) console.warn('[supabase-adapter] upsert movimientos_stock:', r5.error.message);
     }
 
-    // Clientes
-    await sb.from('clientes').delete().eq('user_id', userId);
+    // ── Clientes ──────────────────────────────────────────────────────────────
     if (data.clientes && data.clientes.length > 0) {
       var clientesRows = data.clientes.map(function(c) {
         return {
@@ -567,11 +492,11 @@ async function guardarDatosEnSupabase(data) {
           fecha_alta:      c.fechaAlta || new Date().toISOString()
         };
       });
-      await sb.from('clientes').insert(clientesRows);
+      var r6 = await sb.from('clientes').upsert(clientesRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r6.error) console.warn('[supabase-adapter] upsert clientes:', r6.error.message);
     }
 
-    // Ventas
-    await sb.from('ventas').delete().eq('user_id', userId);
+    // ── Ventas ────────────────────────────────────────────────────────────────
     if (data.ventas && data.ventas.length > 0) {
       var ventasRows = data.ventas.map(function(v) {
         return {
@@ -588,13 +513,38 @@ async function guardarDatosEnSupabase(data) {
           fuente:           v.fuente || 'tiendanube'
         };
       });
-      await sb.from('ventas').insert(ventasRows);
+      var r7 = await sb.from('ventas').upsert(ventasRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (r7.error) console.warn('[supabase-adapter] upsert ventas:', r7.error.message);
     }
 
+    console.log('[supabase-adapter] ✓ Sync completado. Productos: ' + (data.productos || []).length + ', Insumos: ' + (data.insumos || []).length);
     return true;
   } catch (err) {
     console.error('[supabase-adapter] Error guardando datos:', err);
     return false;
+  }
+}
+
+// ── Eliminar registro individual en Supabase ─────────────────────────────────
+
+/**
+ * Elimina un registro específico de Supabase por su legacy_id.
+ * Se llama desde eliminarInsumo(), eliminarProducto(), etc. en el momento
+ * en que el usuario elimina un registro — no en el guardado bulk.
+ *
+ * @param {string} tabla     - nombre de la tabla en Supabase
+ * @param {string} legacyId  - el id local del registro (campo legacy_id en Supabase)
+ */
+async function eliminarEnSupabase(tabla, legacyId) {
+  if (typeof getSupabase !== 'function' || typeof getCurrentUserId !== 'function') return;
+  var sb = getSupabase();
+  var userId = await getCurrentUserId();
+  if (!sb || !userId || !legacyId) return;
+  var result = await sb.from(tabla).delete().eq('user_id', userId).eq('legacy_id', legacyId);
+  if (result.error) {
+    console.warn('[supabase-adapter] Error al eliminar de ' + tabla + ' (legacy_id=' + legacyId + '):', result.error.message);
+  } else {
+    console.log('[supabase-adapter] ✓ Eliminado de ' + tabla + ': ' + legacyId);
   }
 }
 

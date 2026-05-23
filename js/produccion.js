@@ -219,6 +219,7 @@ function eliminarOrden(id) {
   window.AppData.ordenesProduccion =
     (window.AppData.ordenesProduccion || []).filter(o => o.id !== id);
   saveData(window.AppData);
+  if (typeof eliminarEnSupabase === 'function') eliminarEnSupabase('ordenes_produccion', id);
 }
 
 // ── Finalización ──────────────────────────────────────────────────────────────

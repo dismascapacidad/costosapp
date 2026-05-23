@@ -98,6 +98,7 @@ function agregarInsumo(insumo) {
 function eliminarInsumo(id) {
   window.AppData.insumos = window.AppData.insumos.filter(i => i.id !== id);
   saveData(window.AppData);
+  if (typeof eliminarEnSupabase === 'function') eliminarEnSupabase('insumos', id);
 }
 
 /**

@@ -121,6 +121,7 @@ function actualizarCliente(id, campos) {
 function eliminarCliente(id) {
   window.AppData.clientes = (window.AppData.clientes || []).filter(c => c.id !== id);
   saveData(window.AppData);
+  if (typeof eliminarEnSupabase === 'function') eliminarEnSupabase('clientes', id);
 }
 
 /**
