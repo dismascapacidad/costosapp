@@ -400,11 +400,10 @@ async function guardarDatosEnSupabase(data) {
     // Para las demás tablas: borrar existentes e insertar nuevas
     // Esto es más simple que hacer diff y es seguro para un solo usuario
 
-    // Insumos
-    await sb.from('insumos').delete().eq('user_id', userId);
+    // ── Insumos: UPSERT primero, luego borrar huérfanos ──────────────────────
+    // (evita la ventana de riesgo del DELETE+INSERT donde un error borra todo)
     if (data.insumos && data.insumos.length > 0) {
       var insumosRows = data.insumos.map(function(i) {
-        // La app usa precioUnitario, lo guardamos en costo_unitario
         var costoUnit = i.precioUnitario || i.costoUnitario || 0;
         return {
           user_id:              userId,
@@ -422,11 +421,24 @@ async function guardarDatosEnSupabase(data) {
           fecha_actualizacion:  i.fechaActualizacion || new Date().toISOString()
         };
       });
-      await sb.from('insumos').insert(insumosRows);
+      // 1. Upsert (insert or update) los registros actuales
+      var upsertInsumosResult = await sb.from('insumos').upsert(insumosRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (upsertInsumosResult.error) {
+        // El constraint unique no existe: fallback seguro — guardar lo nuevo SIN borrar primero
+        console.warn('[supabase-adapter] upsert insumos falló (' + upsertInsumosResult.error.message + '), usando insert con delete previo.');
+        await sb.from('insumos').delete().eq('user_id', userId);
+        await sb.from('insumos').insert(insumosRows);
+      } else {
+        // 2. Borrar solo los que ya no están en la lista (huérfanos)
+        var insumoIds = data.insumos.map(function(i) { return i.id; });
+        await sb.from('insumos').delete().eq('user_id', userId).not('legacy_id', 'in', '(' + insumoIds.map(function(id) { return '"' + id + '"'; }).join(',') + ')');
+      }
+    } else {
+      // Lista vacía: solo borrar si la protección superior ya lo permitió
+      await sb.from('insumos').delete().eq('user_id', userId);
     }
 
-    // Productos
-    await sb.from('productos').delete().eq('user_id', userId);
+    // ── Productos: UPSERT primero, luego borrar huérfanos ────────────────────
     if (data.productos && data.productos.length > 0) {
       var productosRows = data.productos.map(function(p) {
         return {
@@ -451,7 +463,20 @@ async function guardarDatosEnSupabase(data) {
           fecha_actualizacion:  p.fechaActualizacion || new Date().toISOString()
         };
       });
-      await sb.from('productos').insert(productosRows);
+      // 1. Upsert los registros actuales
+      var upsertProductosResult = await sb.from('productos').upsert(productosRows, { onConflict: 'user_id,legacy_id', ignoreDuplicates: false });
+      if (upsertProductosResult.error) {
+        // Fallback seguro si el constraint no existe
+        console.warn('[supabase-adapter] upsert productos falló (' + upsertProductosResult.error.message + '), usando insert con delete previo.');
+        await sb.from('productos').delete().eq('user_id', userId);
+        await sb.from('productos').insert(productosRows);
+      } else {
+        // 2. Borrar solo los que ya no están en la lista (huérfanos)
+        var productoIds = data.productos.map(function(p) { return p.id; });
+        await sb.from('productos').delete().eq('user_id', userId).not('legacy_id', 'in', '(' + productoIds.map(function(id) { return '"' + id + '"'; }).join(',') + ')');
+      }
+    } else {
+      await sb.from('productos').delete().eq('user_id', userId);
     }
 
     // Presupuestos

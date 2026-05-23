@@ -142,18 +142,45 @@ async function _cargarDesdeSupabaseAsync() {
 
     console.log('[storage] Supabase tiene ' + countNube + ' registros, localStorage tiene ' + countLocal);
 
-    // Supabase es la fuente de verdad — usamos sus datos
-    if (datosNube) {
-      window.AppData = Object.assign(structuredClone(DEFAULT_DATA), datosNube);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(window.AppData));
+    if (!datosNube) {
+      console.warn('[storage] Supabase devolvió null. Usando localStorage.');
+      return;
+    }
+
+    // PROTECCIÓN ANTI-BORRADO:
+    // Si Supabase devuelve significativamente MENOS datos que localStorage,
+    // es señal de que Supabase tiene datos corruptos/borrados por error.
+    // En ese caso NO sobreescribimos — en cambio restauramos Supabase desde local.
+    var prodNube  = (datosNube.productos || []).length;
+    var prodLocal = (window.AppData.productos || []).length;
+    var insNube   = (datosNube.insumos || []).length;
+    var insLocal  = (window.AppData.insumos || []).length;
+
+    var nubePareceVacia = prodNube === 0 && prodLocal > 0;
+    var nubePerdioDatos = (prodLocal > 5 && prodNube < prodLocal * 0.5) ||
+                         (insLocal  > 5 && insNube  < insLocal  * 0.5);
+
+    if (nubePareceVacia || nubePerdioDatos) {
+      console.warn('[storage] ⚠️ Supabase tiene menos datos que localStorage (' +
+        prodNube + ' vs ' + prodLocal + ' productos). ' +
+        'Se interpreta como pérdida en Supabase. Restaurando Supabase desde localStorage...');
       _cargaSupabaseCompleta = true;
       _datosDesdeSupabase = true;
-
-      console.log('[storage] ✓ Datos sincronizados desde Supabase.');
-
-      // Re-renderizar la página actual
-      _reRenderizarPaginaActual();
+      // Restaurar Supabase con los datos locales (que son más completos)
+      _guardarEnSupabaseAsync(window.AppData);
+      return;
     }
+
+    // Caso normal: Supabase tiene datos iguales o más → es la fuente de verdad
+    window.AppData = Object.assign(structuredClone(DEFAULT_DATA), datosNube);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(window.AppData));
+    _cargaSupabaseCompleta = true;
+    _datosDesdeSupabase = true;
+
+    console.log('[storage] ✓ Datos sincronizados desde Supabase.');
+
+    // Re-renderizar la página actual
+    _reRenderizarPaginaActual();
   } catch (err) {
     console.warn('[storage] No se pudo cargar desde Supabase:', err.message);
     console.log('[storage] Usando localStorage como fallback.');
