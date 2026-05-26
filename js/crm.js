@@ -209,7 +209,10 @@ function crm_filtrarContactos(contactos, casos, filtros, casoContactos) {
     if (texto && !(
       contacto.nombre.toLowerCase().indexOf(texto) !== -1 ||
       (contacto.telefono || '').toLowerCase().indexOf(texto) !== -1 ||
-      (contacto.email    || '').toLowerCase().indexOf(texto) !== -1
+      (contacto.email    || '').toLowerCase().indexOf(texto) !== -1 ||
+      (contacto.notas    || '').toLowerCase().indexOf(texto) !== -1 ||
+      (CRM_TIPO_LABELS[contacto.tipo] || '').toLowerCase().indexOf(texto) !== -1 ||
+      (CRM_ORIGEN_LABELS[contacto.origen] || '').toLowerCase().indexOf(texto) !== -1
     )) return false;
 
     if (estadoCaso !== 'todos') {
