@@ -143,10 +143,17 @@
 }
 
 /* Borde lateral por sección */
-.crm-seccion-vencida  { border-left: 3px solid #ef4444; }
-.crm-seccion-hoy      { border-left: 3px solid #f59e0b; }
-.crm-seccion-inactiva { border-left: 3px solid #475569; }
-.crm-seccion-proxima  { border-left: 3px solid #34d399; }
+.crm-seccion-vencida   { border-left: 3px solid #ef4444; }
+.crm-seccion-hoy       { border-left: 3px solid #f59e0b; }
+.crm-seccion-inactiva  { border-left: 3px solid #475569; }
+.crm-seccion-proxima   { border-left: 3px solid #34d399; }
+.crm-seccion-realizada { border-left: 3px solid #6366f1; }
+
+.crm-count-realizada {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.28);
+}
 
 /* ── Cards de caso en el dashboard ───────────────────────────────────────────── */
 .crm-lista {

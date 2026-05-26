@@ -418,8 +418,7 @@ async function marcarAccionHecha() {
   try {
     _caso = await crm_saveCaso(Object.assign({}, _caso, { accion_completada: true }));
     renderCasoCompleto();
-    bindFormInteraccion();
-    bindFormEditarCaso();
+    // No re-bindear: los modales persisten y ya tienen handlers asignados.
   } catch (err) {
     alert('Error: ' + err.message);
     if (btn) { btn.disabled = false; btn.textContent = '✓ Marcar como hecha'; }
@@ -549,12 +548,14 @@ function cerrarModalInteraccion() {
 }
 
 function bindFormInteraccion() {
-  document.getElementById('int-proximo-paso').addEventListener('input', function() {
+  // Usar .oninput / .onsubmit (asignación) en lugar de addEventListener
+  // para evitar que se acumulen listeners si se llama más de una vez.
+  document.getElementById('int-proximo-paso').oninput = function() {
     document.getElementById('fila-fecha-proxima').style.display = this.value.trim() ? 'block' : 'none';
     if (!this.value.trim()) document.getElementById('int-fecha-proxima').value = '';
-  });
+  };
 
-  document.getElementById('form-interaccion').addEventListener('submit', async function(e) {
+  document.getElementById('form-interaccion').onsubmit = async function(e) {
     e.preventDefault();
     var errEl = document.getElementById('int-form-error');
     errEl.style.display = 'none';
@@ -653,7 +654,8 @@ function getProductoInteresEdit() {
 }
 
 function bindFormEditarCaso() {
-  document.getElementById('form-editar-caso').addEventListener('submit', async function(e) {
+  // Usar .onsubmit (asignación) para no acumular listeners en re-renders.
+  document.getElementById('form-editar-caso').onsubmit = async function(e) {
     e.preventDefault();
     var errEl = document.getElementById('edit-caso-error');
     errEl.style.display = 'none';
@@ -674,15 +676,15 @@ function bindFormEditarCaso() {
       _caso = await crm_saveCaso(patch);
       cerrarModalEditarCaso();
       renderCasoCompleto();
-      bindFormInteraccion();
-      bindFormEditarCaso();
+      // No re-bindear: onsubmit ya reemplazó al handler anterior,
+      // y los elementos del modal no se destruyen con el re-render.
     } catch (err) {
       errEl.textContent = 'Error: ' + err.message;
       errEl.style.display = 'flex';
     } finally {
       btn.disabled = false; btn.textContent = 'Actualizar';
     }
-  });
+  };
 }
 
 // ── Dólar widget ──────────────────────────────────────────────────────────────

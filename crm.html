@@ -126,6 +126,17 @@
         <p class="crm-lista-vacia">Cargando…</p>
       </div>
     </div>
+
+    <!-- Sección: Acciones realizadas -->
+    <div class="crm-seccion crm-seccion-realizada" style="margin-top:1.25rem;" id="seccion-realizadas">
+      <div class="crm-seccion-header">
+        <h3>Acciones realizadas</h3>
+        <span class="crm-badge-count crm-count-realizada" id="count-realizadas">0</span>
+      </div>
+      <div id="lista-realizadas" class="crm-lista">
+        <p class="crm-lista-vacia">Cargando…</p>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -219,10 +230,11 @@ async function initCRM() {
 
 // ── Render principal ──────────────────────────────────────────────────────────
 function renderDashboard() {
-  var vencidos  = crm_getSeguimientosVencidos(_crmData.casos);
-  var hoy       = crm_getSeguimientosHoy(_crmData.casos);
-  var inactivos = crm_getCasosInactivos(_crmData.casos, _crmData.interacciones);
-  var proximos  = crm_getSeguimientosProximos(_crmData.casos);
+  var vencidos   = crm_getSeguimientosVencidos(_crmData.casos);
+  var hoy        = crm_getSeguimientosHoy(_crmData.casos);
+  var inactivos  = crm_getCasosInactivos(_crmData.casos, _crmData.interacciones);
+  var proximos   = crm_getSeguimientosProximos(_crmData.casos);
+  var realizadas = crm_getAccionesRealizadas(_crmData.casos);
 
   // Chips de resumen
   var casosActivos = _crmData.casos.filter(function(c) {
@@ -234,15 +246,20 @@ function renderDashboard() {
   document.getElementById('chip-casos-activos').textContent = casosActivos;
   document.getElementById('chip-convertidos').textContent   = convertidos;
 
-  document.getElementById('count-hoy').textContent       = hoy.length;
-  document.getElementById('count-proximos').textContent  = proximos.length;
-  document.getElementById('count-vencidos').textContent  = vencidos.length;
-  document.getElementById('count-inactivos').textContent = inactivos.length;
+  document.getElementById('count-hoy').textContent        = hoy.length;
+  document.getElementById('count-proximos').textContent   = proximos.length;
+  document.getElementById('count-vencidos').textContent   = vencidos.length;
+  document.getElementById('count-inactivos').textContent  = inactivos.length;
+  document.getElementById('count-realizadas').textContent = realizadas.length;
+
+  // Ocultar sección "realizadas" si está vacía
+  document.getElementById('seccion-realizadas').style.display = realizadas.length > 0 ? '' : 'none';
 
   renderListaCasos('lista-hoy',       hoy,       'hoy');
   renderListaCasos('lista-proximos',  proximos,  'proxima');
   renderListaCasos('lista-vencidos',  vencidos,  'vencida');
   renderListaCasos('lista-inactivos', inactivos, 'inactiva');
+  renderListaRealizadas('lista-realizadas', realizadas);
 }
 
 function _nombresCaso(caso) {
@@ -299,6 +316,40 @@ function renderListaCasos(contenedorId, casos, tipo) {
       '</div>' +
       '<div class="crm-caso-acciones">' +
         btnMarcar +
+        '<a href="crm-caso.html?id=' + crm_esc(caso.id) + '" class="btn btn-sm">Ver caso</a>' +
+        '<button class="btn btn-primary btn-sm" onclick="abrirInteraccionRapida(\'' + crm_esc(caso.id) + '\')">+ Interacción</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderListaRealizadas(contenedorId, casos) {
+  var el = document.getElementById(contenedorId);
+  if (casos.length === 0) {
+    el.innerHTML = '<p class="crm-lista-vacia">Sin acciones realizadas.</p>';
+    return;
+  }
+
+  el.innerHTML = casos.map(function(caso) {
+    var nombres  = _nombresCaso(caso);
+    var producto = crm_esc(caso.producto_interes || '—');
+    var accion   = caso.proxima_accion
+      ? '<span class="crm-caso-accion" style="text-decoration:line-through;opacity:.55;"><strong>Acción:</strong> ' + crm_esc(caso.proxima_accion) + '</span>'
+      : '';
+    var cuandoHtml = '<span class="crm-caso-fecha-inactiva">Realizada ' + crm_formatAntiguedad(caso.fecha_ultima_actividad) + '</span>';
+
+    return '<div class="crm-caso-card">' +
+      '<div class="crm-caso-info">' +
+        '<div class="crm-caso-titulo">' +
+          '<span class="crm-caso-nombre">' + nombres + '</span>' +
+          crm_badgeEstado(caso.estado) +
+          '<span style="font-size:.7rem;font-family:var(--font-mono);color:#a5b4fc;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);padding:.15rem .4rem;border-radius:4px;">✓ Hecha</span>' +
+        '</div>' +
+        '<span class="crm-caso-producto">' + producto + '</span>' +
+        accion +
+        cuandoHtml +
+      '</div>' +
+      '<div class="crm-caso-acciones">' +
         '<a href="crm-caso.html?id=' + crm_esc(caso.id) + '" class="btn btn-sm">Ver caso</a>' +
         '<button class="btn btn-primary btn-sm" onclick="abrirInteraccionRapida(\'' + crm_esc(caso.id) + '\')">+ Interacción</button>' +
       '</div>' +
@@ -431,13 +482,13 @@ function handleImport(event) {
 }
 
 function mostrarCargando() {
-  ['lista-vencidos','lista-hoy','lista-inactivos','lista-proximos'].forEach(function(id) {
+  ['lista-vencidos','lista-hoy','lista-inactivos','lista-proximos','lista-realizadas'].forEach(function(id) {
     document.getElementById(id).innerHTML = '<p class="crm-lista-vacia">Cargando…</p>';
   });
 }
 
 function mostrarError(msg) {
-  ['lista-vencidos','lista-hoy','lista-inactivos','lista-proximos'].forEach(function(id) {
+  ['lista-vencidos','lista-hoy','lista-inactivos','lista-proximos','lista-realizadas'].forEach(function(id) {
     document.getElementById(id).innerHTML = '<p class="crm-lista-vacia" style="color:var(--error)">' + crm_esc(msg) + '</p>';
   });
 }

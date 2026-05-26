@@ -137,6 +137,20 @@ function crm_getCasosInactivos(casos, interacciones, dias) {
   });
 }
 
+/**
+ * Casos activos con acción marcada como completada.
+ * Ordenados por fecha_ultima_actividad desc (los más recientes primero).
+ * @param {Array} casos
+ * @returns {Array}
+ */
+function crm_getAccionesRealizadas(casos) {
+  return casos.filter(function(c) {
+    return CRM_ESTADOS_ACTIVOS.indexOf(c.estado) !== -1 && c.accion_completada;
+  }).sort(function(a, b) {
+    return new Date(b.fecha_ultima_actividad) - new Date(a.fecha_ultima_actividad);
+  });
+}
+
 // ── Helpers de tabla de unión (múltiples contactos por caso) ──────────────────
 
 /**
