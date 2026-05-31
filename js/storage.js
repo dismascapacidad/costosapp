@@ -253,25 +253,30 @@ var _saveTimeout = null;
 
 function _guardarEnSupabaseAsync(data) {
   if (typeof guardarDatosEnSupabase !== 'function') return;
-  if (_guardandoEnSupabase) return;
 
-  // Debounce: esperar 2 segundos después del último cambio
+  // Debounce: esperar 2 segundos después del último cambio.
+  // IMPORTANTE: no cancelamos si _guardandoEnSupabase es true — el timeout se
+  // reprograma igual y al dispararse verifica si sigue ocupado y reintenta.
+  // Esto evita que saves queden descartados cuando llegan durante un sync activo.
   if (_saveTimeout) clearTimeout(_saveTimeout);
 
   _saveTimeout = setTimeout(function() {
+    // Si hay un sync en curso, esperar otros 2 segundos y reintentar
+    if (_guardandoEnSupabase) {
+      _guardarEnSupabaseAsync(data);
+      return;
+    }
+
     _guardandoEnSupabase = true;
 
-    // Siempre usar window.AppData al momento de guardar, no el objeto capturado en el cierre
-    // (puede quedar desactualizado si Supabase reemplazó window.AppData mientras esperábamos)
+    // Usar window.AppData al momento de ejecutar (puede haber cambiado durante el debounce)
     var dataActual = window.AppData || data;
     var countData = _contarRegistros(dataActual);
     console.log('[storage] Sincronizando ' + countData + ' registros a Supabase...');
 
     guardarDatosEnSupabase(dataActual)
       .then(function(ok) {
-        if (ok) {
-          console.log('[storage] ✓ Datos sincronizados a Supabase.');
-        }
+        if (ok) console.log('[storage] ✓ Datos sincronizados a Supabase.');
       })
       .catch(function(err) {
         console.warn('[storage] Error sincronizando a Supabase:', err.message);

@@ -143,6 +143,70 @@ function crearPresupuesto(campos, productos, insumos) {
   };
 }
 
+/**
+ * Actualiza un presupuesto existente conservando su id, número y fecha original.
+ * Recalcula líneas y totales igual que crearPresupuesto.
+ */
+function actualizarPresupuesto(id, campos, productos, insumos) {
+  var idx = (window.AppData.presupuestos || []).findIndex(function(p) { return p.id === id; });
+  if (idx === -1) throw new Error('Presupuesto no encontrado.');
+
+  var original    = window.AppData.presupuestos[idx];
+  var cliente     = campos.cliente;
+  var validezDias = campos.validezDias;
+  var tipoCliente = campos.tipoCliente || 'consumidor';
+  var moneda      = campos.moneda     || 'ARS';
+  var tipoDolar   = campos.tipoDolar  || null;
+  var tipoCambio  = parseFloat(campos.tipoCambio) || 0;
+  var descuento   = campos.descuento  || 0;
+  var costoEnvio  = campos.costoEnvio || 0;
+  var lineasBase  = campos.lineasBase;
+
+  validarPresupuesto({ cliente: cliente, validezDias: validezDias, descuento: descuento, costoEnvio: costoEnvio, lineas: lineasBase });
+
+  var lineas = lineasBase.map(function(l) {
+    var precioARS = resolverPrecioUnitario(l.productoId, tipoCliente, productos, insumos);
+    var precio    = (moneda === 'USD' && tipoCambio > 0) ? precioARS / tipoCambio : precioARS;
+    var p = productos.find(function(x) { return x.id === l.productoId; });
+    return {
+      productoId:     l.productoId,
+      sku:            p ? p.sku || '—' : '—',
+      nombre:         p ? p.nombre || '(desconocido)' : '(desconocido)',
+      cantidad:       parseFloat(l.cantidad),
+      precioUnitario: precio,
+      subtotal:       parseFloat(l.cantidad) * precio
+    };
+  });
+
+  var d       = parseFloat(descuento);
+  var ce      = parseFloat(costoEnvio);
+  var totales = calcularTotalesPresupuesto(lineas, d, ce);
+
+  // Fecha de vencimiento se recalcula desde la fecha original de emisión
+  var fechaOriginal    = new Date(original.fecha);
+  var fechaVencimiento = new Date(fechaOriginal);
+  fechaVencimiento.setDate(fechaVencimiento.getDate() + parseInt(validezDias));
+
+  window.AppData.presupuestos[idx] = Object.assign({}, original, {
+    cliente:         cliente.trim(),
+    validezDias:     parseInt(validezDias),
+    tipoCliente:     tipoCliente,
+    moneda:          moneda,
+    tipoDolar:       moneda === 'USD' ? tipoDolar : null,
+    tipoCambio:      moneda === 'USD' ? tipoCambio : 0,
+    descuento:       d,
+    costoEnvio:      ce,
+    lineas:          lineas,
+    subtotalLineas:  totales.subtotalLineas,
+    montoDescuento:  totales.montoDescuento,
+    totalSinEnvio:   totales.totalSinEnvio,
+    total:           totales.total,
+    fechaVencimiento: fechaVencimiento.toISOString()
+  });
+
+  saveData(window.AppData);
+}
+
 function agregarPresupuesto(presupuesto) {
   if (!window.AppData.presupuestos) window.AppData.presupuestos = [];
   window.AppData.presupuestos.push(presupuesto);

@@ -23,6 +23,9 @@ let _ddProductoCursor = -1;
 // Referencia al menú abierto (para cerrar al hacer clic fuera)
 let _menuPresupAbierto = null;
 
+// ID del presupuesto en edición (null = modo creación)
+let _presupuestoEditandoId = null;
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -615,10 +618,19 @@ function guardarPresupuesto() {
   };
 
   try {
-    var presupuesto = crearPresupuesto(
-      campos, window.AppData.productos, window.AppData.insumos
-    );
-    agregarPresupuesto(presupuesto);
+    if (_presupuestoEditandoId) {
+      // Modo edición
+      actualizarPresupuesto(
+        _presupuestoEditandoId, campos,
+        window.AppData.productos, window.AppData.insumos
+      );
+    } else {
+      // Modo creación
+      var presupuesto = crearPresupuesto(
+        campos, window.AppData.productos, window.AppData.insumos
+      );
+      agregarPresupuesto(presupuesto);
+    }
     renderPresupuestosList();
     cerrarModalPresupuesto();
   } catch (err) {
@@ -627,6 +639,70 @@ function guardarPresupuesto() {
 }
 
 function cancelarPresupuesto() { cerrarModalPresupuesto(); }
+
+function abrirEdicionPresupuesto(id) {
+  var p = getPresupuestoPorId(id);
+  if (!p) { alert('Presupuesto no encontrado.'); return; }
+
+  limpiarFormPresupuesto();  // resetea estado
+  _presupuestoEditandoId = id;
+
+  // Encabezado
+  document.getElementById('campo-cliente-texto').value  = p.cliente || '';
+  document.getElementById('campo-cliente-nombre').value = p.cliente || '';
+  document.getElementById('campo-validez').value         = p.validezDias || 15;
+  document.getElementById('campo-descuento').value       = p.descuento   || 0;
+  document.getElementById('campo-envio').value           = p.costoEnvio  || 0;
+
+  // Buscar cliente en la base para poblar la info card
+  var clienteEncontrado = _clientesParaDropdown.find(function(c) {
+    return c.nombre.toLowerCase() === (p.cliente || '').toLowerCase();
+  });
+  if (clienteEncontrado) {
+    _clienteSeleccionado = clienteEncontrado;
+    document.getElementById('campo-cliente-id').value = clienteEncontrado.id;
+    var card = document.getElementById('cliente-info-card');
+    card.classList.remove('oculto');
+    document.getElementById('cliente-info-nombre-display').textContent = clienteEncontrado.nombre;
+    document.getElementById('cliente-info-email').textContent    = clienteEncontrado.email    || 'Sin email';
+    document.getElementById('cliente-info-telefono').textContent = clienteEncontrado.telefono || 'Sin teléfono';
+    var tipoIcon = clienteEncontrado.tipo === 'distribuidor'
+      ? '<span class="tipo-tag distribuidor">Distribuidor</span>'
+      : '<span class="tipo-tag consumidor">Consumidor</span>';
+    document.getElementById('cliente-info-tipo-tag').innerHTML = tipoIcon;
+  }
+
+  // Tipo de cliente y moneda
+  setTipoCliente(p.tipoCliente || 'consumidor');
+  setMoneda(p.moneda || 'ARS');
+  if (p.moneda === 'USD' && p.tipoCambio > 0) {
+    tipoDolarActual  = p.tipoDolar  || 'blue';
+    tipoCambioActual = p.tipoCambio || 0;
+    document.getElementById('campo-tipo-dolar').value = tipoDolarActual;
+    var display = document.getElementById('tipo-cambio-display');
+    if (display) display.textContent = '1 USD = ARS ' + Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2 }) + ' (al crear)';
+  }
+
+  // Líneas — se reconstruyen desde los datos guardados
+  lineasPresupTemp = (p.lineas || []).map(function(l) {
+    return {
+      productoId:     l.productoId,
+      sku:            l.sku || '',
+      nombre:         l.nombre || '',
+      cantidad:       l.cantidad,
+      precioUnitario: l.precioUnitario,
+      subtotal:       l.subtotal
+    };
+  });
+
+  // Título del modal y botón
+  document.getElementById('form-presup-titulo').textContent = 'Editar presupuesto N° ' + String(p.numero).padStart(4, '0');
+  document.getElementById('btn-guardar-presup').textContent = 'Guardar cambios';
+
+  renderLineasPresup();
+  recalcularTotales();
+  document.getElementById('modal-presupuesto').classList.add('activo');
+}
 
 function limpiarFormPresupuesto() {
   document.getElementById('campo-cliente-texto').value = '';
@@ -646,7 +722,9 @@ function limpiarFormPresupuesto() {
   setMoneda('ARS');
   renderLineasPresup();
   recalcularTotales();
-  document.getElementById('form-presup-titulo').textContent = 'Nuevo presupuesto';
+  _presupuestoEditandoId = null;
+  document.getElementById('form-presup-titulo').textContent   = 'Nuevo presupuesto';
+  document.getElementById('btn-guardar-presup').textContent   = 'Guardar presupuesto';
   ocultarErrorPresup();
   ocultarErrorLineasPresup();
 }
@@ -693,11 +771,12 @@ function renderPresupuestosList() {
         '<div class="menu-acciones-presup">' +
           '<button type="button" class="btn-menu-presup" data-menu-id="' + p.id + '">⋯</button>' +
           '<div class="menu-dropdown-presup" id="menu-' + p.id + '">' +
-            '<button data-accion="detalles" data-id="' + p.id + '">📋 Detalles</button>' +
-            '<button data-accion="excel" data-id="' + p.id + '">📊 Descargar Excel</button>' +
-            '<button data-accion="pdf" data-id="' + p.id + '">📄 Descargar PDF</button>' +
+            '<button data-accion="detalles"  data-id="' + p.id + '">📋 Detalles</button>' +
+            '<button data-accion="editar"    data-id="' + p.id + '">✏️ Editar</button>' +
+            '<button data-accion="excel"     data-id="' + p.id + '">📊 Descargar Excel</button>' +
+            '<button data-accion="pdf"       data-id="' + p.id + '">📄 Descargar PDF</button>' +
             '<button data-accion="confirmar" data-id="' + p.id + '" data-numero="' + p.numero + '">✅ Confirmar presupuesto</button>' +
-            '<button data-accion="eliminar" data-id="' + p.id + '" data-numero="' + p.numero + '" class="menu-item-danger">🗑 Eliminar</button>' +
+            '<button data-accion="eliminar"  data-id="' + p.id + '" data-numero="' + p.numero + '" class="menu-item-danger">🗑 Eliminar</button>' +
           '</div>' +
         '</div>' +
       '</td>' +
@@ -748,6 +827,9 @@ function _bindMenusPresupuestos() {
       switch (accion) {
         case 'detalles':
           mostrarDetallePresupuesto(id);
+          break;
+        case 'editar':
+          abrirEdicionPresupuesto(id);
           break;
         case 'excel':
           _exportarPresupExcel(id);
