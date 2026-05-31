@@ -1109,7 +1109,7 @@ function _exportarPresupPDF(id) {
   }
 
   var contenido = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-    '<title>Presupuesto N° ' + String(p.numero).padStart(4,'0') + '</title>' +
+    '<title>Presupuesto N° ' + String(p.numero).padStart(4,'0') + ' — ' + (p.cliente || '') + '</title>' +
     '<style>' +
       'body{font-family:Arial,sans-serif;color:#222;margin:2rem;font-size:13px;}' +
       'h1{font-size:1.4rem;margin-bottom:0.25rem;}' +
