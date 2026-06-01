@@ -221,11 +221,11 @@
 </div>
 
 <!-- ── Modal detalle presupuesto ── -->
-<div id="modal-detalle-presup" class="modal-overlay modal-oculto">
+<div id="modal-detalle-presup" class="modal-overlay modal-oculto" onclick="if(event.target===this)cerrarModalDetallePresup()">
   <div class="modal-box modal-presup-detalle">
     <div class="modal-presup-header">
       <h3 id="modal-presup-titulo">Presupuesto</h3>
-      <button type="button" class="btn-link-small" id="btn-cerrar-modal-presup">✕ Cerrar</button>
+      <button type="button" class="btn-link-small" id="btn-cerrar-modal-presup" onclick="cerrarModalDetallePresup()">✕ Cerrar</button>
     </div>
     <div id="modal-presup-contenido" class="modal-presup-body"></div>
   </div>
