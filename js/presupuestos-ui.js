@@ -644,69 +644,95 @@ function abrirEdicionPresupuesto(id) {
   var p = getPresupuestoPorId(id);
   if (!p) { alert('Presupuesto no encontrado.'); return; }
 
-  limpiarFormPresupuesto();  // resetea estado
+  // Reset completo del formulario
+  limpiarFormPresupuesto();
   _presupuestoEditandoId = id;
 
-  // Encabezado
+  // ── Campos de cabecera ──────────────────────────────────────────────────────
   document.getElementById('campo-cliente-texto').value  = p.cliente || '';
   document.getElementById('campo-cliente-nombre').value = p.cliente || '';
-  document.getElementById('campo-validez').value         = p.validezDias || 15;
-  document.getElementById('campo-descuento').value       = p.descuento   || 0;
-  document.getElementById('campo-envio').value           = p.costoEnvio  || 0;
+  document.getElementById('campo-validez').value        = p.validezDias || 15;
+  document.getElementById('campo-descuento').value      = p.descuento   || 0;
+  document.getElementById('campo-envio').value          = p.costoEnvio  || 0;
 
-  // Buscar cliente en la base para poblar la info card
+  // ── Cliente ─────────────────────────────────────────────────────────────────
   var clienteEncontrado = _clientesParaDropdown.find(function(c) {
     return c.nombre.toLowerCase() === (p.cliente || '').toLowerCase();
   });
   if (clienteEncontrado) {
     _clienteSeleccionado = clienteEncontrado;
     document.getElementById('campo-cliente-id').value = clienteEncontrado.id;
-    var card = document.getElementById('cliente-info-card');
-    card.classList.remove('oculto');
+    document.getElementById('cliente-info-card').classList.remove('oculto');
     document.getElementById('cliente-info-nombre-display').textContent = clienteEncontrado.nombre;
     document.getElementById('cliente-info-email').textContent    = clienteEncontrado.email    || 'Sin email';
     document.getElementById('cliente-info-telefono').textContent = clienteEncontrado.telefono || 'Sin teléfono';
-    var tipoIcon = clienteEncontrado.tipo === 'distribuidor'
+    document.getElementById('cliente-info-tipo-tag').innerHTML   = clienteEncontrado.tipo === 'distribuidor'
       ? '<span class="tipo-tag distribuidor">Distribuidor</span>'
       : '<span class="tipo-tag consumidor">Consumidor</span>';
-    document.getElementById('cliente-info-tipo-tag').innerHTML = tipoIcon;
   }
 
-  // Tipo de cliente y moneda
-  setTipoCliente(p.tipoCliente || 'consumidor');
-  setMoneda(p.moneda || 'ARS');
-  if (p.moneda === 'USD' && p.tipoCambio > 0) {
+  // ── Tipo de cliente ─────────────────────────────────────────────────────────
+  // Seteamos el estado directamente sin llamar setTipoCliente() para no
+  // recalcular líneas que todavía están vacías.
+  tipoClienteActual = p.tipoCliente || 'consumidor';
+  document.getElementById('btn-tipo-consumidor').classList.toggle('activo',   tipoClienteActual === 'consumidor');
+  document.getElementById('btn-tipo-distribuidor').classList.toggle('activo', tipoClienteActual === 'distribuidor');
+
+  // ── Moneda ──────────────────────────────────────────────────────────────────
+  // Igual: seteamos estado directamente. Para USD usamos el tipo de cambio
+  // guardado como valor inicial y disparamos fetch del actual en segundo plano.
+  monedaActual = p.moneda || 'ARS';
+  document.getElementById('btn-moneda-ars').classList.toggle('activo', monedaActual === 'ARS');
+  document.getElementById('btn-moneda-usd').classList.toggle('activo', monedaActual === 'USD');
+
+  var selectorDolar = document.getElementById('selector-tipo-dolar');
+  if (monedaActual === 'USD') {
     tipoDolarActual  = p.tipoDolar  || 'blue';
     tipoCambioActual = p.tipoCambio || 0;
+    selectorDolar.classList.remove('oculto');
     document.getElementById('campo-tipo-dolar').value = tipoDolarActual;
     var display = document.getElementById('tipo-cambio-display');
-    if (display) display.textContent = '1 USD = ARS ' + Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2 }) + ' (al crear)';
+    if (display && tipoCambioActual > 0) {
+      display.textContent = '1 USD = ARS ' +
+        Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2 }) +
+        ' (actualizando…)';
+    }
+    // Actualizar al tipo de cambio actual en segundo plano
+    actualizarCotizacionSeleccionada();
+  } else {
+    tipoCambioActual = 0;
+    selectorDolar.classList.add('oculto');
   }
 
-  // Líneas — se reconstruyen recalculando precios actuales
+  // ── Líneas ──────────────────────────────────────────────────────────────────
+  // precioUnitario SIEMPRE se guarda en ARS en lineasPresupTemp.
+  // recalcularTotales() convierte a la moneda de display usando _convertirPrecio().
   lineasPresupTemp = (p.lineas || []).map(function(l) {
-    var precioActual = l.precioUnitario; // fallback al guardado
+    var precioARS;
     try {
-      var precioARS = resolverPrecioUnitario(
-        l.productoId, p.tipoCliente || 'consumidor',
+      // Recalcular con precios vigentes del catálogo
+      precioARS = resolverPrecioUnitario(
+        l.productoId, tipoClienteActual,
         window.AppData.productos, window.AppData.insumos
       );
-      // Convertir a moneda del presupuesto si corresponde
-      precioActual = (p.moneda === 'USD' && p.tipoCambio > 0)
-        ? precioARS / p.tipoCambio
-        : precioARS;
-    } catch(_) {}
+    } catch(_) {
+      // Producto eliminado o no encontrado: usar el precio guardado
+      // Si el presupuesto original era en USD, convertir de vuelta a ARS
+      precioARS = (p.moneda === 'USD' && p.tipoCambio > 0)
+        ? l.precioUnitario * p.tipoCambio
+        : l.precioUnitario;
+    }
     return {
       productoId:     l.productoId,
-      sku:            l.sku || '',
+      sku:            l.sku   || '',
       nombre:         l.nombre || '',
       cantidad:       l.cantidad,
-      precioUnitario: precioActual,
-      subtotal:       l.cantidad * precioActual
+      precioUnitario: precioARS,          // siempre ARS
+      subtotal:       l.cantidad * precioARS
     };
   });
 
-  // Título del modal y botón
+  // ── Título y botón ──────────────────────────────────────────────────────────
   document.getElementById('form-presup-titulo').textContent = 'Editar presupuesto N° ' + String(p.numero).padStart(4, '0');
   document.getElementById('btn-guardar-presup').textContent = 'Guardar cambios';
 
