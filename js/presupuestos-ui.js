@@ -683,15 +683,26 @@ function abrirEdicionPresupuesto(id) {
     if (display) display.textContent = '1 USD = ARS ' + Number(tipoCambioActual).toLocaleString('es-AR', { minimumFractionDigits: 2 }) + ' (al crear)';
   }
 
-  // Líneas — se reconstruyen desde los datos guardados
+  // Líneas — se reconstruyen recalculando precios actuales
   lineasPresupTemp = (p.lineas || []).map(function(l) {
+    var precioActual = l.precioUnitario; // fallback al guardado
+    try {
+      var precioARS = resolverPrecioUnitario(
+        l.productoId, p.tipoCliente || 'consumidor',
+        window.AppData.productos, window.AppData.insumos
+      );
+      // Convertir a moneda del presupuesto si corresponde
+      precioActual = (p.moneda === 'USD' && p.tipoCambio > 0)
+        ? precioARS / p.tipoCambio
+        : precioARS;
+    } catch(_) {}
     return {
       productoId:     l.productoId,
       sku:            l.sku || '',
       nombre:         l.nombre || '',
       cantidad:       l.cantidad,
-      precioUnitario: l.precioUnitario,
-      subtotal:       l.subtotal
+      precioUnitario: precioActual,
+      subtotal:       l.cantidad * precioActual
     };
   });
 
