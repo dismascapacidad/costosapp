@@ -54,6 +54,8 @@ function validarPresupuesto(params) {
     throw new Error('El costo de envío debe ser un número >= 0.');
   if (!Array.isArray(lineas) || lineas.length === 0)
     throw new Error('El presupuesto debe tener al menos un producto.');
+  if (params.moneda === 'USD' && !(parseFloat(params.tipoCambio) > 0))
+    throw new Error('No se pudo obtener el tipo de cambio. Intentá de nuevo en unos segundos.');
 }
 
 // ── Cálculo (función pura) ────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ function crearPresupuesto(campos, productos, insumos) {
   var costoEnvio  = campos.costoEnvio || 0;
   var lineasBase  = campos.lineasBase;
 
-  validarPresupuesto({ cliente: cliente, validezDias: validezDias, descuento: descuento, costoEnvio: costoEnvio, lineas: lineasBase });
+  validarPresupuesto({ cliente: cliente, validezDias: validezDias, descuento: descuento, costoEnvio: costoEnvio, lineas: lineasBase, moneda: moneda, tipoCambio: tipoCambio });
 
   var lineas = lineasBase.map(function(l) {
     var precioARS = resolverPrecioUnitario(l.productoId, tipoCliente, productos, insumos);
@@ -162,7 +164,7 @@ function actualizarPresupuesto(id, campos, productos, insumos) {
   var costoEnvio  = campos.costoEnvio || 0;
   var lineasBase  = campos.lineasBase;
 
-  validarPresupuesto({ cliente: cliente, validezDias: validezDias, descuento: descuento, costoEnvio: costoEnvio, lineas: lineasBase });
+  validarPresupuesto({ cliente: cliente, validezDias: validezDias, descuento: descuento, costoEnvio: costoEnvio, lineas: lineasBase, moneda: moneda, tipoCambio: tipoCambio });
 
   var lineas = lineasBase.map(function(l) {
     var precioARS = resolverPrecioUnitario(l.productoId, tipoCliente, productos, insumos);

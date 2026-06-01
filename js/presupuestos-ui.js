@@ -345,7 +345,7 @@ function _renderProductoDropdown(dropdown, resultados) {
     try {
       precio = resolverPrecioUnitario(p.id, tipoClienteActual, window.AppData.productos, window.AppData.insumos);
     } catch(e) {}
-    var precioStr = '<span class="precio">ARS ' + formatNum(precio) + '</span>';
+    var precioStr = '<span class="precio">' + _simbol() + formatNum(_convertirPrecio(precio)) + '</span>';
     return '<div class="producto-dd-item" data-id="' + p.id + '" data-index="' + i + '">' +
       sku + '<span class="producto-dd-nombre">' + escapar(p.nombre) + '</span>' + precioStr + '</div>';
   }).join('');
@@ -424,8 +424,8 @@ function renderLineasPresup() {
         '<input type="number" class="cantidad-inline" value="' + l.cantidad + '" min="1" step="1"' +
         ' data-index="' + i + '" style="width:60px; text-align:right;" />' +
       '</td>' +
-      '<td class="td-num">ARS ' + formatNum(l.precioUnitario) + '</td>' +
-      '<td class="td-num td-costo">ARS ' + formatNum(l.subtotal) + '</td>' +
+      '<td class="td-num">' + _simbol() + formatNum(_convertirPrecio(l.precioUnitario)) + '</td>' +
+      '<td class="td-num td-costo">' + _simbol() + formatNum(_convertirPrecio(l.subtotal)) + '</td>' +
       '<td class="td-acciones-menu">' +
         '<button type="button" class="btn btn-sm btn-danger" data-eliminar="' + i + '">✕</button>' +
       '</td>' +
