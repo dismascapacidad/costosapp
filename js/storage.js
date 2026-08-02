@@ -42,6 +42,10 @@ var _guardandoEnSupabase = false;
 // Flag para saber si los datos actuales vinieron de Supabase (fuente confiable)
 var _datosDesdeSupabase = false;
 
+// Timestamp del último guardado local iniciado por el usuario.
+// Se usa para detectar si el usuario hizo cambios mientras Supabase cargaba.
+var _tiempoUltimoGuardadoLocal = null;
+
 // ── Validación de estructura ──────────────────────────────────────────────────
 
 function validarEstructura(obj) {
@@ -134,6 +138,9 @@ async function _cargarDesdeSupabaseAsync() {
       return;
     }
 
+    // Registrar cuándo empezó esta carga para detectar cambios locales posteriores
+    var tiempoInicioLoad = Date.now();
+
     console.log('[storage] Cargando datos desde Supabase...');
     var datosNube = await cargarDatosDesdeSupabase();
 
@@ -171,7 +178,17 @@ async function _cargarDesdeSupabaseAsync() {
       return;
     }
 
-    // Caso normal: Supabase tiene datos iguales o más → es la fuente de verdad
+    // Caso normal: Supabase tiene datos iguales o más → es la fuente de verdad.
+    // PERO: si el usuario hizo cambios locales mientras Supabase cargaba, no pisar.
+    if (_tiempoUltimoGuardadoLocal && _tiempoUltimoGuardadoLocal > tiempoInicioLoad) {
+      console.warn('[storage] ⚠️ El usuario guardó cambios locales mientras Supabase cargaba. ' +
+        'Se omite la sobreescritura para no perder esos cambios. ' +
+        'Los cambios locales se sincronizarán a Supabase por el debounce pendiente.');
+      _cargaSupabaseCompleta = true;
+      _datosDesdeSupabase = true;
+      return;
+    }
+
     window.AppData = Object.assign(structuredClone(DEFAULT_DATA), datosNube);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(window.AppData));
     _cargaSupabaseCompleta = true;
@@ -219,6 +236,9 @@ function _reRenderizarPaginaActual() {
  * @returns {boolean} true si guardó en localStorage sin errores
  */
 function saveData(data) {
+  // Registrar el momento de este guardado para la protección anti-race-condition
+  _tiempoUltimoGuardadoLocal = Date.now();
+
   // 1. Guardar en localStorage (instantáneo, como antes)
   var ok = true;
   try {
