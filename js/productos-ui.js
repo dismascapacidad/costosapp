@@ -31,7 +31,9 @@ function generarYponerSKU() {
   document.getElementById('campo-sku').value = generarSKUSugerido(nombre, lista);
 }
 
-// ── Precio bidireccional (sin cambios de lógica) ────────────────────────────
+// ── Precio bidireccional ────────────────────────────────────────────────────
+// El margen es siempre la fuente de verdad. El campo de precio es un helper
+// de entrada: al escribir un precio se convierte al margen implícito.
 
 function _productoDesdeForm() {
   return {
@@ -39,12 +41,12 @@ function _productoDesdeForm() {
     insumos: lineasTemp,
     horasTrabajo: parseFloat(document.getElementById('campo-producto-horas').value) || 0,
     costoHora: parseFloat(document.getElementById('campo-producto-costo-hora').value) || 0,
-    modoConsumidor: _modoConsumidor,
+    modoConsumidor: 'margen',
     margenConsumidor: parseFloat(document.getElementById('campo-margen-consumidor').value) || 0,
-    precioFinal: parseFloat(document.getElementById('campo-precio-final').value) || 0,
-    modoDistribuidor: _modoDistribuidor,
+    precioFinal: 0,         // sin piso en la previsualización del form
+    modoDistribuidor: 'margen',
     margenDistribuidor: parseFloat(document.getElementById('campo-margen-distribuidor').value) || 0,
-    precioDistribuidor: parseFloat(document.getElementById('campo-precio-distribuidor').value) || 0
+    precioDistribuidor: 0   // sin piso en la previsualización del form
   };
 }
 
@@ -53,16 +55,8 @@ function recalcularDesdeForm() {
   var r;
   try { r = calcularResumen(p, window.AppData.insumos, window.AppData.productos); } catch(e) { return; }
 
-  if (_modoConsumidor === 'margen') {
-    _setSilently('campo-precio-final', r.precioFinal > 0 ? fmtN(r.precioFinal) : '');
-  } else {
-    _setSilently('campo-margen-consumidor', r.margenConsumidor > 0 ? fmtN(r.margenConsumidor) : '');
-  }
-  if (_modoDistribuidor === 'margen') {
-    _setSilently('campo-precio-distribuidor', r.precioDistribuidor > 0 ? fmtN(r.precioDistribuidor) : '');
-  } else {
-    _setSilently('campo-margen-distribuidor', r.margenDistribuidor > 0 ? fmtN(r.margenDistribuidor) : '');
-  }
+  _setSilently('campo-precio-final',        r.precioFinal      > 0 ? fmtN(r.precioFinal)      : '');
+  _setSilently('campo-precio-distribuidor', r.precioDistribuidor > 0 ? fmtN(r.precioDistribuidor) : '');
 
   var markupEl = document.getElementById('markup-info-valor');
   var hC = document.getElementById('hint-consumidor');
@@ -70,34 +64,61 @@ function recalcularDesdeForm() {
 
   if (r.costoTotal > 0 && r.precioFinal > 0) {
     if (markupEl) markupEl.textContent = formatNum(r.markup) + '%';
-    hC.textContent = _modoConsumidor === 'margen'
-      ? 'Precio calculado: ARS ' + formatNum(r.precioFinal) + ' — ganancia ARS ' + formatNum(r.ganancia)
-      : 'Margen implícito: ' + formatNum(r.margenConsumidor) + '% — ganancia ARS ' + formatNum(r.ganancia);
+    hC.textContent = 'Precio: ARS ' + formatNum(r.precioFinal) + ' — margen ' + formatNum(r.margenConsumidor) + '% — ganancia ARS ' + formatNum(r.ganancia);
   } else {
     if (markupEl) markupEl.textContent = '—';
     hC.textContent = '';
   }
   if (r.precioFinal > 0 && r.precioDistribuidor > 0) {
-    hD.textContent = _modoDistribuidor === 'margen'
-      ? 'Precio distribuidor: ARS ' + formatNum(r.precioDistribuidor)
-      : 'Descuento implícito: ' + formatNum(r.margenDistribuidor) + '%';
+    hD.textContent = 'Precio distribuidor: ARS ' + formatNum(r.precioDistribuidor) + ' — descuento ' + formatNum(r.margenDistribuidor) + '%';
   } else { hD.textContent = ''; }
 }
 
-function alCambiarMargenConsumidor()  { _modoConsumidor   = 'margen'; _badges(); recalcularDesdeForm(); }
-function alCambiarPrecioFinal()       { _modoConsumidor   = 'precio'; _badges(); recalcularDesdeForm(); }
-function alCambiarMargenDistribuidor(){ _modoDistribuidor = 'margen'; _badges(); recalcularDesdeForm(); }
-function alCambiarPrecioDistribuidor(){ _modoDistribuidor = 'precio'; _badges(); recalcularDesdeForm(); }
+function alCambiarMargenConsumidor() { recalcularDesdeForm(); }
+function alCambiarPrecioFinal() {
+  // Convierte el precio escrito a margen y actualiza el campo de margen
+  var precioEsperado = parseFloat(document.getElementById('campo-precio-final').value) || 0;
+  if (precioEsperado > 0) {
+    try {
+      var p = _productoDesdeForm();
+      var costoTotal = calcularCostoTotal(p, window.AppData.insumos, window.AppData.productos);
+      if (costoTotal > 0 && precioEsperado > costoTotal) {
+        _setSilently('campo-margen-consumidor', fmtN(margenDesdePrecio(costoTotal, precioEsperado)));
+      }
+    } catch(e) {}
+  }
+  recalcularDesdeForm();
+}
+function alCambiarMargenDistribuidor() { recalcularDesdeForm(); }
+function alCambiarPrecioDistribuidor() {
+  // Convierte el precio de distribuidor a margen de distribuidor
+  var precioDistrib = parseFloat(document.getElementById('campo-precio-distribuidor').value) || 0;
+  var precioFinal   = parseFloat(document.getElementById('campo-precio-final').value) || 0;
+  if (precioDistrib > 0 && precioFinal > 0 && precioDistrib < precioFinal) {
+    try {
+      _setSilently('campo-margen-distribuidor', fmtN(margenDistribDesdePrecio(precioFinal, precioDistrib)));
+    } catch(e) {}
+  }
+  recalcularDesdeForm();
+}
 
 function _badges() {
-  document.getElementById('badge-modo-cons-margen').style.display  = _modoConsumidor   === 'margen' ? 'inline' : 'none';
-  document.getElementById('badge-modo-cons-precio').style.display  = _modoConsumidor   === 'precio' ? 'inline' : 'none';
-  document.getElementById('badge-modo-dist-margen').style.display  = _modoDistribuidor === 'margen' ? 'inline' : 'none';
-  document.getElementById('badge-modo-dist-precio').style.display  = _modoDistribuidor === 'precio' ? 'inline' : 'none';
-  document.getElementById('grupo-margen-consumidor').classList.toggle('precio-campo-activo',  _modoConsumidor   === 'margen');
-  document.getElementById('grupo-precio-final').classList.toggle('precio-campo-activo',       _modoConsumidor   === 'precio');
-  document.getElementById('grupo-margen-distribuidor').classList.toggle('precio-campo-activo',_modoDistribuidor === 'margen');
-  document.getElementById('grupo-precio-distribuidor').classList.toggle('precio-campo-activo',_modoDistribuidor === 'precio');
+  var cons  = document.getElementById('badge-modo-cons-margen');
+  var consP = document.getElementById('badge-modo-cons-precio');
+  var distM = document.getElementById('badge-modo-dist-margen');
+  var distP = document.getElementById('badge-modo-dist-precio');
+  if (cons)  cons.style.display  = 'inline';
+  if (consP) consP.style.display = 'none';
+  if (distM) distM.style.display = 'inline';
+  if (distP) distP.style.display = 'none';
+  var gMC = document.getElementById('grupo-margen-consumidor');
+  var gPF = document.getElementById('grupo-precio-final');
+  var gMD = document.getElementById('grupo-margen-distribuidor');
+  var gPD = document.getElementById('grupo-precio-distribuidor');
+  if (gMC) gMC.classList.add('precio-campo-activo');
+  if (gPF) gPF.classList.remove('precio-campo-activo');
+  if (gMD) gMD.classList.add('precio-campo-activo');
+  if (gPD) gPD.classList.remove('precio-campo-activo');
 }
 
 function _setSilently(id, val) { var el = document.getElementById(id); if (el) el.value = val; }
@@ -155,7 +176,7 @@ function renderProductosList() {
       var costoStr = '-', margenStr = '-', markupStr = '-', precioStr = '-', distribStr = '-';
       var margenClass = '';
       try {
-        var r = calcularResumen(p, window.AppData.insumos);
+        var r = calcularResumen(p, window.AppData.insumos, window.AppData.productos);
         costoStr  = 'ARS ' + formatNum(r.costoTotal);
         margenStr = formatNum(r.margenConsumidor) + '%';
         markupStr = formatNum(r.markup) + '%';
@@ -422,7 +443,19 @@ function bindFormProducto() {
 }
 
 function leerFormularioProducto() {
-  return { nombre: document.getElementById('campo-producto-nombre').value, sku: document.getElementById('campo-sku').value, categoria: document.getElementById('campo-producto-categoria').value, horasTrabajo: document.getElementById('campo-producto-horas').value, costoHora: document.getElementById('campo-producto-costo-hora').value, modoConsumidor: _modoConsumidor, margenConsumidor: document.getElementById('campo-margen-consumidor').value, precioFinal: document.getElementById('campo-precio-final').value, modoDistribuidor: _modoDistribuidor, margenDistribuidor: document.getElementById('campo-margen-distribuidor').value, precioDistribuidor: document.getElementById('campo-precio-distribuidor').value };
+  return {
+    nombre: document.getElementById('campo-producto-nombre').value,
+    sku: document.getElementById('campo-sku').value,
+    categoria: document.getElementById('campo-producto-categoria').value,
+    horasTrabajo: document.getElementById('campo-producto-horas').value,
+    costoHora: document.getElementById('campo-producto-costo-hora').value,
+    modoConsumidor: 'margen',
+    margenConsumidor: document.getElementById('campo-margen-consumidor').value,
+    precioFinal: 0,   // el piso se recalcula en actualizarProducto/agregarProducto
+    modoDistribuidor: 'margen',
+    margenDistribuidor: document.getElementById('campo-margen-distribuidor').value,
+    precioDistribuidor: 0
+  };
 }
 
 function abrirEdicionProducto(id) {
@@ -431,12 +464,12 @@ function abrirEdicionProducto(id) {
   document.getElementById('campo-producto-id').value = p.id; document.getElementById('campo-producto-nombre').value = p.nombre;
   document.getElementById('campo-sku').value = p.sku || ''; document.getElementById('campo-producto-categoria').value = p.categoria || '';
   document.getElementById('campo-producto-horas').value = p.horasTrabajo; document.getElementById('campo-producto-costo-hora').value = p.costoHora;
-  _modoConsumidor = p.modoConsumidor || 'margen'; _modoDistribuidor = p.modoDistribuidor || 'margen';
+  _modoConsumidor = 'margen'; _modoDistribuidor = 'margen';
   var cfg = getConfig();
   document.getElementById('campo-margen-consumidor').value = fmtN(p.margenConsumidor != null ? p.margenConsumidor : p.margenDeseado != null ? p.margenDeseado : cfg.margenGlobalConsumidor);
-  document.getElementById('campo-precio-final').value = p.precioFinal > 0 ? fmtN(p.precioFinal) : '';
+  document.getElementById('campo-precio-final').value = '';       // calculado por recalcularDesdeForm
   document.getElementById('campo-margen-distribuidor').value = fmtN(p.margenDistribuidor != null ? p.margenDistribuidor : cfg.margenGlobalDistribuidor);
-  document.getElementById('campo-precio-distribuidor').value = p.precioDistribuidor > 0 ? fmtN(p.precioDistribuidor) : '';
+  document.getElementById('campo-precio-distribuidor').value = ''; // calculado por recalcularDesdeForm
   _badges(); lineasTemp = p.insumos.map(function(l) { return l.productoId ? { productoId: l.productoId, cantidad: l.cantidad } : { insumoId: l.insumoId, cantidad: l.cantidad }; });
   document.getElementById('form-producto-titulo').textContent = 'Editar producto'; document.getElementById('btn-guardar-producto').textContent = 'Actualizar producto';
   poblarDropdownInsumos(); renderLineasTemp(); ocultarErrorProducto(); ocultarErrorLineas();
@@ -455,7 +488,14 @@ function limpiarFormularioProducto() {
 
 function duplicarProducto(id) {
   var o = getProductoPorId(id); if (!o) return;
-  var c = crearProducto({ nombre: 'Copia de ' + o.nombre, sku: '', categoria: o.categoria || '', horasTrabajo: o.horasTrabajo, costoHora: o.costoHora, modoConsumidor: o.modoConsumidor || 'margen', margenConsumidor: o.margenConsumidor, precioFinal: o.precioFinal || 0, modoDistribuidor: o.modoDistribuidor || 'margen', margenDistribuidor: o.margenDistribuidor, precioDistribuidor: o.precioDistribuidor || 0 });
+  var c = crearProducto({
+    nombre: 'Copia de ' + o.nombre, sku: '', categoria: o.categoria || '',
+    horasTrabajo: o.horasTrabajo, costoHora: o.costoHora,
+    modoConsumidor: 'margen', margenConsumidor: o.margenConsumidor,
+    precioFinal: 0,   // piso fresco; se fijará al guardar
+    modoDistribuidor: 'margen', margenDistribuidor: o.margenDistribuidor,
+    precioDistribuidor: 0
+  });
   c.insumos = o.insumos.map(function(l) { return l.productoId ? { productoId: l.productoId, cantidad: l.cantidad } : { insumoId: l.insumoId, cantidad: l.cantidad }; });
   agregarProducto(c); renderProductosList(); abrirEdicionProducto(c.id);
 }

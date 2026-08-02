@@ -123,6 +123,7 @@ function actualizarInsumo(id, cambios) {
   };
 
   saveData(window.AppData);
+  if (typeof _actualizarPisosProductos === 'function') _actualizarPisosProductos();
 }
 
 function getInsumos() {

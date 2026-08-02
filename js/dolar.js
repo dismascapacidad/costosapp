@@ -59,6 +59,7 @@ async function fetchDolarBlue() {
     }
 
     saveData(window.AppData);
+    if (typeof _actualizarPisosProductos === 'function') _actualizarPisosProductos();
 
     console.log(`[dolar] Cotización actualizada — compra: $${compra}, venta: $${venta}`);
     return registro;

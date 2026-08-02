@@ -11,14 +11,13 @@
  * MODELO DE PRECIOS:
  *
  *   Precio consumidor final:
- *     Modo 'margen':  precioFinal = costoTotal / (1 - margen/100)
- *     Modo 'precio':  margenConsumidor = (1 - costoTotal/precioFinal) × 100
+ *     precioFinal = max( costoTotal / (1 - margen/100),  producto.precioFinal )
+ *     El campo `producto.precioFinal` actúa como piso: si los insumos bajan, el
+ *     precio se mantiene y el margen efectivo sube. Si los insumos suben, el precio
+ *     sube manteniendo el margen objetivo.
  *
- *   Precio distribuidor (siempre calculado sobre precioFinal):
- *     Modo 'margen':  precioDistribuidor = precioFinal × (1 - margenDistribuidor/100)
- *     Modo 'precio':  margenDistribuidor = (1 - precioDistribuidor/precioFinal) × 100
- *
- *   Ambos modos se guardan en el producto para facilitar futuros análisis estadísticos.
+ *   Precio distribuidor (siempre calculado como % de descuento sobre precioFinal):
+ *     precioDistribuidor = precioFinal × (1 - margenDistribuidor/100)
  */
 
 // ── Costos de producción (sin cambio) ─────────────────────────────────────────
@@ -126,21 +125,20 @@ function calcularMarkupImplicito(costo, precio) {
 /**
  * Calcula todos los valores de precio a partir del producto y los insumos.
  *
- * El producto debe tener:
- *   margenConsumidor   number    % para el precio final (si modoConsumidor === 'margen')
- *   precioFinal        number    precio manual (si modoConsumidor === 'precio')
- *   modoConsumidor     'margen'|'precio'
- *   margenDistribuidor number    % de descuento sobre precioFinal (si modoDistrib === 'margen')
- *   precioDistribuidor number    precio manual distrib (si modoDistrib === 'precio')
- *   modoDistribuidor   'margen'|'precio'
+ * El precio siempre se calcula desde el margen objetivo del producto.
+ * `producto.precioFinal` actúa como piso: si los insumos bajan y el precio
+ * calculado cae por debajo del piso, se mantiene el piso y el margen efectivo
+ * sube. Si los insumos suben, el precio calculado supera el piso y el precio
+ * sube manteniendo el margen objetivo.
  *
  * @returns {{
  *   costoMateriales:    number,
  *   costoManoObra:      number,
  *   costoTotal:         number,
- *   margenConsumidor:   number,   // siempre calculado aunque el modo sea 'precio'
- *   precioFinal:        number,   // siempre calculado aunque el modo sea 'margen'
+ *   margenConsumidor:   number,
+ *   precioFinal:        number,
  *   ganancia:           number,
+ *   markup:             number,
  *   margenDistribuidor: number,
  *   precioDistribuidor: number
  * }}
@@ -150,44 +148,32 @@ function calcularResumen(producto, insumos, productos) {
   const costoManoObra   = calcularCostoManoObra(producto);
   const costoTotal      = costoMateriales + costoManoObra;
 
-  // ── Consumidor final ──
-  let precioFinal, margenConsumidor;
+  // ── Consumidor: siempre por margen objetivo, con piso ──
+  const margenTarget    = producto.margenConsumidor ?? producto.margenDeseado ?? 45;
+  const precioPorMargen = costoTotal > 0 ? precioDesdeMargen(costoTotal, margenTarget) : 0;
+  const piso            = Number(producto.precioFinal) || 0;
 
-  if (producto.modoConsumidor === 'precio') {
-    precioFinal      = producto.precioFinal || 0;
-    margenConsumidor = costoTotal > 0 && precioFinal > 0
-      ? margenDesdePrecio(costoTotal, precioFinal)
-      : 0;
+  let precioFinal, margenConsumidor;
+  if (piso > 0 && precioPorMargen < piso) {
+    // Insumos bajaron: mantener piso, margen efectivo sube
+    precioFinal      = piso;
+    margenConsumidor = costoTotal > 0 ? margenDesdePrecio(costoTotal, piso) : margenTarget;
   } else {
-    // modo 'margen' (default)
-    margenConsumidor = producto.margenConsumidor ?? producto.margenDeseado ?? 45;
-    precioFinal      = costoTotal > 0
-      ? precioDesdeMargen(costoTotal, margenConsumidor)
-      : 0;
+    // Insumos subieron (o no hay piso): precio al margen objetivo
+    precioFinal      = precioPorMargen;
+    margenConsumidor = margenTarget;
   }
 
   const ganancia = precioFinal - costoTotal;
-
-  // ── Markup implícito (informativo) ──
-  const markup = costoTotal > 0 && precioFinal > 0
+  const markup   = costoTotal > 0 && precioFinal > 0
     ? calcularMarkupImplicito(costoTotal, precioFinal)
     : 0;
 
-  // ── Distribuidor ──
-  let precioDistribuidor, margenDistribuidor;
-
-  if (producto.modoDistribuidor === 'precio') {
-    precioDistribuidor = producto.precioDistribuidor || 0;
-    margenDistribuidor = precioFinal > 0 && precioDistribuidor > 0
-      ? margenDistribDesdePrecio(precioFinal, precioDistribuidor)
-      : 0;
-  } else {
-    // modo 'margen' (default)
-    margenDistribuidor = producto.margenDistribuidor ?? 20;
-    precioDistribuidor = precioFinal > 0
-      ? precioDistribDesdeMargen(precioFinal, margenDistribuidor)
-      : 0;
-  }
+  // ── Distribuidor: siempre descuento porcentual sobre precioFinal ──
+  const margenDistribuidor = producto.margenDistribuidor ?? 20;
+  const precioDistribuidor = precioFinal > 0
+    ? precioDistribDesdeMargen(precioFinal, margenDistribuidor)
+    : 0;
 
   return {
     costoMateriales,

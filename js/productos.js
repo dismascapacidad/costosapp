@@ -167,9 +167,13 @@ function tieneCirculo(raizId, candidatoId, productos) {
 }
 
 function agregarProducto(producto) {
+  producto.modoConsumidor  = 'margen';
+  producto.modoDistribuidor = 'margen';
   try {
     const r = calcularResumen(producto, window.AppData.insumos, window.AppData.productos);
-    producto.markup = r.markup;
+    producto.markup            = r.markup;
+    producto.precioFinal       = r.precioFinal || 0;
+    producto.precioDistribuidor = r.precioDistribuidor || 0;
   } catch(e) { producto.markup = 0; }
   window.AppData.productos.push(producto);
   saveData(window.AppData);
@@ -193,10 +197,11 @@ function actualizarProducto(id, cambios) {
     if (!ok) throw new Error(error);
   }
 
-  // Mantener margenDeseado sincronizado para retrocompatibilidad
-  const margenSync = merged.modoConsumidor === 'margen'
-    ? parseFloat(merged.margenConsumidor)
-    : 0; // cuando es modo precio, margenDeseado no es representativo
+  // Siempre modo margen: el precio se calcula desde el margen, nunca es fijo
+  merged.modoConsumidor  = 'margen';
+  merged.modoDistribuidor = 'margen';
+
+  const margenSync = parseFloat(merged.margenConsumidor) || 0;
 
   window.AppData.productos[index] = {
     ...merged,
@@ -204,9 +209,7 @@ function actualizarProducto(id, cambios) {
     horasTrabajo:       parseFloat(merged.horasTrabajo),
     costoHora:          parseFloat(merged.costoHora),
     margenConsumidor:   parseFloat(merged.margenConsumidor) || 0,
-    precioFinal:        parseFloat(merged.precioFinal) || 0,
     margenDistribuidor: parseFloat(merged.margenDistribuidor) || 0,
-    precioDistribuidor: parseFloat(merged.precioDistribuidor) || 0,
     margenDeseado:      margenSync,
     fechaActualizacion: new Date().toISOString()
   };
@@ -219,7 +222,10 @@ function actualizarProducto(id, cambios) {
 
   try {
     const r = calcularResumen(window.AppData.productos[index], window.AppData.insumos, window.AppData.productos);
-    window.AppData.productos[index].markup = r.markup;
+    window.AppData.productos[index].markup            = r.markup;
+    // Al guardar manualmente, el precio calculado se convierte en el nuevo piso
+    window.AppData.productos[index].precioFinal       = r.precioFinal || 0;
+    window.AppData.productos[index].precioDistribuidor = r.precioDistribuidor || 0;
   } catch(e) { window.AppData.productos[index].markup = 0; }
   saveData(window.AppData);
 }
@@ -249,6 +255,30 @@ function eliminarLineaInsumo(productoId, insumoId) {
 
 function getProductos()      { return window.AppData.productos; }
 function getProductoPorId(id){ return window.AppData.productos.find(p => p.id === id); }
+
+// ── Actualización automática de pisos ─────────────────────────────────────────
+
+/**
+ * Recorre todos los productos y sube el piso (precioFinal) cuando los insumos
+ * encarecieron. Nunca baja el piso: si los insumos bajaron, el precio se mantiene
+ * y el margen efectivo aumenta.
+ * Se llama automáticamente al actualizar insumos o la cotización del dólar.
+ */
+function _actualizarPisosProductos() {
+  var huboCambio = false;
+  window.AppData.productos.forEach(function(p) {
+    try {
+      var r = calcularResumen(p, window.AppData.insumos, window.AppData.productos);
+      if (r.precioFinal > (p.precioFinal || 0)) {
+        p.precioFinal        = r.precioFinal;
+        p.precioDistribuidor = r.precioDistribuidor;
+        p.fechaActualizacion = new Date().toISOString();
+        huboCambio = true;
+      }
+    } catch(e) {}
+  });
+  if (huboCambio) saveData(window.AppData);
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
