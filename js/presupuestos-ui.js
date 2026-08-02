@@ -1156,8 +1156,10 @@ function _exportarPresupPDF(id) {
       'table{width:100%;border-collapse:collapse;margin:1rem 0;}' +
       'th{background:#f5f5f5;text-align:left;padding:6px 8px;border-bottom:2px solid #999;font-size:0.8rem;}' +
       'td{padding:5px 8px;border-bottom:1px solid #ddd;}' +
-      '.totales td{border-bottom:none;font-weight:500;}' +
-      '.total-final td{font-size:1.1rem;font-weight:700;border-top:2px solid #333;}' +
+      '.bloque-totales{page-break-inside:avoid;margin-top:0.5rem;}' +
+      '.bloque-totales table{margin:0;}' +
+      '.bloque-totales td{border-bottom:none;font-weight:500;}' +
+      '.total-final td{font-size:1.1rem;font-weight:700;border-top:2px solid #333;padding-top:8px;}' +
       '.footer{margin-top:2rem;font-size:0.75rem;color:#777;border-top:1px solid #ccc;padding-top:0.5rem;}' +
     '</style></head><body>' +
     '<h1>PRESUPUESTO N° ' + String(p.numero).padStart(4,'0') + '</h1>' +
@@ -1174,17 +1176,20 @@ function _exportarPresupPDF(id) {
       '<thead><tr><th>SKU</th><th>Producto</th><th style="text-align:right">Cant.</th>' +
       '<th style="text-align:right">P. Unitario</th><th style="text-align:right">Subtotal</th></tr></thead>' +
       '<tbody>' + lineasHTML + '</tbody>' +
-      '<tfoot class="totales">' +
-        '<tr><td colspan="5"></td></tr>' +
+    '</table>' +
+    '<div class="bloque-totales">' +
+    '<table>' +
+      '<tbody>' +
         '<tr><td colspan="4" style="text-align:right;padding:4px 8px;">Subtotal</td>' +
-          '<td style="text-align:right;padding:4px 8px;">' + simP + formatNum(p.subtotalLineas) + '</td></tr>' +
+          '<td style="text-align:right;padding:4px 8px;width:160px;">' + simP + formatNum(p.subtotalLineas) + '</td></tr>' +
         descuentoHTML +
         '<tr><td colspan="4" style="text-align:right;padding:4px 8px;">Costo de envío</td>' +
           '<td style="text-align:right;padding:4px 8px;">' + simP + formatNum(p.costoEnvio) + '</td></tr>' +
         '<tr class="total-final"><td colspan="4" style="text-align:right;padding:4px 8px;">TOTAL</td>' +
           '<td style="text-align:right;padding:4px 8px;">' + simP + formatNum(p.total) + '</td></tr>' +
-      '</tfoot>' +
+      '</tbody>' +
     '</table>' +
+    '</div>' +
     '<div class="footer">Presupuesto generado por CostosApp — Dismascapacidad</div>' +
     '</body></html>';
 
