@@ -48,6 +48,16 @@ async function fetchDolarBlue() {
     localStorage.setItem(DOLAR_CACHE_KEY, JSON.stringify(registro));
     window.AppData.tipoCambioManual = venta;
     window.AppData.dolarCompra      = compra;
+
+    // Recalcular costoUnitario de todos los insumos en USD con la nueva cotización
+    if (typeof calcularCostoUnitario === 'function' && Array.isArray(window.AppData.insumos)) {
+      window.AppData.insumos.forEach(function(ins) {
+        if (ins.moneda === 'USD') {
+          ins.costoUnitario = calcularCostoUnitario(ins.precioCompra, ins.cantidadCompra, 'USD', venta);
+        }
+      });
+    }
+
     saveData(window.AppData);
 
     console.log(`[dolar] Cotización actualizada — compra: $${compra}, venta: $${venta}`);

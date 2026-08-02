@@ -611,7 +611,8 @@ function guardarPresupuesto() {
     tipoDolar:   monedaActual === 'USD' ? tipoDolarActual : null,
     tipoCambio:  monedaActual === 'USD' ? tipoCambioActual : 0,
     descuento:   document.getElementById('campo-descuento').value,
-    costoEnvio:  document.getElementById('campo-envio').value,
+    // El campo de envío siempre se ingresa en ARS; convertir a la moneda del presupuesto.
+    costoEnvio:  _convertirPrecio(parseFloat(document.getElementById('campo-envio').value) || 0),
     lineasBase:  lineasPresupTemp.map(function(l) {
       return { productoId: l.productoId, cantidad: l.cantidad };
     })

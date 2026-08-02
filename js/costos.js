@@ -206,10 +206,10 @@ function calcularResumen(producto, insumos, productos) {
 // calcularPrecioSugerido y calcularGanancia se mantienen para que presupuestos.js
 // y otros módulos que los usan sigan funcionando sin cambios.
 
-function calcularPrecioSugerido(producto, insumos) {
-  return calcularResumen(producto, insumos).precioFinal;
+function calcularPrecioSugerido(producto, insumos, productos) {
+  return calcularResumen(producto, insumos, productos).precioFinal;
 }
 
-function calcularGanancia(producto, insumos) {
-  return calcularResumen(producto, insumos).ganancia;
+function calcularGanancia(producto, insumos, productos) {
+  return calcularResumen(producto, insumos, productos).ganancia;
 }

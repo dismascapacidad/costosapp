@@ -67,10 +67,13 @@ function resolverPrecioUnitario(productoId, tipoCliente, productos, insumos) {
   var p = productos.find(function(x) { return x.id === productoId; });
   if (!p) throw new Error('Producto ' + productoId + ' no encontrado.');
 
-  if (tipoCliente === 'distribuidor' && p.precioDistribuidor > 0) {
-    return p.precioDistribuidor;
+  // Siempre calcular desde calcularResumen para obtener precios correctos,
+  // incluyendo sub-productos y distribuidor en modo 'margen'.
+  var resumen = calcularResumen(p, insumos, productos);
+  if (tipoCliente === 'distribuidor') {
+    return resumen.precioDistribuidor;
   }
-  return calcularPrecioSugerido(p, insumos);
+  return resumen.precioFinal;
 }
 
 /**
