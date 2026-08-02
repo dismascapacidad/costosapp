@@ -139,12 +139,8 @@ function _convertirInsumoDesdeDB(row) {
     nombre:             row.nombre,
     categoria:          row.categoria || '',
     unidad:             row.unidad || 'u.',
-    // CAMPO CRÍTICO: precioUnitario es lo que usa la app para calcular costos de productos
-    precioUnitario:     costoUnit,
-    // También mantener precioCompra y cantidadCompra para el cálculo interno
     precioCompra:       Number(row.precio_compra) || costoUnit,
     cantidadCompra:     Number(row.cantidad_compra) || 1,
-    // costoUnitario es redundante con precioUnitario, pero lo mantenemos por compatibilidad
     costoUnitario:      costoUnit,
     moneda:             row.moneda || 'ARS',
     proveedor:          row.proveedor || '',
@@ -355,7 +351,10 @@ async function guardarDatosEnSupabase(data) {
     // ── Insumos ───────────────────────────────────────────────────────────────
     if (data.insumos && data.insumos.length > 0) {
       var insumosRows = data.insumos.map(function(i) {
-        var costoUnit = i.precioUnitario || i.costoUnitario || 0;
+        // costoUnitario tiene prioridad sobre precioUnitario: actualizarInsumo()
+        // actualiza costoUnitario, pero precioUnitario puede quedar con el valor
+        // viejo que trajo la carga desde Supabase.
+        var costoUnit = (i.costoUnitario != null) ? i.costoUnitario : (i.precioUnitario || 0);
         return {
           user_id:              userId,
           legacy_id:            i.id,
