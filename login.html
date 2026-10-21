@@ -33,6 +33,21 @@
         <input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password" />
       </div>
       <button class="btn btn-primary login-btn" id="btn-login" onclick="hacerLogin()">Iniciar sesión</button>
+      <p style="text-align:center; margin-top:0.75rem;">
+        <a href="#" onclick="mostrarOlvide(event)" style="font-size:0.8rem; color:var(--text-3); text-decoration:none;">¿Olvidaste tu contraseña?</a>
+      </p>
+    </div>
+
+    <!-- Formulario de recuperar contraseña -->
+    <div id="form-olvide" class="oculto">
+      <div class="form-group">
+        <label for="olvide-email">Email de tu cuenta</label>
+        <input type="email" id="olvide-email" placeholder="tu@email.com" autocomplete="email" />
+      </div>
+      <button class="btn btn-primary login-btn" id="btn-olvide" onclick="hacerRecuperar()">Enviar enlace</button>
+      <p style="text-align:center; margin-top:0.75rem;">
+        <a href="#" onclick="mostrarTab('login'); ocultarOlvide(event)" style="font-size:0.8rem; color:var(--text-3); text-decoration:none;">← Volver</a>
+      </p>
     </div>
 
     <!-- Formulario de registro -->
@@ -172,16 +187,63 @@ function mostrarMensaje(texto, tipo) {
   el.classList.remove('oculto');
 }
 
-// Enter para enviar formularios
+// ── Recuperar contraseña ─────────────────────────────────────────────────────
+
+function mostrarOlvide(e) {
+  e.preventDefault();
+  document.getElementById('form-login').classList.add('oculto');
+  document.getElementById('form-olvide').classList.remove('oculto');
+  document.getElementById('login-tabs').style.display = 'none';
+  document.getElementById('login-mensaje').classList.add('oculto');
+}
+
+function ocultarOlvide(e) {
+  e.preventDefault();
+  document.getElementById('form-olvide').classList.add('oculto');
+  document.getElementById('login-tabs').style.display = '';
+}
+
+async function hacerRecuperar() {
+  var email = document.getElementById('olvide-email').value.trim();
+  var btn   = document.getElementById('btn-olvide');
+
+  if (!email) {
+    mostrarMensaje('Ingresá tu email.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  var sb = getSupabase();
+  var result = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname.replace('login.html', '') + 'recuperar-password.html'
+  });
+
+  if (result.error) {
+    mostrarMensaje('Error: ' + result.error.message, 'error');
+  } else {
+    mostrarMensaje('Revisá tu email — te enviamos el enlace para restablecer tu contraseña.', 'exito');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Enviar enlace';
+}
+
+// ── Enter para enviar formularios ─────────────────────────────────────────────
+
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Enter') return;
-  var formLogin = document.getElementById('form-login');
+  var formLogin    = document.getElementById('form-login');
   var formRegistro = document.getElementById('form-registro');
+  var formOlvide   = document.getElementById('form-olvide');
 
   if (!formLogin.classList.contains('oculto')) {
     hacerLogin();
   } else if (!formRegistro.classList.contains('oculto')) {
     hacerRegistro();
+  } else if (!formOlvide.classList.contains('oculto')) {
+    hacerRecuperar();
   }
 });
 </script>
