@@ -15,9 +15,11 @@ jobs:
           response=$(curl -s -L -o /dev/null -w "%{http_code}" \
             "https://bvlztojamfzbplqudvim.supabase.co/auth/v1/health")
           echo "Response code: $response"
-          if [ "$response" -ge 200 ] && [ "$response" -lt 400 ]; then
-            echo "Supabase is alive"
-          else
-            echo "Unexpected response: $response"
+          # Any HTTP response means the project is active (even 401/403)
+          # Only fail if curl returns 000 (no connection)
+          if [ "$response" = "000" ]; then
+            echo "No response - project may be down"
             exit 1
+          else
+            echo "Supabase is alive (response: $response)"
           fi
