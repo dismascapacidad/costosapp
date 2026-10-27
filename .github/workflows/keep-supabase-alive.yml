@@ -12,14 +12,12 @@ jobs:
     steps:
       - name: Ping Supabase REST API
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" \
+            "https://bvlztojamfzbplqudvim.supabase.co/auth/v1/health")
           echo "Response code: $response"
-          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
-            echo "✅ Supabase is alive"
+          if [ "$response" -ge 200 ] && [ "$response" -lt 400 ]; then
+            echo "Supabase is alive"
           else
-            echo "❌ Unexpected response: $response"
+            echo "Unexpected response: $response"
             exit 1
           fi
