@@ -390,16 +390,16 @@ function parsearCSVClientes(csvText) {
 function importarClientesDesdeCSV(csvText) {
   const nuevosClientes = parsearCSVClientes(csvText);
   const existentes = getClientes();
-  
+
   let agregados = 0;
   let omitidos = 0;
 
   nuevosClientes.forEach(nc => {
     // Verificar si ya existe por email
-    const existe = existentes.find(e => 
+    const existe = existentes.find(e =>
       e.email && nc.email && e.email.toLowerCase() === nc.email.toLowerCase()
     );
-    
+
     if (!existe) {
       agregarCliente(nc);
       agregados++;
@@ -409,6 +409,129 @@ function importarClientesDesdeCSV(csvText) {
   });
 
   return { agregados, omitidos, total: nuevosClientes.length };
+}
+
+// ── Importación desde Excel (TiendaNegocio) ───────────────────────────────────
+
+/**
+ * Normaliza un encabezado: sin tildes, minúsculas, espacios simples.
+ */
+function _normalizarHeader(h) {
+  return String(h || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Convierte una celda de fecha de Excel (serial numérico o texto) a DD/MM/YYYY,
+ * el formato que usa el resto del módulo para fechas de tienda.
+ * El serial es hora local sin zona, por eso se leen los campos en UTC.
+ */
+function _fechaExcelADDMMYYYY(valor) {
+  if (valor === '' || valor == null) return null;
+  if (typeof valor === 'number') {
+    const d = new Date(Math.round((valor - 25569) * 86400000));
+    if (isNaN(d.getTime())) return null;
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getUTCFullYear()}`;
+  }
+  const txt = String(valor).trim();
+  const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m ? `${m[1].padStart(2, '0')}/${m[2].padStart(2, '0')}/${m[3]}` : null;
+}
+
+/**
+ * Convierte filas del Excel de TiendaNegocio (array de objetos por encabezado)
+ * en clientes. Devuelve { clientes, sinContacto } (sin contacto = sin email ni teléfono).
+ *
+ * Columnas: Nombre, Apellido, Teléfono, Email, Fecha de nacimiento, DNI,
+ * Primera interacción, Total consumido, Cantidad de compras, Ultima compra,
+ * Lista de Precio, Registrado, Newsletter, Formulario.
+ */
+function parsearFilasTiendaNegocio(filas) {
+  const clientes = [];
+  let sinContacto = 0;
+
+  filas.forEach(fila => {
+    const f = {};
+    Object.keys(fila).forEach(k => { f[_normalizarHeader(k)] = fila[k]; });
+    const txt = k => (f[k] == null ? '' : String(f[k]).trim());
+
+    const nombre = [txt('nombre'), txt('apellido')].filter(Boolean).join(' ');
+    const email  = txt('email');
+    if (!nombre && !email) return;
+
+    const totalConsumido  = parseFloat(f['total consumido']) || 0;
+    const cantidadCompras = parseInt(f['cantidad de compras'], 10) || 0;
+    const ultimaCompra    = _fechaExcelADDMMYYYY(f['ultima compra']);
+    const lista           = txt('lista de precio');
+    const esMayorista     = lista.toLowerCase() === 'mayorista';
+
+    const notas = [
+      'Importado desde TiendaNegocio',
+      lista ? `Lista de precio: ${lista}` : null,
+      txt('dni') ? `DNI: ${txt('dni')}` : null,
+      txt('fecha de nacimiento') ? `Nacimiento: ${_fechaExcelADDMMYYYY(f['fecha de nacimiento']) || txt('fecha de nacimiento')}` : null,
+      txt('newsletter').toUpperCase() === 'SI' ? 'Suscripto al newsletter' : null,
+    ].filter(Boolean).join('\n');
+
+    try {
+      clientes.push(crearCliente({
+        nombre:   nombre || email,
+        email,
+        telefono: txt('telefono'),
+        tipo:     esMayorista ? 'distribuidor' : 'consumidor',
+        notas,
+        tags:     ['importado', 'tiendanegocio'].concat(esMayorista ? ['mayorista'] : []),
+        tiendanubeData: { totalConsumido, cantidadCompras, ultimaCompra },
+      }));
+    } catch (err) {
+      sinContacto++;
+    }
+  });
+
+  return { clientes, sinContacto };
+}
+
+/**
+ * Importa el Excel (.xlsx/.xls) exportado desde TiendaNegocio. Requiere SheetJS (XLSX).
+ * No duplica: omite clientes cuyo email o teléfono ya existe (en la app o en el mismo archivo).
+ * Persiste una sola vez al final.
+ */
+function importarClientesDesdeXLSX(arrayBuffer) {
+  if (typeof XLSX === 'undefined')
+    throw new Error('No se cargó la librería de Excel. Recargá la página e intentá de nuevo.');
+
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  const hoja = wb.Sheets[wb.SheetNames[0]];
+  const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
+  if (filas.length === 0) throw new Error('El Excel está vacío o no tiene datos.');
+
+  const cols = Object.keys(filas[0]).map(_normalizarHeader);
+  if (!cols.includes('email') || !cols.includes('telefono'))
+    throw new Error('No reconozco el formato. Se esperan columnas de TiendaNegocio (Nombre, Apellido, Teléfono, Email…).');
+
+  const { clientes, sinContacto } = parsearFilasTiendaNegocio(filas);
+
+  if (!window.AppData.clientes) window.AppData.clientes = [];
+  const existentes = window.AppData.clientes;
+  const emails = new Set(existentes.map(c => (c.email || '').toLowerCase()).filter(Boolean));
+  const tels   = new Set(existentes.map(c => (c.telefono || '').replace(/\D/g, '')).filter(Boolean));
+
+  let agregados = 0;
+  let omitidos = 0;
+  clientes.forEach(nc => {
+    const em = nc.email.toLowerCase();
+    const tel = nc.telefono.replace(/\D/g, '');
+    if ((em && emails.has(em)) || (tel && tels.has(tel))) { omitidos++; return; }
+    existentes.push(nc);
+    if (em) emails.add(em);
+    if (tel) tels.add(tel);
+    agregados++;
+  });
+
+  if (agregados > 0) saveData(window.AppData);
+  return { agregados, omitidos, sinContacto, total: filas.length };
 }
 
 // ── Segmentación RFM (Inteligencia Comercial) ────────────────────────────────
